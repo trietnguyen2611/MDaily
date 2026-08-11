@@ -1,0 +1,205 @@
+/* ============================================================
+   MDaily Responsive Layout
+   Mac Desktop: Floating panel design
+   iOS Mobile: Full-screen with bottom tabs
+   ============================================================ */
+
+/* ── Mac Desktop: Floating Panel ── */
+@media (min-width: 641px) {
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-canvas-parchment);
+    padding: var(--space-xl);
+  }
+
+  #app {
+    width: 420px;
+    max-height: 88vh;
+    min-height: 680px;
+    border-radius: 24px;
+    background: var(--color-canvas-parchment);
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.14),
+      0 8px 24px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #app-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+  }
+
+  .floating-nav {
+    position: sticky;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: var(--space-sm);
+  }
+
+  .view-header {
+    padding-top: var(--space-xl);
+  }
+
+  .view-header__total {
+    font-size: 40px;
+  }
+
+  .expense-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+
+  /* Chat view fills the panel */
+  .chat-container {
+    height: calc(88vh - 100px);
+    min-height: 580px;
+  }
+
+  /* Modal adjusts for floating panel */
+  .modal-overlay {
+    position: absolute;
+    border-radius: 24px;
+  }
+}
+
+/* ── iOS Mobile: Full Screen ── */
+@media (max-width: 640px) {
+  body {
+    background: var(--color-canvas-parchment);
+  }
+
+  #app {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  #app-content {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: 100px;
+  }
+
+  .floating-nav {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    border-radius: 0;
+    border-top: 1px solid var(--color-hairline);
+    border-bottom: none;
+    padding: var(--space-xs) var(--space-md);
+    padding-bottom: calc(var(--space-xs) + env(safe-area-inset-bottom, 0px));
+    justify-content: space-around;
+    gap: 0;
+    box-shadow: 0 -1px 10px rgba(0, 0, 0, 0.06);
+  }
+
+  .floating-nav__item {
+    width: auto;
+    flex: 1;
+    height: 48px;
+  }
+
+  .floating-nav__item--add {
+    width: 44px;
+    height: 44px;
+    flex: 0;
+  }
+
+  .view-header {
+    padding-top: calc(var(--space-xxl) + env(safe-area-inset-top, 0px));
+  }
+
+  .view-header__total {
+    font-size: 44px;
+  }
+
+  .expense-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Chat fills viewport */
+  .chat-container {
+    height: calc(100vh - 80px);
+    height: calc(100dvh - 80px);
+  }
+
+  /* Category grid: 2 columns */
+  .category-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── Small Phone ── */
+@media (max-width: 419px) {
+  .view-header__total {
+    font-size: 36px;
+  }
+
+  .stats-bar__card {
+    min-width: 120px;
+  }
+
+  .expense-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-xs);
+  }
+
+  .expense-card__amount {
+    font-size: 17px;
+  }
+}
+
+/* ── Tablet ── */
+@media (min-width: 641px) and (max-width: 1023px) {
+  #app {
+    width: 420px;
+  }
+}
+
+/* ── Large Desktop ── */
+@media (min-width: 1024px) {
+  body {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(0, 102, 204, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(168, 85, 247, 0.02) 0%, transparent 50%),
+      var(--color-canvas-parchment);
+  }
+}
+
+/* ── PWA Standalone ── */
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .view-header {
+    padding-top: calc(var(--space-lg) + env(safe-area-inset-top, 0px));
+  }
+}
+
+/* ── Prefers Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Dark Mode Support (future) ── */
+@media (prefers-color-scheme: dark) {
+  /* Reserved for dark mode */
+}
