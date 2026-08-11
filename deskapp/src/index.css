@@ -1,0 +1,182 @@
+:root {
+  /* Brand Colors */
+  --primary: #0066cc;
+  --primary-focus: #0071e3;
+  --primary-on-dark: #2997ff;
+  
+  /* Text Colors (Light Mode) */
+  --ink: #1d1d1f;
+  --body-text: #1d1d1f;
+  --body-on-dark: #ffffff;
+  --body-muted: #666666;
+  --ink-muted-80: #333333;
+  --ink-muted-48: #7a7a7a;
+  
+  /* Surfaces (Light Mode) */
+  --divider-soft: rgba(0, 0, 0, 0.08);
+  --hairline: rgba(0, 0, 0, 0.15);
+  --canvas: rgba(255, 255, 255, 0.3);
+  --canvas-parchment: transparent;
+  --surface-pearl: rgba(255, 255, 255, 0.5);
+  --surface-tile-1: #ffffff;
+  --surface-tile-2: #f5f5f7;
+  --surface-tile-3: #f5f5f7;
+  --surface-black: #000000;
+  --surface-chip-translucent: rgba(0, 0, 0, 0.05);
+  --on-primary: #ffffff;
+  --on-dark: #ffffff;
+  
+  /* Typography */
+  --font-display: "SF Pro Display", system-ui, -apple-system, sans-serif;
+  --font-body: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  
+  /* Spacing */
+  --spacing-xxs: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 17px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 11px;
+  --radius-lg: 18px;
+  --radius-pill: 9999px;
+  
+  /* Shadow (Only for floating objects/images) */
+  --shadow-product: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
+  
+  font-family: var(--font-body);
+  color: var(--body-text);
+  font-size: 17px;
+  line-height: 1.47;
+  letter-spacing: -0.374px;
+  -webkit-font-smoothing: antialiased;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #ffffff;
+    --body-text: #ffffff;
+    --body-muted: #a1a1a6;
+    --divider-soft: rgba(255, 255, 255, 0.1);
+    --hairline: rgba(255, 255, 255, 0.15);
+    
+    --canvas: rgba(30, 30, 30, 0.3);
+    --canvas-parchment: transparent;
+    --surface-pearl: rgba(40, 40, 40, 0.4);
+    --surface-tile-1: #272729;
+    --surface-tile-2: #2a2a2c;
+    --surface-tile-3: #252527;
+    --surface-chip-translucent: rgba(60, 60, 65, 0.64);
+  }
+}
+
+
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden; /* No body scroll */
+  background-color: transparent; /* Required for Electron Vibrancy */
+}
+
+/* Draggable area for macOS hiddenInset traffic lights */
+.titlebar-drag-region {
+  -webkit-app-region: drag;
+  height: 38px;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+}
+
+/* The main container limits scroll */
+#root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas-parchment); /* Base frosted glass */
+  position: relative;
+  overflow: hidden;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  margin: 0;
+}
+
+h1 {
+  font-size: 40px; /* display-lg */
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+h2 {
+  font-size: 34px; /* display-md */
+  letter-spacing: -0.374px;
+}
+
+h3 {
+  font-size: 21px; /* tagline */
+  letter-spacing: 0.231px;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: transform 0.15s ease, background 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--on-primary);
+  border-radius: var(--radius-pill);
+  padding: 11px 22px;
+  font-size: 17px;
+}
+
+.btn-utility {
+  background-color: var(--surface-pearl);
+  color: var(--ink);
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  font-size: 14px;
+  border: 1px solid var(--divider-soft);
+}
+
+.btn-icon {
+  background-color: var(--surface-chip-translucent);
+  color: var(--ink);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--spacing-xl);
+  padding-top: 48px; /* space for traffic lights */
+  -webkit-app-region: no-drag;
+}

@@ -1,0 +1,127 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.dashboard-header {
+  text-align: left;
+}
+
+.dashboard-header p {
+  color: var(--body-muted);
+  font-size: 21px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-xxl);
+  color: var(--body-muted);
+}
+
+.expense-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-lg);
+  padding-bottom: 100px; /* Space for floating buttons */
+}
+
+.expense-card {
+  background: var(--canvas);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-product);
+  transition: transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--divider-soft);
+  position: relative;
+}
+
+.expense-card:hover {
+  transform: translateY(-2px);
+}
+
+.expense-photo {
+  height: 200px;
+  position: relative;
+  background: #000;
+}
+
+.expense-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ai-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 102, 204, 0.9); /* Primary color */
+  color: white;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+.delete-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  background: #ff3b30;
+  color: white;
+  opacity: 0;
+  z-index: 10;
+  box-shadow: 0 0 12px rgba(255, 59, 48, 0.6), 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.delete-btn:hover {
+  background: #ff2d21;
+  color: white;
+  transform: scale(1.12);
+  box-shadow: 0 0 20px rgba(255, 59, 48, 0.95), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.expense-card:hover .delete-btn {
+  opacity: 1;
+}
+
+.expense-info {
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.expense-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--body-muted);
+  font-size: 14px;
+}
+
+.category {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink);
+}
+
+.expense-info h3 {
+  font-size: 24px;
+  margin: 0;
+  color: var(--ink);
+}
+
+.note {
+  color: var(--body-muted);
+  font-size: 14px;
+  margin: 0;
+}
