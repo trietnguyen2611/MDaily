@@ -1,0 +1,8 @@
+{
+  "appId": "com.mdaily.expense",
+  "appName": "MDaily",
+  "webDir": "dist",
+  "server": {
+    "cleartext": true
+  }
+}
