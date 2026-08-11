@@ -30,7 +30,6 @@
   background: var(--canvas);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-product);
   transition: transform 0.2s;
   display: flex;
   flex-direction: column;
@@ -73,19 +72,36 @@
   right: 12px;
   width: 34px;
   height: 34px;
-  background: #ff3b30;
-  color: white;
+  background: linear-gradient(145deg, rgba(255, 89, 78, 0.9), rgba(220, 39, 28, 0.85));
+  color: #ffffff;
+  border: 1px solid rgba(255, 59, 48, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 
+    0 4px 10px rgba(255, 59, 48, 0.4), 
+    inset 0 2px 0 rgba(255, 255, 255, 0.3), 
+    inset 0 -2px 0 rgba(0, 0, 0, 0.1);
   opacity: 0;
   z-index: 10;
-  box-shadow: 0 0 12px rgba(255, 59, 48, 0.6), 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: opacity 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .delete-btn:hover {
-  background: #ff2d21;
+  background: linear-gradient(145deg, rgba(255, 99, 88, 0.95), rgba(240, 49, 38, 0.9));
+  border-color: rgba(255, 69, 58, 0.8);
   color: white;
-  transform: scale(1.12);
-  box-shadow: 0 0 20px rgba(255, 59, 48, 0.95), 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 6px 15px rgba(255, 69, 58, 0.6),
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+  transform: scale(1.12) translateY(-1px);
+}
+
+.delete-btn:active {
+  transform: scale(0.95) translateY(2px);
+  box-shadow: 
+    0 2px 5px rgba(255, 59, 48, 0.4),
+    inset 0 3px 5px rgba(0, 0, 0, 0.2);
 }
 
 .expense-card:hover .delete-btn {

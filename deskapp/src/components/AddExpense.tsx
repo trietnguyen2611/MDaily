@@ -1,50 +1,149 @@
 import React, { useState, useRef } from 'react'
-import { Camera, Upload, Loader2, Wand2 } from 'lucide-react'
+import { Camera, Upload, Loader2, Wand2, X, Plus } from 'lucide-react'
 import type { Expense } from '../types'
 import { extractTextFromImage, processReceiptWithAI } from '../services/ai'
+import { CustomSelect } from './CustomSelect'
+import type { SelectOption } from './CustomSelect'
 import './AddExpense.css'
 
 interface AddExpenseProps {
   onCancel: () => void
   onSave: (expense: Omit<Expense, 'id' | 'date'>) => void
+  categoryOptions: SelectOption[]
+  onAddCategory: (label: string) => void
 }
 
-export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave }) => {
+export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, categoryOptions, onAddCategory }) => {
+  const [isAddingCategory, setIsAddingCategory] = useState(false)
+  const [newCategoryLabel, setNewCategoryLabel] = useState('')
   const [amount, setAmount] = useState<string>('')
   const [category, setCategory] = useState<string>('shopping')
   const [note, setNote] = useState<string>('')
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  
+
   const [isAiProcessed, setIsAiProcessed] = useState(false)
   const [isAiProcessing, setIsAiProcessing] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const decodeHeicWithHeicDecode = async (fileToConvert: File): Promise<Blob> => {
+    const decodeModule = await import('heic-decode')
+    let decodeFunc: any = decodeModule
+    while (decodeFunc && typeof decodeFunc !== 'function' && decodeFunc.default) {
+      decodeFunc = decodeFunc.default
+    }
+
+    const arrayBuffer = await fileToConvert.arrayBuffer()
+    const { width, height, data } = await decodeFunc({ buffer: new Uint8Array(arrayBuffer) })
+
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Canvas 2D context null')
+
+    const imageData = ctx.createImageData(width, height)
+    imageData.data.set(data)
+    ctx.putImageData(imageData, 0, 0)
+
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob)
+        else reject(new Error('Canvas toBlob failed'))
+      }, 'image/jpeg', 0.85)
+    })
+  }
+
+  const convertHeicViaCanvas = (fileToConvert: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(fileToConvert)
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth || img.width
+        canvas.height = img.naturalHeight || img.height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          URL.revokeObjectURL(url)
+          return reject(new Error('Canvas context null'))
+        }
+        ctx.drawImage(img, 0, 0)
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url)
+          if (blob) resolve(blob)
+          else reject(new Error('Canvas toBlob failed'))
+        }, 'image/jpeg', 0.85)
+      }
+      img.onerror = (err) => {
+        URL.revokeObjectURL(url)
+        reject(err)
+      }
+      img.src = url
+    })
+  }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     let file = e.target.files?.[0]
     if (!file) return
 
     setIsConverting(true)
-    
-    const isHeic = file.type.toLowerCase().includes('heic') || 
-                   file.type.toLowerCase().includes('heif') ||
-                   file.name.toLowerCase().endsWith('.heic') ||
-                   file.name.toLowerCase().endsWith('.heif');
+
+    const isHeic = file.type.toLowerCase().includes('heic') ||
+      file.type.toLowerCase().includes('heif') ||
+      file.name.toLowerCase().endsWith('.heic') ||
+      file.name.toLowerCase().endsWith('.heif');
 
     if (isHeic) {
+      let convertedSuccess = false
+
+      // 1. Try heic2any library first
       try {
         const heic2anyModule = await import('heic2any')
-        const convert = heic2anyModule.default || heic2anyModule
-        const convertedBlob = await convert({
-          blob: file,
-          toType: 'image/jpeg',
-          quality: 0.7
-        })
-        const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
-        file = new File([blob], file.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
+        let convert: any = heic2anyModule
+        while (convert && typeof convert !== 'function' && convert.default) {
+          convert = convert.default
+        }
+
+        if (typeof convert === 'function') {
+          const convertedResult = await convert({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.8,
+            multiple: false
+          })
+
+          const blob = Array.isArray(convertedResult) ? convertedResult[0] : convertedResult
+          file = new File([blob], file.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
+          convertedSuccess = true
+        }
       } catch (error: any) {
-        console.error('HEIC conversion failed:', error)
-        alert(`Không thể chuyển đổi ảnh HEIC: ${error?.message || error?.toString() || 'Lỗi không xác định'}`)
+        console.warn('heic2any failed, trying heic-decode pixel pipeline:', error)
+      }
+
+      // 2. Try heic-decode (decodes raw RGBA pixels directly, supports iPhone HEVC format)
+      if (!convertedSuccess) {
+        try {
+          const jpegBlob = await decodeHeicWithHeicDecode(file)
+          file = new File([jpegBlob], file.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
+          convertedSuccess = true
+        } catch (heicDecodeErr) {
+          console.warn('heic-decode pipeline failed, trying Canvas fallback:', heicDecodeErr)
+        }
+      }
+
+      // 3. Fallback to Canvas decoding
+      if (!convertedSuccess) {
+        try {
+          const jpegBlob = await convertHeicViaCanvas(file)
+          file = new File([jpegBlob], file.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
+          convertedSuccess = true
+        } catch (canvasErr) {
+          console.error('Canvas HEIC fallback failed:', canvasErr)
+        }
+      }
+
+      if (!convertedSuccess) {
+        alert('Không thể chuyển đổi định dạng ảnh HEIC này. Vui lòng thử lại hoặc chọn tệp JPG/PNG.')
         setIsConverting(false)
         return
       }
@@ -71,13 +170,17 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave }) => {
     setIsAiProcessing(true)
     try {
       const text = await extractTextFromImage(photoPreview)
-      const aiData = await processReceiptWithAI(text)
-      if (aiData.amount) setAmount(aiData.amount.toLocaleString('en-US'))
-      if (aiData.category) setCategory(aiData.category)
+      const aiData = await processReceiptWithAI(text, categoryOptions)
+      if (aiData.amount && aiData.amount > 0) {
+        setAmount(aiData.amount.toLocaleString('en-US'))
+      }
+      if (aiData.category) {
+        setCategory(aiData.category)
+      }
       setIsAiProcessed(true)
     } catch (err) {
-      console.error(err)
-      alert('MDaily AI failed to process the image.')
+      console.error('AI Processing Error:', err)
+      alert('Không thể trích xuất dữ liệu từ ảnh. Hãy thử chọn ảnh hoá đơn rõ nét hơn.')
     } finally {
       setIsAiProcessing(false)
     }
@@ -86,7 +189,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave }) => {
   const handleSave = () => {
     const rawNumeric = parseFloat(amount.replace(/,/g, ''))
     if (!photoPreview || isNaN(rawNumeric) || rawNumeric <= 0) {
-      alert('Vui lòng chọn ảnh và nhập số tiền hợp lệ')
+      alert('Chọn ảnh và nhập số tiền hợp lệ')
       return
     }
     onSave({
@@ -100,8 +203,6 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave }) => {
 
   return (
     <div className="add-expense-container">
-      <h2>Thêm chi tiêu mới</h2>
-      
       <div className="add-expense-body">
         <div className="add-expense-left">
           {!photoPreview ? (
@@ -119,20 +220,23 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave }) => {
               )}
             </div>
           ) : (
-            <div className="preview-area">
-              <img src={photoPreview} alt="Preview" className="preview-image" />
-              <button className="btn-icon change-photo" onClick={() => setPhotoPreview(null)}>
-                <Upload size={20} />
-              </button>
-              <button 
-                className={`btn-utility ai-button ${isAiProcessing ? 'loading' : ''}`}
+            <>
+              <div className="preview-area">
+                <img src={photoPreview} alt="Preview" className="preview-image" />
+                <button type="button" className="btn-icon change-photo" onClick={() => setPhotoPreview(null)} title="Bỏ ảnh này">
+                  <X size={20} />
+                </button>
+              </div>
+              <button
+                type="button"
+                className={`btn-ai-extract ${isAiProcessing ? 'loading' : ''}`}
                 onClick={handleProcessAI}
                 disabled={isAiProcessing}
               >
-                {isAiProcessing ? <Loader2 className="spinner" size={16} /> : <Wand2 size={16} />}
-                <span>MDaily AI Tự động trích xuất</span>
+                {isAiProcessing ? <Loader2 className="spinner" size={20} /> : <Wand2 size={20} />}
+                <span>{isAiProcessing ? 'Đang trích xuất dữ liệu...' : 'Tự động trích xuất'}</span>
               </button>
-            </div>
+            </>
           )}
           <input type="file" ref={fileInputRef} hidden accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif" onChange={handleFileChange} />
         </div>
@@ -140,22 +244,79 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave }) => {
         <div className="add-expense-right">
           <div className="form-group">
             <label>Số tiền (VNĐ)</label>
-            <input 
-              type="text" 
-              value={amount} 
-              onChange={e => setAmount(formatAmountInput(e.target.value))} 
+            <input
+              type="text"
+              value={amount}
+              onChange={e => setAmount(formatAmountInput(e.target.value))}
               placeholder="Ví dụ: 50,000"
             />
           </div>
 
           <div className="form-group">
             <label>Danh mục</label>
-            <select value={category} onChange={e => setCategory(e.target.value)}>
-              <option value="bills">Hoá đơn</option>
-              <option value="shopping">Mua sắm</option>
-              <option value="food">Ăn uống</option>
-              <option value="transport">Di chuyển</option>
-            </select>
+            <CustomSelect
+              options={categoryOptions}
+              value={category}
+              onChange={setCategory}
+            />
+            {!isAddingCategory ? (
+              <button
+                type="button"
+                className="btn-add-category"
+                onClick={() => setIsAddingCategory(true)}
+              >
+                <Plus size={14} /> Thêm danh mục mới
+              </button>
+            ) : (
+              <div className="add-category-inline">
+                <input
+                  type="text"
+                  value={newCategoryLabel}
+                  onChange={e => setNewCategoryLabel(e.target.value)}
+                  placeholder="Tên danh mục mới..."
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newCategoryLabel.trim()) {
+                      onAddCategory(newCategoryLabel.trim())
+                      setCategory(newCategoryLabel.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))
+                      setNewCategoryLabel('')
+                      setIsAddingCategory(false)
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className="btn-confirm-category"
+                  onClick={() => {
+                    if (newCategoryLabel.trim()) {
+                      onAddCategory(newCategoryLabel.trim())
+                      setCategory(newCategoryLabel.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''))
+                      setNewCategoryLabel('')
+                      setIsAddingCategory(false)
+                    }
+                  }}
+                >
+                  Thêm
+                </button>
+                <button
+                  type="button"
+                  className="btn-cancel-category"
+                  onClick={() => { setIsAddingCategory(false); setNewCategoryLabel('') }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label>Ghi chú (Tùy chọn)</label>
+            <input
+              type="text"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Nhập ghi chú..."
+            />
           </div>
 
           <div className="form-actions">

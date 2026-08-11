@@ -5,6 +5,15 @@ import renderer from 'vite-plugin-electron-renderer'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    proxy: {
+      '/jan-api': {
+        target: 'http://127.0.0.1:1337',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/jan-api/, '')
+      }
+    }
+  },
   plugins: [
     react(),
     electron([

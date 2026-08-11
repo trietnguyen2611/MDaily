@@ -1,50 +1,38 @@
-import { BrowserWindow, app, ipcMain, nativeTheme } from "electron";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { BrowserWindow as e, app as t, ipcMain as n, nativeTheme as r } from "electron";
+import i from "node:path";
+import { fileURLToPath as a } from "node:url";
 //#region electron/main.ts
-var __dirname = path.dirname(fileURLToPath(import.meta.url));
-process.env.DIST = path.join(__dirname, "../dist");
-process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
-var win;
-var VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-function createWindow() {
-	win = new BrowserWindow({
-		icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+var o = i.dirname(a(import.meta.url));
+process.env.DIST = i.join(o, "../dist"), process.env.VITE_PUBLIC = t.isPackaged ? process.env.DIST : i.join(process.env.DIST, "../public");
+var s, c = process.env.VITE_DEV_SERVER_URL;
+function l() {
+	s = new e({
+		icon: i.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
 		width: 1e3,
 		height: 700,
+		minWidth: 850,
+		minHeight: 600,
 		titleBarStyle: "hiddenInset",
 		vibrancy: "under-window",
 		visualEffectState: "active",
-		transparent: true,
+		transparent: !0,
 		backgroundColor: "#00000000",
 		webPreferences: {
-			preload: path.join(__dirname, "preload.js"),
-			nodeIntegration: true,
-			contextIsolation: false,
-			webSecurity: false
+			preload: i.join(o, "preload.js"),
+			nodeIntegration: !0,
+			contextIsolation: !1,
+			webSecurity: !1
 		}
-	});
-	win.webContents.on("did-finish-load", () => {
-		win?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-	});
-	if (VITE_DEV_SERVER_URL) win.loadURL(VITE_DEV_SERVER_URL);
-	else win.loadFile(path.join(process.env.DIST, "index.html"));
-	nativeTheme.on("updated", () => {
-		win?.webContents.send("theme-changed", nativeTheme.shouldUseDarkColors ? "dark" : "light");
+	}), s.webContents.on("did-finish-load", () => {
+		s?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+	}), c ? s.loadURL(c) : s.loadFile(i.join(process.env.DIST, "index.html")), r.on("updated", () => {
+		s?.webContents.send("theme-changed", r.shouldUseDarkColors ? "dark" : "light");
 	});
 }
-app.on("window-all-closed", () => {
-	if (process.platform !== "darwin") {
-		app.quit();
-		win = null;
-	}
-});
-app.on("activate", () => {
-	if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
-app.whenReady().then(createWindow);
-ipcMain.handle("get-system-theme", () => {
-	return nativeTheme.shouldUseDarkColors ? "dark" : "light";
-});
+t.on("window-all-closed", () => {
+	process.platform !== "darwin" && (t.quit(), s = null);
+}), t.on("activate", () => {
+	e.getAllWindows().length === 0 && l();
+}), t.whenReady().then(l), n.handle("get-system-theme", () => r.shouldUseDarkColors ? "dark" : "light");
 //#endregion
 export {};

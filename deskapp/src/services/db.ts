@@ -33,6 +33,13 @@ export const deleteExpense = async (id: string): Promise<Expense[]> => {
   return updated
 }
 
+export const updateExpense = async (updatedExpense: Expense): Promise<Expense[]> => {
+  const expenses = await getExpenses()
+  const updatedList = expenses.map(e => e.id === updatedExpense.id ? updatedExpense : e)
+  await localforage.setItem(DB_KEY, updatedList)
+  return updatedList
+}
+
 export const clearExpenses = async () => {
   await localforage.removeItem(DB_KEY)
 }

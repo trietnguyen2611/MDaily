@@ -1,23 +1,28 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react'
+import { MessageCircle, X, Send, Loader2, Trash2 } from 'lucide-react'
 import { chatWithAI } from '../services/ai'
 import type { Expense, ChatMessage } from '../types'
+import { getCategoryLabel } from '../services/categories'
+import type { CategoryItem } from '../services/categories'
 import './Chatbot.css'
 
 interface ChatbotProps {
   expenses: Expense[]
+  categories: CategoryItem[]
   isOpen: boolean
   onClose: () => void
 }
 
-export const Chatbot: React.FC<ChatbotProps> = ({ expenses, isOpen, onClose }) => {
+const INITIAL_MESSAGE: ChatMessage = {
+  id: '1',
+  role: 'assistant',
+  content: 'Mày mở app lên làm gì? Lại định tiêu tiền vớ vẩn gì nữa đúng không? Khai mau, nay mày đã phung phí bao nhiêu tiền rồi!'
+}
+
+export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, onClose }) => {
   const [shouldRender, setShouldRender] = useState(isOpen)
   const [isClosing, setIsClosing] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([{
-    id: '1',
-    role: 'assistant',
-    content: 'Chào bạn, tôi là MDaily AI. Bạn cần tư vấn gì về chi tiêu hôm nay?'
-  }])
+  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -41,34 +46,56 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, isOpen, onClose }) =
   const handleSend = async () => {
     if (!input.trim()) return
     const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', content: input }
-    setMessages(prev => [...prev, userMsg])
+    const assistantId = (Date.now() + 1).toString()
+    const typingMsg: ChatMessage = { id: assistantId, role: 'assistant', content: '' }
+    
+    // Snapshot the conversation before adding the empty typing message for the API
+    const apiMessages = [...messages, userMsg]
+    
+    setMessages(prev => [...prev, userMsg, typingMsg])
     setInput('')
     setIsLoading(true)
 
     // Build context
-    const context = expenses.map(e => `${new Date(e.date).toLocaleDateString()}: ${e.category} - ${e.amount}đ`).join('\n')
+    const formatDate = (dateStr: string) => {
+      const d = new Date(dateStr)
+      if (isNaN(d.getTime())) return dateStr
+      const day = String(d.getDate()).padStart(2, '0')
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const year = d.getFullYear()
+      return `${day}/${month}/${year}`
+    }
+    const context = expenses.map(e => `${formatDate(e.date)}: ${getCategoryLabel(categories, e.category)} - ${e.amount.toLocaleString('vi-VN')} VND`).join('\n')
 
     try {
       const responseText = await chatWithAI(
-        [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
-        context
+        apiMessages.map(m => ({ role: m.role, content: m.content })),
+        context,
+        (currentText) => {
+          setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: currentText } : m))
+        }
       )
 
-      const assistantMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: responseText
-      }
-      setMessages(prev => [...prev, assistantMsg])
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: responseText } : m))
     } catch (e) {
       console.error(e)
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: '⚠️ Đã xảy ra lỗi kết nối.' } : m))
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleClearHistory = () => {
+    if (messages.length <= 1) return
+    if (confirm('Xoá toàn bộ lịch sử trò chuyện?')) {
+      setMessages([{
+        ...INITIAL_MESSAGE,
+        id: Date.now().toString()
+      }])
+    }
+  }
+
   const handleClose = () => {
-    // Just call onClose, the useEffect will handle the animation
     onClose()
   }
 
@@ -78,23 +105,33 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, isOpen, onClose }) =
         <div className={`chatbot-window ${isClosing ? 'closing' : ''}`}>
           <div className="chatbot-header">
             <h3>MDaily AI</h3>
-            <button className="btn-icon small" onClick={handleClose}>
-              <X size={16} />
-            </button>
+            <div className="chatbot-header-actions">
+              <button
+                className="btn-icon small"
+                onClick={handleClearHistory}
+                title="Xoá lịch sử trò chuyện"
+                disabled={messages.length <= 1}
+              >
+                <Trash2 size={16} />
+              </button>
+              <button className="btn-icon small" onClick={handleClose} title="Đóng">
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           <div className="chatbot-messages">
             {messages.map(msg => (
               <div key={msg.id} className={`message ${msg.role}`}>
-                <p>{msg.content}</p>
+                {msg.content ? (
+                  <p>{msg.content}</p>
+                ) : (
+                  <div className="loading-indicator">
+                    <Loader2 size={16} className="spinner" />
+                  </div>
+                )}
               </div>
             ))}
-            {isLoading && (
-              <div className="message assistant loading">
-                <Loader2 size={16} className="spinner" />
-                <span>MDaily AI đang trả lời...</span>
-              </div>
-            )}
             <div ref={endRef} />
           </div>
 

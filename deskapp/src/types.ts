@@ -1,4 +1,4 @@
-export type Category = 'bills' | 'shopping' | 'food' | 'transport'
+export type Category = string
 
 export interface Expense {
   id: string

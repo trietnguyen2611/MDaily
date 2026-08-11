@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Home, Settings, PieChart, Plus, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Home, Settings, Tag, Plus, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import './Sidebar.css'
 
 interface SidebarProps {
@@ -51,10 +51,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
         <button 
           className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`}
           onClick={() => onTabChange('reports')}
-          title="Báo cáo"
+          title="Phân loại"
         >
-          <PieChart size={20} />
-          {!isCollapsed && <span>Báo cáo</span>}
+          <Tag size={20} />
+          {!isCollapsed && <span>Phân loại</span>}
         </button>
         <button 
           className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}

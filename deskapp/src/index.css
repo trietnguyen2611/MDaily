@@ -45,8 +45,8 @@
   --radius-lg: 18px;
   --radius-pill: 9999px;
   
-  /* Shadow (Only for floating objects/images) */
-  --shadow-product: rgba(0, 0, 0, 0.22) 3px 5px 30px 0;
+  /* Shadow (Disabled completely as requested) */
+  --shadow-product: none;
   
   font-family: var(--font-body);
   color: var(--body-text);
@@ -72,6 +72,7 @@
     --surface-tile-2: #2a2a2c;
     --surface-tile-3: #252527;
     --surface-chip-translucent: rgba(60, 60, 65, 0.64);
+    --shadow-product: none;
   }
 }
 
@@ -172,11 +173,38 @@ button:active {
   backdrop-filter: blur(10px);
 }
 
-.scroll-container {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: var(--spacing-xl);
-  padding-top: 48px; /* space for traffic lights */
-  -webkit-app-region: no-drag;
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding: 10px 36px 10px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline);
+  background-color: var(--surface-pearl);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+select:hover {
+  background-color: var(--surface-tile-1);
+  border-color: var(--primary);
+}
+
+select:focus {
+  border-color: var(--primary-focus);
+}
+
+select option {
+  background-color: var(--surface-tile-1);
+  color: var(--ink);
+  padding: 8px 12px;
 }

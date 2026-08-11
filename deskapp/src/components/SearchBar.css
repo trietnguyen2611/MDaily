@@ -11,14 +11,12 @@
   border-radius: var(--radius-pill);
   padding: 8px 16px;
   width: 300px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   backdrop-filter: blur(10px);
-  transition: box-shadow 0.2s, border-color 0.2s;
+  transition: border-color 0.2s;
 }
 
 .search-bar:focus-within {
   border-color: var(--primary-focus);
-  box-shadow: 0 4px 15px rgba(0, 102, 204, 0.15);
 }
 
 .search-icon {

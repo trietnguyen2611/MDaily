@@ -24,7 +24,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 8px;
-  margin-bottom: 32px;
+  height: 32px;
+  margin-bottom: 20px;
   -webkit-app-region: no-drag;
 }
 

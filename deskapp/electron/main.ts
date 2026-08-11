@@ -25,6 +25,8 @@ function createWindow() {
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
     width: 1000,
     height: 700,
+    minWidth: 850,
+    minHeight: 600,
     titleBarStyle: 'hiddenInset',
     vibrancy: 'under-window', // macOS native blur effect
     visualEffectState: 'active',
