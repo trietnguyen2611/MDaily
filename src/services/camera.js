@@ -1,121 +1,81 @@
-/* ============================================================
-   MDaily — Camera Service
-   Handles image capture and file upload
-   ============================================================ */
-
 /**
- * Capture image from camera
- * @returns {Promise<string>} - Base64 data URL of captured image
+ * Camera & Image File Import Service
+ * Supports device webcam live capture and local image file selection.
  */
-export async function captureFromCamera() {
-  return new Promise((resolve, reject) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment'; // Use rear camera on mobile
 
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file) {
-        reject(new Error('Không có ảnh được chọn'));
-        return;
-      }
+export const cameraService = {
+  /**
+   * Read file input to Data URL with canvas compression
+   */
+  readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 1000;
 
-      try {
-        const dataUrl = await processImage(file);
-        resolve(dataUrl);
-      } catch (err) {
-        reject(err);
-      }
-    };
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
 
-    input.click();
-  });
-}
-
-/**
- * Select image from file system
- * @returns {Promise<string>} - Base64 data URL
- */
-export async function selectFromGallery() {
-  return new Promise((resolve, reject) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-
-    input.onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file) {
-        reject(new Error('Không có ảnh được chọn'));
-        return;
-      }
-
-      try {
-        const dataUrl = await processImage(file);
-        resolve(dataUrl);
-      } catch (err) {
-        reject(err);
-      }
-    };
-
-    input.click();
-  });
-}
-
-/**
- * Process and compress an image file
- * @param {File} file
- * @param {number} maxWidth - Maximum width in pixels
- * @param {number} quality - JPEG quality (0-1)
- * @returns {Promise<string>} - Base64 data URL
- */
-export async function processImage(file, maxWidth = 1200, quality = 0.85) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let { width, height } = img;
-
-        // Resize if larger than maxWidth
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(dataUrl);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.85));
+        };
+        img.src = e.target.result;
       };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  },
 
-      img.onerror = () => reject(new Error('Không thể đọc ảnh'));
-      img.src = e.target.result;
-    };
+  /**
+   * Start webcam video stream on video element
+   */
+  async startCamera(videoElement) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      videoElement.srcObject = stream;
+      await videoElement.play();
+      return stream;
+    } catch (err) {
+      console.warn('Camera stream not accessible:', err);
+      return null;
+    }
+  },
 
-    reader.onerror = () => reject(new Error('Không thể đọc file'));
-    reader.readAsDataURL(file);
-  });
-}
+  /**
+   * Capture photo frame from video element
+   */
+  captureFromVideo(videoElement) {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoElement.videoWidth || 640;
+    canvas.height = videoElement.videoHeight || 480;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.85);
+  },
 
-/**
- * Handle drag-and-drop image
- * @param {DragEvent} event
- * @returns {Promise<string>} - Base64 data URL
- */
-export async function handleDrop(event) {
-  event.preventDefault();
-  const file = event.dataTransfer.files[0];
-
-  if (!file || !file.type.startsWith('image/')) {
-    throw new Error('Vui lòng chọn file ảnh');
+  /**
+   * Stop webcam video stream
+   */
+  stopCamera(stream) {
+    if (stream && stream.getTracks) {
+      stream.getTracks().forEach((track) => track.stop());
+    }
   }
-
-  return await processImage(file);
-}
+};

@@ -1,0 +1,356 @@
+/* macOS Intel Floating Design Stylesheet */
+.mac-environment {
+  width: 100vw;
+  height: 100vh;
+  background: radial-gradient(circle at 50% 20%, #1e2430 0%, #0d0f14 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px 20px 20px;
+  overflow: hidden;
+}
+
+.mac-window {
+  width: 100%;
+  max-width: 1240px;
+  height: calc(100vh - 80px);
+  max-height: 880px;
+  background: var(--color-glass-bg);
+  backdrop-filter: blur(30px) saturate(190%);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* macOS Titlebar & Traffic Lights */
+.mac-titlebar {
+  height: 44px;
+  background: rgba(245, 245, 247, 0.6);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  user-select: none;
+}
+
+.traffic-lights {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.traffic-light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: inset 0 0 2px rgba(0,0,0,0.2);
+}
+
+.light-close { background: #ff5f56; border: 0.5px solid #e0443e; }
+.light-minimize { background: #ffbd2e; border: 0.5px solid #dea123; }
+.light-maximize { background: #27c93f; border: 0.5px solid #1aab29; }
+
+.mac-window-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink-muted-80);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mac-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.avatar-mini {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* macOS Window Body Layout */
+.mac-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: #f5f5f7;
+}
+
+/* macOS Floating Sidebar */
+.mac-sidebar {
+  width: 240px;
+  background: rgba(240, 240, 245, 0.65);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.mac-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mac-nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-ink-muted-48);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px;
+}
+
+.mac-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mac-nav-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.mac-nav-item.active {
+  background: var(--color-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.mac-nav-item.active .material-symbols-outlined {
+  color: #ffffff;
+}
+
+/* macOS Main Workspace */
+.mac-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.mac-header-bar {
+  padding: 20px 28px 16px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-divider-soft);
+}
+
+.mac-header-title h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--color-ink);
+}
+
+.mac-header-title p {
+  font-size: 13px;
+  color: var(--color-ink-muted-48);
+  margin-top: 2px;
+}
+
+.mac-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Filter Pills */
+.mac-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: #fafafc;
+  border-bottom: 1px solid var(--color-divider-soft);
+  overflow-x: auto;
+}
+
+.filter-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(0,0,0,0.04);
+  color: var(--color-ink-muted-80);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.filter-pill.active {
+  background: var(--color-ink);
+  color: #ffffff;
+}
+
+/* Stats Floating Grid */
+.mac-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 20px 28px 10px 28px;
+}
+
+.mac-stat-card {
+  background: #f8f8fa;
+  border-radius: 14px;
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-ink-muted-48);
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin-top: 8px;
+  letter-spacing: -0.5px;
+}
+
+/* Photo Museum Feed Grid */
+.mac-content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px;
+}
+
+.mac-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.expense-card-photo {
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  position: relative;
+}
+
+.expense-card-photo:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-photo);
+}
+
+.photo-wrapper {
+  width: 100%;
+  height: 180px;
+  position: relative;
+  background: #111;
+  overflow: hidden;
+}
+
+.photo-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.expense-card-photo:hover .photo-wrapper img {
+  transform: scale(1.05);
+}
+
+.photo-badge-category {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.photo-device-tag {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+}
+
+.expense-card-details {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.expense-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.expense-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-ink-muted-48);
+}
+
+.expense-card-amount {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: -0.3px;
+}

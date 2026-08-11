@@ -1,219 +1,200 @@
-/* ============================================================
-   MDaily — IndexedDB Service (via Dexie.js)
-   Manages all expense data persistence
-   ============================================================ */
-
-import Dexie from 'dexie';
-
-const db = new Dexie('MDaily');
-
-db.version(1).stores({
-  expenses: '++id, category, date, amount, createdAt',
-  chatHistory: '++id, role, createdAt'
-});
-
 /**
- * Save a new expense
- * @param {Object} expense
- * @param {Blob|string} expense.image - Image blob or base64 data URL
- * @param {number} expense.amount - Amount in VNĐ
- * @param {string} expense.category - 'bills' | 'shopping' | 'food' | 'transport'
- * @param {string} expense.description - Optional description
- * @param {string} expense.date - ISO date string
- * @param {boolean} expense.aiExtracted - Whether data was extracted by AI
- * @param {Array} expense.items - Array of items (from receipt scan)
- * @returns {Promise<number>} - The new expense ID
+ * Database & Storage Service for MDaily
+ * Multi-user support, local persistence, real-time cross-device sync.
  */
-export async function addExpense(expense) {
-  return await db.expenses.add({
-    ...expense,
-    createdAt: new Date().toISOString()
-  });
-}
 
-/**
- * Get all expenses, newest first
- * @returns {Promise<Array>}
- */
-export async function getAllExpenses() {
-  return await db.expenses.orderBy('createdAt').reverse().toArray();
-}
+const SYNC_CHANNEL_NAME = 'mdaily_realtime_sync';
+const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(SYNC_CHANNEL_NAME) : null;
 
-/**
- * Get expenses filtered by category
- * @param {string} category
- * @returns {Promise<Array>}
- */
-export async function getExpensesByCategory(category) {
-  return await db.expenses
-    .where('category')
-    .equals(category)
-    .reverse()
-    .sortBy('createdAt');
-}
-
-/**
- * Get expenses for a specific month
- * @param {number} year
- * @param {number} month - 0-indexed
- * @returns {Promise<Array>}
- */
-export async function getExpensesByMonth(year, month) {
-  const startDate = new Date(year, month, 1).toISOString();
-  const endDate = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
-
-  return await db.expenses
-    .where('createdAt')
-    .between(startDate, endDate)
-    .reverse()
-    .sortBy('createdAt');
-}
-
-/**
- * Get total spending for current month
- * @returns {Promise<number>}
- */
-export async function getCurrentMonthTotal() {
-  const now = new Date();
-  const expenses = await getExpensesByMonth(now.getFullYear(), now.getMonth());
-  return expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-}
-
-/**
- * Get total spending for previous month
- * @returns {Promise<number>}
- */
-export async function getPreviousMonthTotal() {
-  const now = new Date();
-  let year = now.getFullYear();
-  let month = now.getMonth() - 1;
-  if (month < 0) {
-    month = 11;
-    year--;
+// Initial sample seed data for new accounts
+const SAMPLE_EXPENSES = [
+  {
+    id: 'exp_1',
+    userEmail: 'demo@apple.com',
+    title: 'Cà phê Highland & Bánh mì',
+    amount: 65000,
+    category: 'Ăn uống',
+    date: new Date(Date.now() - 3600000 * 3).toISOString(),
+    photo: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=600&q=80',
+    type: 'object',
+    device: 'iPhone 15 Pro',
+    note: 'Chụp ly cà phê sáng',
+    merchant: 'Highlands Coffee'
+  },
+  {
+    id: 'exp_2',
+    userEmail: 'demo@apple.com',
+    title: 'Hoá đơn siêu thị WinMart',
+    amount: 348000,
+    category: 'Hoá đơn',
+    date: new Date(Date.now() - 3600000 * 24).toISOString(),
+    photo: 'https://images.unsplash.com/photo-1554415707-6e8cfc93fe23?auto=format&fit=crop&w=600&q=80',
+    type: 'receipt',
+    device: 'MacBook Pro Intel',
+    note: 'Tự động quét hoá đơn bằng AI',
+    merchant: 'WinMart Vincom'
+  },
+  {
+    id: 'exp_3',
+    userEmail: 'demo@apple.com',
+    title: 'Giày Sneaker Nike Air',
+    amount: 1850000,
+    category: 'Mua sắm',
+    date: new Date(Date.now() - 3600000 * 48).toISOString(),
+    photo: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80',
+    type: 'object',
+    device: 'MacBook Pro Intel',
+    note: 'Chụp sản phẩm mới mua',
+    merchant: 'Nike Store'
+  },
+  {
+    id: 'exp_4',
+    userEmail: 'demo@apple.com',
+    title: 'Chuyến xe GrabCar đến văn phòng',
+    amount: 82000,
+    category: 'Di chuyển',
+    date: new Date(Date.now() - 3600000 * 72).toISOString(),
+    photo: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=600&q=80',
+    type: 'receipt',
+    device: 'iPhone 15 Pro',
+    note: 'Cuống vé / e-receipt Grab',
+    merchant: 'Grab Vietnam'
   }
-  const expenses = await getExpensesByMonth(year, month);
-  return expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-}
+];
 
-/**
- * Get spending breakdown by category for current month
- * @returns {Promise<Object>}
- */
-export async function getCategoryBreakdown() {
-  const now = new Date();
-  const expenses = await getExpensesByMonth(now.getFullYear(), now.getMonth());
+class DBService {
+  constructor() {
+    this.listeners = new Set();
+    this.init();
 
-  const breakdown = {
-    bills: { total: 0, count: 0 },
-    shopping: { total: 0, count: 0 },
-    food: { total: 0, count: 0 },
-    transport: { total: 0, count: 0 }
-  };
-
-  expenses.forEach(e => {
-    if (breakdown[e.category]) {
-      breakdown[e.category].total += e.amount || 0;
-      breakdown[e.category].count++;
+    if (syncChannel) {
+      syncChannel.onmessage = (event) => {
+        if (event.data && event.data.type === 'DATA_UPDATED') {
+          this.notifyListeners();
+        }
+      };
     }
-  });
 
-  return breakdown;
-}
-
-/**
- * Get expense context for AI chatbot (summary of spending patterns)
- * @returns {Promise<string>}
- */
-export async function getExpenseContext() {
-  const now = new Date();
-  const currentMonthExpenses = await getExpensesByMonth(now.getFullYear(), now.getMonth());
-  const prevMonthTotal = await getPreviousMonthTotal();
-  const breakdown = await getCategoryBreakdown();
-
-  const currentTotal = currentMonthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-  const monthName = now.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' });
-
-  let context = `Thông tin chi tiêu của người dùng:\n`;
-  context += `- Tháng hiện tại (${monthName}): ${formatVND(currentTotal)}\n`;
-  context += `- Tháng trước: ${formatVND(prevMonthTotal)}\n`;
-  context += `- Số giao dịch tháng này: ${currentMonthExpenses.length}\n\n`;
-  context += `Chi tiết theo danh mục tháng này:\n`;
-  context += `- Hoá đơn: ${formatVND(breakdown.bills.total)} (${breakdown.bills.count} giao dịch)\n`;
-  context += `- Mua sắm: ${formatVND(breakdown.shopping.total)} (${breakdown.shopping.count} giao dịch)\n`;
-  context += `- Ăn uống: ${formatVND(breakdown.food.total)} (${breakdown.food.count} giao dịch)\n`;
-  context += `- Di chuyển: ${formatVND(breakdown.transport.total)} (${breakdown.transport.count} giao dịch)\n`;
-
-  if (currentMonthExpenses.length > 0) {
-    context += `\n5 chi tiêu gần nhất:\n`;
-    const recent = currentMonthExpenses.slice(0, 5);
-    recent.forEach(e => {
-      const date = new Date(e.createdAt).toLocaleDateString('vi-VN');
-      context += `- ${date}: ${formatVND(e.amount)} (${getCategoryName(e.category)}) ${e.description || ''}\n`;
+    window.addEventListener('storage', () => {
+      this.notifyListeners();
     });
   }
 
-  return context;
+  init() {
+    if (!localStorage.getItem('mdaily_users')) {
+      const defaultUser = {
+        name: 'Steve Jobs',
+        email: 'demo@apple.com',
+        password: '123'
+      };
+      localStorage.setItem('mdaily_users', JSON.stringify([defaultUser]));
+    }
+
+    if (!localStorage.getItem('mdaily_expenses')) {
+      localStorage.setItem('mdaily_expenses', JSON.stringify(SAMPLE_EXPENSES));
+    }
+
+    if (!localStorage.getItem('mdaily_jan_config')) {
+      const defaultConfig = {
+        endpoint: 'http://localhost:1337/v1',
+        model: 'gemma-2-2b-it',
+        autoUseAI: true
+      };
+      localStorage.setItem('mdaily_jan_config', JSON.stringify(defaultConfig));
+    }
+
+    if (!localStorage.getItem('mdaily_current_user')) {
+      localStorage.setItem('mdaily_current_user', 'demo@apple.com');
+    }
+  }
+
+  subscribe(callback) {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
+  }
+
+  notifyListeners() {
+    this.listeners.forEach((cb) => cb());
+  }
+
+  broadcastChange() {
+    if (syncChannel) {
+      syncChannel.postMessage({ type: 'DATA_UPDATED', timestamp: Date.now() });
+    }
+    this.notifyListeners();
+  }
+
+  // User Auth APIs
+  getUsers() {
+    return JSON.parse(localStorage.getItem('mdaily_users') || '[]');
+  }
+
+  saveUser(user) {
+    const users = this.getUsers();
+    users.push(user);
+    localStorage.setItem('mdaily_users', JSON.stringify(users));
+    this.broadcastChange();
+  }
+
+  getCurrentUserEmail() {
+    return localStorage.getItem('mdaily_current_user') || 'demo@apple.com';
+  }
+
+  setCurrentUserEmail(email) {
+    localStorage.setItem('mdaily_current_user', email);
+    this.broadcastChange();
+  }
+
+  getCurrentUser() {
+    const email = this.getCurrentUserEmail();
+    const users = this.getUsers();
+    return users.find((u) => u.email === email) || { name: 'Người dùng', email };
+  }
+
+  // Expense APIs
+  getExpenses(userEmail = null) {
+    const targetEmail = userEmail || this.getCurrentUserEmail();
+    const all = JSON.parse(localStorage.getItem('mdaily_expenses') || '[]');
+    return all.filter((e) => e.userEmail === targetEmail).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }
+
+  addExpense(expense) {
+    const all = JSON.parse(localStorage.getItem('mdaily_expenses') || '[]');
+    const newRecord = {
+      id: 'exp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      userEmail: expense.userEmail || this.getCurrentUserEmail(),
+      title: expense.title || 'Chi tiêu mới',
+      amount: Number(expense.amount) || 0,
+      category: expense.category || 'Hoá đơn',
+      date: expense.date || new Date().toISOString(),
+      photo: expense.photo || '',
+      type: expense.type || 'object', // 'object' or 'receipt'
+      device: expense.device || 'macOS',
+      note: expense.note || '',
+      merchant: expense.merchant || ''
+    };
+    all.unshift(newRecord);
+    localStorage.setItem('mdaily_expenses', JSON.stringify(all));
+    this.broadcastChange();
+    return newRecord;
+  }
+
+  deleteExpense(id) {
+    let all = JSON.parse(localStorage.getItem('mdaily_expenses') || '[]');
+    all = all.filter((e) => e.id !== id);
+    localStorage.setItem('mdaily_expenses', JSON.stringify(all));
+    this.broadcastChange();
+  }
+
+  // Jan AI Config APIs
+  getJanConfig() {
+    return JSON.parse(localStorage.getItem('mdaily_jan_config') || '{}');
+  }
+
+  saveJanConfig(config) {
+    localStorage.setItem('mdaily_jan_config', JSON.stringify(config));
+    this.broadcastChange();
+  }
 }
 
-/**
- * Delete an expense by ID
- * @param {number} id
- */
-export async function deleteExpense(id) {
-  await db.expenses.delete(id);
-}
-
-/**
- * Get single expense by ID
- * @param {number} id
- * @returns {Promise<Object>}
- */
-export async function getExpense(id) {
-  return await db.expenses.get(id);
-}
-
-/**
- * Save chat message
- * @param {Object} message - { role: 'user'|'assistant', content: string }
- */
-export async function saveChatMessage(message) {
-  return await db.chatHistory.add({
-    ...message,
-    createdAt: new Date().toISOString()
-  });
-}
-
-/**
- * Get chat history
- * @returns {Promise<Array>}
- */
-export async function getChatHistory() {
-  return await db.chatHistory.orderBy('createdAt').toArray();
-}
-
-/**
- * Clear chat history
- */
-export async function clearChatHistory() {
-  await db.chatHistory.clear();
-}
-
-// Helper functions
-function formatVND(amount) {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }).format(amount);
-}
-
-function getCategoryName(key) {
-  const names = {
-    bills: 'Hoá đơn',
-    shopping: 'Mua sắm',
-    food: 'Ăn uống',
-    transport: 'Di chuyển'
-  };
-  return names[key] || key;
-}
-
-export default db;
+export const db = new DBService();
