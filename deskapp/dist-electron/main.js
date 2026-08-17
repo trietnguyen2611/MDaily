@@ -7,7 +7,7 @@ process.env.DIST = i.join(o, "../dist"), process.env.VITE_PUBLIC = t.isPackaged 
 var s, c = process.env.VITE_DEV_SERVER_URL;
 function l() {
 	s = new e({
-		icon: i.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+		icon: i.join(process.env.VITE_PUBLIC, "icon.png"),
 		width: 1e3,
 		height: 700,
 		minWidth: 850,
