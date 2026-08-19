@@ -17,6 +17,20 @@
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		9582B6852FE993A70072D4E9 /* AFMPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6842FE993A70072D4E9 /* AFMPlugin.swift */; };
+		AA0100012FE993A700000002 /* Expense.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100012FE993A700000001 /* Expense.swift */; };
+		AA0100022FE993A700000002 /* CategoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100022FE993A700000001 /* CategoryItem.swift */; };
+		AA0100032FE993A700000002 /* LocalizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100032FE993A700000001 /* LocalizationService.swift */; };
+		AA0100042FE993A700000002 /* ExpenseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100042FE993A700000001 /* ExpenseStore.swift */; };
+		AA0100052FE993A700000002 /* AFMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100052FE993A700000001 /* AFMService.swift */; };
+		AA0100062FE993A700000002 /* LiquidGlassModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100062FE993A700000001 /* LiquidGlassModifier.swift */; };
+		AA0100072FE993A700000002 /* LiquidGlassDock.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100072FE993A700000001 /* LiquidGlassDock.swift */; };
+		AA0100082FE993A700000002 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100082FE993A700000001 /* DashboardView.swift */; };
+		AA0100092FE993A700000002 /* AddExpenseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100092FE993A700000001 /* AddExpenseView.swift */; };
+		AA0100102FE993A700000002 /* ExpenseDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100102FE993A700000001 /* ExpenseDetailSheet.swift */; };
+		AA0100112FE993A700000002 /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100112FE993A700000001 /* ReportsView.swift */; };
+		AA0100122FE993A700000002 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100122FE993A700000001 /* SettingsView.swift */; };
+		AA0100132FE993A700000002 /* ChatbotSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100132FE993A700000001 /* ChatbotSheet.swift */; };
+		AA0100142FE993A700000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100142FE993A700000001 /* ContentView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +46,20 @@
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		9582B6842FE993A70072D4E9 /* AFMPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AFMPlugin.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		AA0100012FE993A700000001 /* Expense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/Expense.swift; sourceTree = "<group>"; };
+		AA0100022FE993A700000001 /* CategoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/CategoryItem.swift; sourceTree = "<group>"; };
+		AA0100032FE993A700000001 /* LocalizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/LocalizationService.swift; sourceTree = "<group>"; };
+		AA0100042FE993A700000001 /* ExpenseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/ExpenseStore.swift; sourceTree = "<group>"; };
+		AA0100052FE993A700000001 /* AFMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/AFMService.swift; sourceTree = "<group>"; };
+		AA0100062FE993A700000001 /* LiquidGlassModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/LiquidGlassModifier.swift; sourceTree = "<group>"; };
+		AA0100072FE993A700000001 /* LiquidGlassDock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/LiquidGlassDock.swift; sourceTree = "<group>"; };
+		AA0100082FE993A700000001 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/DashboardView.swift; sourceTree = "<group>"; };
+		AA0100092FE993A700000001 /* AddExpenseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/AddExpenseView.swift; sourceTree = "<group>"; };
+		AA0100102FE993A700000001 /* ExpenseDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ExpenseDetailSheet.swift; sourceTree = "<group>"; };
+		AA0100112FE993A700000001 /* ReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ReportsView.swift; sourceTree = "<group>"; };
+		AA0100122FE993A700000001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/SettingsView.swift; sourceTree = "<group>"; };
+		AA0100132FE993A700000001 /* ChatbotSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ChatbotSheet.swift; sourceTree = "<group>"; };
+		AA0100142FE993A700000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ContentView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +94,20 @@
 		504EC3061FED79650016851F /* App */ = {
 			isa = PBXGroup;
 			children = (
+				AA0100012FE993A700000001 /* Expense.swift */,
+				AA0100022FE993A700000001 /* CategoryItem.swift */,
+				AA0100032FE993A700000001 /* LocalizationService.swift */,
+				AA0100042FE993A700000001 /* ExpenseStore.swift */,
+				AA0100052FE993A700000001 /* AFMService.swift */,
+				AA0100062FE993A700000001 /* LiquidGlassModifier.swift */,
+				AA0100072FE993A700000001 /* LiquidGlassDock.swift */,
+				AA0100082FE993A700000001 /* DashboardView.swift */,
+				AA0100092FE993A700000001 /* AddExpenseView.swift */,
+				AA0100102FE993A700000001 /* ExpenseDetailSheet.swift */,
+				AA0100112FE993A700000001 /* ReportsView.swift */,
+				AA0100122FE993A700000001 /* SettingsView.swift */,
+				AA0100132FE993A700000001 /* ChatbotSheet.swift */,
+				AA0100142FE993A700000001 /* ContentView.swift */,
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				9582B6842FE993A70072D4E9 /* AFMPlugin.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -161,6 +203,20 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AA0100012FE993A700000002 /* Expense.swift in Sources */,
+				AA0100022FE993A700000002 /* CategoryItem.swift in Sources */,
+				AA0100032FE993A700000002 /* LocalizationService.swift in Sources */,
+				AA0100042FE993A700000002 /* ExpenseStore.swift in Sources */,
+				AA0100052FE993A700000002 /* AFMService.swift in Sources */,
+				AA0100062FE993A700000002 /* LiquidGlassModifier.swift in Sources */,
+				AA0100072FE993A700000002 /* LiquidGlassDock.swift in Sources */,
+				AA0100082FE993A700000002 /* DashboardView.swift in Sources */,
+				AA0100092FE993A700000002 /* AddExpenseView.swift in Sources */,
+				AA0100102FE993A700000002 /* ExpenseDetailSheet.swift in Sources */,
+				AA0100112FE993A700000002 /* ReportsView.swift in Sources */,
+				AA0100122FE993A700000002 /* SettingsView.swift in Sources */,
+				AA0100132FE993A700000002 /* ChatbotSheet.swift in Sources */,
+				AA0100142FE993A700000002 /* ContentView.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				9582B6852FE993A70072D4E9 /* AFMPlugin.swift in Sources */,

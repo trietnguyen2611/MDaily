@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { Globe, Trash2, Info, Sparkles, ScanLine, MessageCircle, CheckCircle2, XCircle } from 'lucide-react'
+import { Globe, Trash2, Info, Sparkles, ScanLine, MessageCircle, CheckCircle2, XCircle, Languages } from 'lucide-react'
 import { clearExpenses } from '../services/db'
 import { checkAFMStatus, getAutoExtractEnabled, setAutoExtractEnabled, getAiChatEnabled, setAiChatEnabled } from '../services/ai'
+import { getLanguage, setLanguage, getCurrency, setCurrency, t } from '../services/i18n'
+import type { Language, Currency } from '../services/i18n'
 import { CustomSelect } from './CustomSelect'
 import type { SelectOption } from './CustomSelect'
 import './SettingsPage.css'
@@ -9,16 +11,29 @@ import './SettingsPage.css'
 const CURRENCY_OPTIONS: SelectOption[] = [
   { value: 'vnd', label: 'VNĐ (₫)' },
   { value: 'usd', label: 'USD ($)' },
-  { value: 'eur', label: 'EUR (€)' }
+  { value: 'eur', label: 'EUR (€)' },
+  { value: 'jpy', label: 'JPY (¥)' },
+  { value: 'gbp', label: 'GBP (£)' }
+]
+
+const LANGUAGE_OPTIONS: SelectOption[] = [
+  { value: 'vi', label: 'Tiếng Việt' },
+  { value: 'en', label: 'English' }
 ]
 
 interface SettingsPageProps {
   onDataCleared?: () => void
   onAiSettingsChanged?: () => void
+  onSettingsChanged?: () => void
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiSettingsChanged }) => {
-  const [currency, setCurrency] = useState('vnd')
+export const SettingsPage: React.FC<SettingsPageProps> = ({
+  onDataCleared,
+  onAiSettingsChanged,
+  onSettingsChanged
+}) => {
+  const [currentLang, setCurrentLang] = useState<Language>(getLanguage())
+  const [currentCurrency, setCurrentCurrency] = useState<Currency>(getCurrency())
   const [isClearing, setIsClearing] = useState(false)
   const [afmStatus, setAfmStatus] = useState<{ available: boolean; model: string; canExtractImage: boolean; message: string } | null>(null)
   const [autoExtract, setAutoExtract] = useState(getAutoExtractEnabled())
@@ -28,12 +43,26 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
     checkAFMStatus().then(setAfmStatus)
   }, [])
 
+  const handleLanguageChange = (newLangVal: string) => {
+    const l = newLangVal as Language
+    setCurrentLang(l)
+    setLanguage(l)
+    onSettingsChanged?.()
+  }
+
+  const handleCurrencyChange = (newCurrVal: string) => {
+    const c = newCurrVal as Currency
+    setCurrentCurrency(c)
+    setCurrency(c)
+    onSettingsChanged?.()
+  }
+
   const handleClearData = async () => {
-    if (confirm('Bạn chắc chắn muốn xoá toàn bộ dữ liệu chi tiêu?')) {
+    if (confirm(t('delete_confirm_all', currentLang))) {
       setIsClearing(true)
       await clearExpenses()
       setIsClearing(false)
-      alert('Đã xoá toàn bộ dữ liệu chi tiêu.')
+      alert(t('deleted_success', currentLang))
       if (onDataCleared) onDataCleared()
     }
   }
@@ -58,7 +87,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
     <div className="settings-container">
       {/* Apple Intelligence Section */}
       <div className="settings-section">
-        <h3>Apple Intelligence</h3>
+        <h3>{t('apple_intelligence', currentLang)}</h3>
         <div className="settings-group">
           {/* AFM Status */}
           <div className="settings-item">
@@ -67,16 +96,16 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
                 <Sparkles size={18} />
               </div>
               <div className="settings-item-info">
-                <span className="settings-item-label">Trạng thái</span>
+                <span className="settings-item-label">{t('status', currentLang)}</span>
                 <span className="settings-item-desc">
-                  {afmStatus ? afmStatus.message : 'Đang kiểm tra...'}
+                  {afmStatus ? afmStatus.message : '...'}
                 </span>
               </div>
             </div>
             {afmStatus && (
               <span className={`settings-badge ${isAFMAvailable ? 'success-badge' : 'error-badge'}`}>
                 {isAFMAvailable ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
-                {isAFMAvailable ? 'Khả dụng' : 'Không khả dụng'}
+                {isAFMAvailable ? t('available', currentLang) : t('unavailable', currentLang)}
               </span>
             )}
           </div>
@@ -88,11 +117,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
                 <ScanLine size={18} />
               </div>
               <div className="settings-item-info">
-                <span className="settings-item-label">Tự động nhận diện ảnh</span>
+                <span className="settings-item-label">{t('auto_extract', currentLang)}</span>
                 <span className="settings-item-desc">
                   {isAFMAvailable
-                    ? 'Trích xuất hoá đơn & tên đồ vật khi chụp ảnh'
-                    : 'Cần thiết bị hỗ trợ Apple Intelligence'}
+                    ? t('auto_extract_desc', currentLang)
+                    : t('auto_extract_req', currentLang)}
                 </span>
               </div>
             </div>
@@ -114,11 +143,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
                 <MessageCircle size={18} />
               </div>
               <div className="settings-item-info">
-                <span className="settings-item-label">AI Chat</span>
+                <span className="settings-item-label">{t('ai_chat', currentLang)}</span>
                 <span className="settings-item-desc">
                   {isAFMAvailable
-                    ? 'Trò chuyện với MDaily AI trợ lý tài chính'
-                    : 'Cần thiết bị hỗ trợ Apple Intelligence'}
+                    ? t('ai_chat_desc', currentLang)
+                    : t('auto_extract_req', currentLang)}
                 </span>
               </div>
             </div>
@@ -135,25 +164,46 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
         </div>
       </div>
 
-      {/* UI & Options */}
+      {/* UI & Options: Language & Currency */}
       <div className="settings-section">
-        <h3>Giao diện & Tùy chọn</h3>
+        <h3>{t('ui_options', currentLang)}</h3>
         <div className="settings-group">
+          {/* Language Selector */}
           <div className="settings-item">
             <div className="settings-item-left">
               <div className="settings-icon-wrapper theme-icon">
+                <Languages size={18} />
+              </div>
+              <div className="settings-item-info">
+                <span className="settings-item-label">{t('language', currentLang)}</span>
+                <span className="settings-item-desc">{t('language_desc', currentLang)}</span>
+              </div>
+            </div>
+            <div style={{ width: 140 }}>
+              <CustomSelect
+                options={LANGUAGE_OPTIONS}
+                value={currentLang}
+                onChange={handleLanguageChange}
+              />
+            </div>
+          </div>
+
+          {/* Currency Selector */}
+          <div className="settings-item">
+            <div className="settings-item-left">
+              <div className="settings-icon-wrapper scan-icon">
                 <Globe size={18} />
               </div>
               <div className="settings-item-info">
-                <span className="settings-item-label">Đơn vị tiền tệ</span>
-                <span className="settings-item-desc">Đơn vị tiền tệ hiển thị trong ứng dụng</span>
+                <span className="settings-item-label">{t('currency', currentLang)}</span>
+                <span className="settings-item-desc">{t('currency_desc', currentLang)}</span>
               </div>
             </div>
             <div style={{ width: 140 }}>
               <CustomSelect
                 options={CURRENCY_OPTIONS}
-                value={currency}
-                onChange={setCurrency}
+                value={currentCurrency}
+                onChange={handleCurrencyChange}
               />
             </div>
           </div>
@@ -162,7 +212,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
 
       {/* Data Management */}
       <div className="settings-section">
-        <h3>Quản lý dữ liệu</h3>
+        <h3>{t('data_management', currentLang)}</h3>
         <div className="settings-group">
           <div className="settings-item">
             <div className="settings-item-left">
@@ -170,8 +220,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
                 <Trash2 size={18} />
               </div>
               <div className="settings-item-info">
-                <span className="settings-item-label">Xoá toàn bộ dữ liệu</span>
-                <span className="settings-item-desc">Xoá tất cả chi tiêu đã lưu</span>
+                <span className="settings-item-label">{t('delete_all_data', currentLang)}</span>
+                <span className="settings-item-desc">{t('delete_all_desc', currentLang)}</span>
               </div>
             </div>
             <button
@@ -179,7 +229,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
               onClick={handleClearData}
               disabled={isClearing}
             >
-              {isClearing ? 'Đang xoá...' : 'Xoá dữ liệu'}
+              {isClearing ? t('deleting', currentLang) : t('delete_data_btn', currentLang)}
             </button>
           </div>
         </div>
@@ -187,7 +237,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
 
       {/* App Info */}
       <div className="settings-section">
-        <h3>Thông tin ứng dụng</h3>
+        <h3>{t('app_info', currentLang)}</h3>
         <div className="settings-group">
           <div className="settings-item">
             <div className="settings-item-left">
@@ -196,10 +246,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
               </div>
               <div className="settings-item-info">
                 <span className="settings-item-label">MDaily Mobile</span>
-                <span className="settings-item-desc">Phiên bản 1.1 — Apple Intelligence</span>
+                <span className="settings-item-desc">{t('app_version_desc', currentLang)}</span>
               </div>
             </div>
-            <span className="settings-badge">iOS - v1.1</span>
+            <span className="settings-badge">iOS · v1.2</span>
           </div>
         </div>
       </div>

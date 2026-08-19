@@ -4,6 +4,7 @@ import { chatWithAI, checkAFMStatus } from '../services/ai'
 import type { Expense } from '../types'
 import { getCategoryLabel } from '../services/categories'
 import type { CategoryItem } from '../services/categories'
+import { formatCurrency, getLanguage, t } from '../services/i18n'
 import { BottomSheet } from './BottomSheet'
 import './Chatbot.css'
 
@@ -20,14 +21,15 @@ interface ChatbotProps {
   onClose: () => void
 }
 
-const INITIAL_MESSAGE: ChatMessage = {
-  id: '1',
-  role: 'assistant',
-  content: 'Mở app lên làm gì đấy? Lại định phung phí tiền đúng không? Khai mau, nay mày đã tiêu bao nhiêu tiền rồi!'
-}
-
 export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, onClose }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE])
+  const currentLang = getLanguage()
+  const initialGreeting = currentLang === 'en'
+    ? 'Hey there! What are you planning to spend today? Let me help you manage and optimize your expenses!'
+    : 'Mở app lên làm gì đấy? Lại định phung phí tiền đúng không? Khai mau, nay mày đã tiêu bao nhiêu tiền rồi!'
+
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { id: '1', role: 'assistant', content: initialGreeting }
+  ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [afmStatus, setAfmStatus] = useState<{ available: boolean; model: string; message: string } | null>(null)
@@ -37,12 +39,9 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
   const inputRef = useRef<HTMLInputElement>(null)
   const messagesRef = useRef<HTMLDivElement>(null)
 
-  const quickPrompts = [
-    '💡 Tổng chi tiêu?',
-    '📊 Lời khuyên tiết kiệm',
-    '🍔 Chi ăn uống?',
-    '⚡ Khoản chi lớn nhất?'
-  ]
+  const quickPrompts = currentLang === 'en'
+    ? ['💡 Total spending?', '📊 Saving advice', '🍔 Food expenses?', '⚡ Highest expense?']
+    : ['💡 Tổng chi tiêu?', '📊 Lời khuyên tiết kiệm', '🍔 Chi ăn uống?', '⚡ Khoản chi lớn nhất?']
 
   // Check AFM status when opened
   useEffect(() => {
@@ -98,7 +97,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
     }
     const context = expenses
       .slice(0, 30)
-      .map(e => `${formatDate(e.date)}: ${getCategoryLabel(categories, e.category)} - ${e.amount.toLocaleString('vi-VN')} VND${e.note ? ` (${e.note})` : ''}`)
+      .map(e => `${formatDate(e.date)}: ${getCategoryLabel(categories, e.category)} - ${formatCurrency(e.amount)}${e.note ? ` (${e.note})` : ''}`)
       .join('\n')
 
     try {
@@ -112,7 +111,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: responseText } : m))
     } catch (e) {
       console.error(e)
-      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: '⚠️ Đã xảy ra lỗi kết nối AI.' } : m))
+      setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: '⚠️ Error connecting to AI.' } : m))
     } finally {
       setIsLoading(false)
     }
@@ -120,8 +119,8 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
 
   const handleClearHistory = () => {
     if (messages.length <= 1) return
-    if (confirm('Xoá toàn bộ lịch sử trò chuyện với AI?')) {
-      setMessages([{ ...INITIAL_MESSAGE, id: Date.now().toString() }])
+    if (confirm(t('clear_chat'))) {
+      setMessages([{ id: Date.now().toString(), role: 'assistant', content: initialGreeting }])
     }
   }
 
@@ -139,14 +138,14 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
               <Sparkles size={20} className="sparkle-icon" />
             </div>
             <div>
-              <h3>MDaily AI</h3>
+              <h3>{t('ai_assistant_title')}</h3>
               {afmStatus ? (
                 <span className={`afm-status-tag ${afmStatus.available ? 'active' : 'warning'}`}>
                 {afmStatus.available ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
                   {afmStatus.model}
                 </span>
               ) : (
-                <span className="ai-subtitle">Trợ lý tài chính thông minh</span>
+                <span className="ai-subtitle">{t('financial_assistant')}</span>
               )}
             </div>
           </div>
@@ -155,7 +154,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
             <button
               className="chatbot-action-btn clear-btn"
               onClick={handleClearHistory}
-              title="Xoá lịch sử chat"
+              title={t('clear_chat')}
             >
               <Trash2 size={16} />
             </button>
@@ -175,7 +174,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
                 {msg.content === '...' ? (
                   <div className="typing-indicator">
                     <Loader2 size={16} className="spinner" />
-                    <span>MDaily AI đang suy nghĩ...</span>
+                    <span>{t('ai_thinking')}</span>
                   </div>
                 ) : (
                   msg.content
@@ -207,7 +206,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
           <input
             ref={inputRef}
             type="text"
-            placeholder="Hỏi AI về chi tiêu, lời khuyên..."
+            placeholder={t('type_message_placeholder')}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import type { Expense } from '../types'
-import { FileText, ShoppingBag, Utensils, Car, Trash2, Calendar, Tag, Pencil, Check, RotateCcw } from 'lucide-react'
+import { FileText, ShoppingBag, Utensils, Car, Trash2, Calendar, Tag, Pencil, X, Maximize2 } from 'lucide-react'
 import { CustomSelect } from './CustomSelect'
 import type { SelectOption } from './CustomSelect'
 import { getCategoryLabel } from '../services/categories'
 import type { CategoryItem } from '../services/categories'
+import { getCurrencySymbol, t } from '../services/i18n'
 import { BottomSheet } from './BottomSheet'
 import './ExpenseDetailModal.css'
 
@@ -17,13 +18,13 @@ interface ExpenseDetailModalProps {
   categoryOptions: SelectOption[]
 }
 
-const CategoryIcon = ({ category }: { category: string }) => {
+const CategoryIcon = ({ category, size = 18 }: { category: string; size?: number }) => {
   switch (category) {
-    case 'bills': return <FileText size={18} />
-    case 'shopping': return <ShoppingBag size={18} />
-    case 'food': return <Utensils size={18} />
-    case 'transport': return <Car size={18} />
-    default: return <Tag size={18} />
+    case 'bills': return <FileText size={size} />
+    case 'shopping': return <ShoppingBag size={size} />
+    case 'food': return <Utensils size={size} />
+    case 'transport': return <Car size={size} />
+    default: return <Tag size={size} />
   }
 }
 
@@ -35,7 +36,7 @@ const formatDateWithTime = (dateStr: string) => {
   const year = d.getFullYear()
   const hours = String(d.getHours()).padStart(2, '0')
   const minutes = String(d.getMinutes()).padStart(2, '0')
-  return `${day}/${month}/${year} - ${hours}:${minutes}`
+  return `${day}/${month}/${year} · ${hours}:${minutes}`
 }
 
 const formatAmountInput = (val: string) => {
@@ -44,11 +45,19 @@ const formatAmountInput = (val: string) => {
   return parseInt(clean, 10).toLocaleString('en-US')
 }
 
-export const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ expense, onClose, onDelete, onUpdate, categories, categoryOptions }) => {
+export const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({
+  expense,
+  onClose,
+  onDelete,
+  onUpdate,
+  categories,
+  categoryOptions
+}) => {
   const [isEditing, setIsEditing] = useState(false)
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
   const [note, setNote] = useState('')
+  const [isFullscreenImage, setIsFullscreenImage] = useState(false)
 
   useEffect(() => {
     if (expense) {
@@ -56,6 +65,7 @@ export const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ expense,
       setCategory(expense.category)
       setNote(expense.note || '')
       setIsEditing(false)
+      setIsFullscreenImage(false)
     }
   }, [expense])
 
@@ -63,7 +73,7 @@ export const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ expense,
     if (!expense) return
     const rawNumeric = parseFloat(amount.replace(/,/g, ''))
     if (isNaN(rawNumeric) || rawNumeric <= 0) {
-      alert('Hãy nhập số tiền hợp lệ!')
+      alert(t('amount_invalid'))
       return
     }
 
@@ -78,124 +88,217 @@ export const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ expense,
     setIsEditing(false)
   }
 
+  const handleCancelEdit = () => {
+    if (expense) {
+      setAmount(expense.amount.toLocaleString('en-US'))
+      setCategory(expense.category)
+      setNote(expense.note || '')
+    }
+    setIsEditing(false)
+  }
+
+  const handleDelete = () => {
+    if (!expense) return
+    if (confirm(t('delete_expense_confirm'))) {
+      onDelete(expense.id)
+      onClose()
+    }
+  }
+
   const formattedDate = expense ? formatDateWithTime(expense.date) : ''
+  const currSymbol = getCurrencySymbol()
 
   return (
     <BottomSheet isOpen={!!expense} onClose={onClose}>
       {expense && (
         <div className="expense-sheet-content">
-          <div className="modal-body">
-            <div className="modal-image-container">
-              <img src={expense.photo} alt="Hoá đơn / Ảnh chi tiêu" />
-            </div>
+          {/* iOS Modal Navigation Bar */}
+          <div className="ios-sheet-navbar">
+            {isEditing ? (
+              <button className="ios-nav-btn cancel" onClick={handleCancelEdit}>
+                {t('cancel')}
+              </button>
+            ) : (
+              <button className="ios-nav-btn close" onClick={onClose}>
+                <X size={18} />
+              </button>
+            )}
 
-            <div className="modal-details">
-              {!isEditing ? (
-                <>
-                  <div className="modal-amount-section">
-                    <span className="modal-amount-label">Số tiền chi tiêu</span>
-                    <h2 className="modal-amount-value">{expense.amount.toLocaleString('vi-VN')} đ</h2>
-                  </div>
+            <span className="ios-nav-title">
+              {isEditing ? t('edit_expense') : t('expense_details')}
+            </span>
 
-                  <div className="modal-info-group">
-                    <div className="modal-info-row">
-                      <span className="info-row-label">
-                        <Tag size={16} /> Danh mục
-                      </span>
-                      <span className="info-row-value category-badge">
-                        <CategoryIcon category={expense.category} />
-                        {getCategoryLabel(categories, expense.category)}
-                      </span>
-                    </div>
+            {isEditing ? (
+              <button className="ios-nav-btn done" onClick={handleSaveEdit}>
+                {t('done')}
+              </button>
+            ) : (
+              <button className="ios-nav-btn edit" onClick={() => setIsEditing(true)}>
+                <Pencil size={15} /> {t('edit')}
+              </button>
+            )}
+          </div>
 
-                    <div className="modal-info-row">
-                      <span className="info-row-label">
-                        <Calendar size={16} /> Thời gian
-                      </span>
-                      <span className="info-row-value date-text">{formattedDate}</span>
-                    </div>
+          <div className="modal-scroll-body">
+            {/* Full-Height Expense Photo Container with Ambient Blur */}
+            {expense.photo && (
+              <div
+                className="modal-image-hero"
+                onClick={() => setIsFullscreenImage(!isFullscreenImage)}
+                title={t('expand_photo')}
+              >
+                {/* Ambient Blurred Background */}
+                <img
+                  src={expense.photo}
+                  alt=""
+                  aria-hidden="true"
+                  className="modal-image-ambient"
+                />
 
-                    {expense.note && expense.note !== 'MDaily AI processed' && (
-                      <div className="modal-note-section">
-                        <span className="info-row-label">Ghi chú</span>
-                        <p className="modal-note-text">{expense.note}</p>
-                      </div>
-                    )}
-                  </div>
+                {/* Sharp Full Uncropped Foreground Image */}
+                <img
+                  src={expense.photo}
+                  alt={t('expense_details')}
+                  className="modal-image-main"
+                />
 
-                  <div className="modal-actions-row">
-                    <button
-                      className="btn-modal-edit"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Pencil size={16} /> Chỉnh sửa
-                    </button>
+                <div className="image-expand-hint">
+                  <Maximize2 size={14} />
+                  <span>{t('expand_photo')}</span>
+                </div>
+              </div>
+            )}
 
-                    <button
-                      className="btn-modal-delete"
-                      onClick={() => {
-                        if (confirm('Xoá chi tiêu này?')) {
-                          onDelete(expense.id)
-                          onClose()
-                        }
-                      }}
-                    >
-                      <Trash2 size={16} /> Xoá
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="modal-edit-form">
-                  <h3 className="edit-form-title">Chỉnh sửa chi tiêu</h3>
-
-                  <div className="modal-form-group">
-                    <label>Số tiền (VNĐ)</label>
+            <div className="modal-content-stack">
+              {/* Large Amount Hero Header */}
+              <div className="modal-amount-hero">
+                <span className="amount-hero-label">{t('expense_amount')}</span>
+                {isEditing ? (
+                  <div className="amount-edit-row">
                     <input
                       type="text"
+                      className="amount-edit-input"
                       value={amount}
                       onChange={e => setAmount(formatAmountInput(e.target.value))}
-                      placeholder="Nhập số tiền..."
+                      placeholder="0"
+                      autoFocus
                     />
+                    <span className="amount-hero-currency">{currSymbol}</span>
+                  </div>
+                ) : (
+                  <div className="amount-display-row">
+                    <h2 className="amount-display-val">{expense.amount.toLocaleString('en-US')}</h2>
+                    <span className="amount-hero-currency">{currSymbol}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* iOS Inset Grouped List Form */}
+              <div className="ios-grouped-section">
+                <div className="ios-grouped-card">
+                  {/* Category Field */}
+                  <div className="ios-form-row">
+                    <div className="ios-row-lead">
+                      <div className="ios-icon-badge category-badge-icon">
+                        <Tag size={16} />
+                      </div>
+                      <span className="ios-row-label">{t('category_label')}</span>
+                    </div>
+
+                    <div className="ios-row-trail">
+                      {isEditing ? (
+                        <div className="ios-row-select-wrap">
+                          <CustomSelect
+                            options={categoryOptions}
+                            value={category}
+                            onChange={setCategory}
+                          />
+                        </div>
+                      ) : (
+                        <div className="ios-pill-badge">
+                          <CategoryIcon category={expense.category} size={15} />
+                          <span>{getCategoryLabel(categories, expense.category)}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="modal-form-group">
-                    <label>Danh mục</label>
-                    <CustomSelect
-                      options={categoryOptions}
-                      value={category}
-                      onChange={setCategory}
-                    />
+                  {/* Date / Time Field */}
+                  <div className="ios-form-row">
+                    <div className="ios-row-lead">
+                      <div className="ios-icon-badge date-badge-icon">
+                        <Calendar size={16} />
+                      </div>
+                      <span className="ios-row-label">{t('time')}</span>
+                    </div>
+
+                    <div className="ios-row-trail">
+                      <span className="ios-row-value-text">{formattedDate}</span>
+                    </div>
                   </div>
 
-                  <div className="modal-form-group">
-                    <label>Ghi chú</label>
-                    <input
-                      type="text"
-                      value={note}
-                      onChange={e => setNote(e.target.value)}
-                      placeholder="Nhập ghi chú..."
-                    />
-                  </div>
+                  {/* Note Field */}
+                  <div className="ios-form-row note-row">
+                    <div className="ios-row-lead">
+                      <div className="ios-icon-badge note-badge-icon">
+                        <FileText size={16} />
+                      </div>
+                      <span className="ios-row-label">{t('note')}</span>
+                    </div>
 
-                  <div className="modal-actions-row">
-                    <button
-                      className="btn-modal-save"
-                      onClick={handleSaveEdit}
-                    >
-                      <Check size={16} /> Lưu thay đổi
-                    </button>
-
-                    <button
-                      className="btn-modal-cancel"
-                      onClick={() => setIsEditing(false)}
-                    >
-                      <RotateCcw size={16} /> Hủy
-                    </button>
+                    <div className="ios-row-trail note-trail">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          className="ios-inline-text-input"
+                          value={note}
+                          onChange={e => setNote(e.target.value)}
+                          placeholder={t('note_placeholder')}
+                        />
+                      ) : (
+                        <span className="ios-row-value-text note-text">
+                          {expense.note && expense.note !== 'MDaily AI processed' ? expense.note : t('no_note')}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
+
+              {/* Danger Zone: Delete Button Group */}
+              <div className="ios-grouped-section danger-section">
+                <button
+                  type="button"
+                  className="ios-delete-row-btn"
+                  onClick={handleDelete}
+                >
+                  <Trash2 size={18} />
+                  <span>{t('delete_this_expense')}</span>
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Fullscreen Lightbox Modal when tapped */}
+          {isFullscreenImage && expense.photo && (
+            <div
+              className="fullscreen-image-lightbox"
+              onClick={() => setIsFullscreenImage(false)}
+            >
+              <button
+                type="button"
+                className="btn-close-lightbox"
+                onClick={() => setIsFullscreenImage(false)}
+              >
+                <X size={22} />
+              </button>
+              <img
+                src={expense.photo}
+                alt="Full photo"
+                className="lightbox-full-img"
+              />
+            </div>
+          )}
         </div>
       )}
     </BottomSheet>

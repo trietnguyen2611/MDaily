@@ -1,6 +1,6 @@
 :root {
   /* Brand Colors */
-  --primary: #0066cc;
+  --primary: #007aff;
   --primary-focus: #0071e3;
   --primary-on-dark: #2997ff;
   
@@ -8,51 +8,59 @@
   --ink: #1d1d1f;
   --body-text: #1d1d1f;
   --body-on-dark: #ffffff;
-  --body-muted: #666666;
+  --body-muted: #86868b;
   --ink-muted-80: #333333;
   --ink-muted-48: #7a7a7a;
   
-  /* Surfaces (Light Mode) */
+  /* Apple System Liquid Glass Surfaces (Light Mode) */
   --divider-soft: rgba(0, 0, 0, 0.08);
-  --hairline: rgba(0, 0, 0, 0.15);
-  --canvas: rgba(255, 255, 255, 0.3);
-  --canvas-parchment: transparent;
-  --surface-pearl: rgba(255, 255, 255, 0.5);
-  --surface-tile-1: #ffffff;
-  --surface-tile-2: #f5f5f7;
-  --surface-tile-3: #f5f5f7;
+  --hairline: rgba(0, 0, 0, 0.12);
+  --canvas: #f2f2f7;
+  --canvas-parchment: #f2f2f7;
+  
+  --surface-pearl: rgba(255, 255, 255, 0.55);
+  --surface-tile-1: rgba(255, 255, 255, 0.78);
+  --surface-tile-2: rgba(255, 255, 255, 0.62);
+  --surface-tile-3: rgba(255, 255, 255, 0.48);
   --surface-black: #000000;
-  --surface-chip-translucent: rgba(0, 0, 0, 0.05);
+  --surface-chip-translucent: rgba(0, 0, 0, 0.04);
   --on-primary: #ffffff;
   --on-dark: #ffffff;
   
+  /* System Liquid Glass Tokens (iOS 26 / Xcode 26.3) */
+  --liquid-glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.35) 100%);
+  --liquid-glass-blur: blur(40px) saturate(210%) brightness(1.04);
+  --liquid-glass-border: 0.5px solid rgba(255, 255, 255, 0.78);
+  --liquid-glass-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.95), inset 0 -0.5px 0.5px 0 rgba(0, 0, 0, 0.03);
+  --liquid-glass-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.08), 0 3px 10px -2px rgba(0, 0, 0, 0.03);
+
   /* Typography */
-  --font-display: "SF Pro Display", system-ui, -apple-system, sans-serif;
-  --font-body: "SF Pro Text", system-ui, -apple-system, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   
   /* Spacing */
   --spacing-xxs: 4px;
   --spacing-xs: 8px;
   --spacing-sm: 12px;
-  --spacing-md: 17px;
+  --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
   --spacing-xxl: 48px;
   
   /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 11px;
-  --radius-lg: 18px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 28px;
   --radius-pill: 9999px;
   
-  /* Shadow (Disabled completely as requested) */
-  --shadow-product: none;
+  --shadow-product: 0 8px 24px rgba(0, 0, 0, 0.06);
   
   font-family: var(--font-body);
   color: var(--body-text);
-  font-size: 17px;
-  line-height: 1.47;
-  letter-spacing: -0.374px;
+  font-size: 16px;
+  line-height: 1.45;
+  letter-spacing: -0.3px;
   -webkit-font-smoothing: antialiased;
   color-scheme: light dark;
 }
@@ -61,22 +69,24 @@
   :root {
     --ink: #ffffff;
     --body-text: #ffffff;
-    --body-muted: #a1a1a6;
-    --divider-soft: rgba(255, 255, 255, 0.1);
-    --hairline: rgba(255, 255, 255, 0.15);
+    --body-muted: #98989d;
+    --divider-soft: rgba(255, 255, 255, 0.12);
+    --hairline: rgba(255, 255, 255, 0.16);
     
-    --canvas: rgba(30, 30, 30, 0.3);
-    --canvas-parchment: transparent;
-    --surface-pearl: rgba(40, 40, 40, 0.4);
-    --surface-tile-1: #272729;
-    --surface-tile-2: #2a2a2c;
-    --surface-tile-3: #252527;
-    --surface-chip-translucent: rgba(60, 60, 65, 0.64);
-    --shadow-product: none;
+    --canvas: #000000;
+    --canvas-parchment: #000000;
+    --surface-pearl: rgba(45, 45, 52, 0.45);
+    --surface-tile-1: rgba(38, 38, 44, 0.75);
+    --surface-tile-2: rgba(28, 28, 34, 0.62);
+    --surface-tile-3: rgba(22, 22, 26, 0.52);
+    --surface-chip-translucent: rgba(255, 255, 255, 0.08);
+    
+    --liquid-glass-bg: linear-gradient(135deg, rgba(48, 48, 54, 0.65) 0%, rgba(26, 26, 32, 0.55) 100%);
+    --liquid-glass-border: 0.5px solid rgba(255, 255, 255, 0.2);
+    --liquid-glass-inner-glow: inset 0 1px 0 0 rgba(255, 255, 255, 0.25), inset 0 -0.5px 0.5px 0 rgba(0, 0, 0, 0.4);
+    --liquid-glass-shadow: 0 16px 44px -4px rgba(0, 0, 0, 0.65), 0 4px 14px -2px rgba(0, 0, 0, 0.4);
   }
 }
-
-
 
 html, body {
   margin: 0;
@@ -85,11 +95,9 @@ html, body {
   height: 100%;
   min-height: -webkit-fill-available;
   -webkit-text-size-adjust: 100%;
-  overflow: hidden; /* No body scroll */
-  background-color: transparent; /* Required for Electron Vibrancy */
+  overflow: hidden;
+  background-color: var(--canvas);
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
@@ -97,13 +105,10 @@ html, body {
 input, textarea, select, [contenteditable="true"], .selectable-text {
   font-size: 16px !important;
   -webkit-user-select: text !important;
-  -moz-user-select: text !important;
-  -ms-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;
 }
 
-/* Draggable area for macOS hiddenInset traffic lights */
 .titlebar-drag-region {
   -webkit-app-region: drag;
   height: 38px;
@@ -114,37 +119,36 @@ input, textarea, select, [contenteditable="true"], .selectable-text {
   z-index: 9999;
 }
 
-/* The main container limits scroll */
 #root {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--canvas-parchment); /* Base frosted glass */
+  background: var(--canvas);
   position: relative;
   overflow: hidden;
 }
 
-h1, h2, h3 {
+h1, h2, h3, h4 {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   margin: 0;
 }
 
 h1 {
-  font-size: 40px; /* display-lg */
-  line-height: 1.1;
-  letter-spacing: 0;
+  font-size: 34px;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
 }
 
 h2 {
-  font-size: 34px; /* display-md */
-  letter-spacing: -0.374px;
+  font-size: 28px;
+  letter-spacing: -0.4px;
 }
 
 h3 {
-  font-size: 21px; /* tagline */
-  letter-spacing: 0.231px;
+  font-size: 20px;
+  letter-spacing: -0.3px;
 }
 
 button {
@@ -152,7 +156,7 @@ button {
   cursor: pointer;
   border: none;
   outline: none;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
   -webkit-app-region: no-drag;
 }
 
@@ -165,39 +169,45 @@ button:active {
   color: var(--on-primary);
   border-radius: var(--radius-pill);
   padding: 11px 22px;
-  font-size: 17px;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.35);
 }
 
 .btn-utility {
-  background-color: var(--surface-pearl);
+  background: var(--surface-pearl);
   color: var(--ink);
   border-radius: var(--radius-pill);
   padding: 8px 16px;
   font-size: 14px;
+  font-weight: 500;
   border: 1px solid var(--divider-soft);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .btn-icon {
-  background-color: var(--surface-chip-translucent);
+  background-color: var(--surface-pearl);
   color: var(--ink);
   border-radius: 50%;
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 0.5px solid var(--divider-soft);
 }
 
 select {
   -webkit-appearance: none;
-  -moz-appearance: none;
   appearance: none;
   padding: 10px 36px 10px 16px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--hairline);
+  border: 0.5px solid var(--hairline);
   background-color: var(--surface-pearl);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   background-size: 16px;
@@ -207,16 +217,13 @@ select {
   font-weight: 500;
   outline: none;
   cursor: pointer;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   transition: all 0.2s ease;
 }
 
-select:hover {
-  background-color: var(--surface-tile-1);
-  border-color: var(--primary);
-}
-
 select:focus {
-  border-color: var(--primary-focus);
+  border-color: var(--primary);
 }
 
 select option {

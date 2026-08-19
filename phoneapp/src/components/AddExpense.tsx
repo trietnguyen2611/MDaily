@@ -4,6 +4,7 @@ import type { Expense } from '../types'
 import { CustomSelect } from './CustomSelect'
 import type { SelectOption } from './CustomSelect'
 import { extractExpenseFromImage } from '../services/ai'
+import { getCurrencySymbol, t } from '../services/i18n'
 import './AddExpense.css'
 
 interface AddExpenseProps {
@@ -58,8 +59,8 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
           if (match) setCategory(match.value)
         }
         setExtractResult(result.isInvoice
-          ? `✨ Hoá đơn đã nhận diện: ${result.itemName}`
-          : `✨ Đồ vật: ${result.itemName}`)
+          ? `✨ ${result.itemName}`
+          : `✨ ${result.itemName}`)
       } else {
         setExtractResult(null)
       }
@@ -108,7 +109,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
           const jpegBlob = await decodeHeicWithHeicDecode(file)
           file = new File([jpegBlob], file.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' })
         } catch {
-          alert('Không thể chuyển đổi ảnh HEIC. Vui lòng chọn JPG/PNG.')
+          alert(t('heic_error'))
           setIsConverting(false)
           return
         }
@@ -137,7 +138,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
   const handleSave = () => {
     const rawNumeric = parseFloat(amount.replace(/,/g, ''))
     if (isNaN(rawNumeric) || rawNumeric <= 0) {
-      alert('Nhập số tiền hợp lệ')
+      alert(t('amount_invalid'))
       return
     }
     onSave({
@@ -148,6 +149,8 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
       isAiProcessed: !!extractResult
     })
   }
+
+  const currSymbol = getCurrencySymbol()
 
   return (
     <div className="add-expense-container">
@@ -169,16 +172,16 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
               {isConverting ? (
                 <div className="upload-placeholder-content">
                   <Loader2 size={36} className="spinner" />
-                  <p>Đang xử lý...</p>
+                  <p>{t('processing')}</p>
                 </div>
               ) : (
                 <div className="upload-placeholder-content">
                   <ImagePlus size={36} />
-                  <p>Thêm ảnh (tùy chọn)</p>
+                  <p>{t('add_photo_optional')}</p>
                   <span className="upload-sub-text">
                     {isAFMAvailable && autoExtractEnabled
-                      ? '✨ AI sẽ tự động nhận diện hoá đơn'
-                      : 'Chụp hoặc chọn ảnh hoá đơn / đồ vật'}
+                      ? t('ai_auto_sub')
+                      : t('take_photo_sub')}
                   </span>
                 </div>
               )}
@@ -187,13 +190,13 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
             <>
               <div className="preview-area">
                 <img src={photoPreview} alt="Preview" className="preview-image" />
-                <button type="button" className="btn-icon change-photo" onClick={() => { setPhotoPreview(null); setExtractResult(null) }} title="Bỏ ảnh này">
+                <button type="button" className="btn-icon change-photo" onClick={() => { setPhotoPreview(null); setExtractResult(null) }} title={t('cancel')}>
                   <X size={20} />
                 </button>
                 {isExtracting && (
                   <div className="extract-overlay">
                     <Loader2 size={28} className="spinner" />
-                    <span>AI đang nhận diện...</span>
+                    <span>{t('ai_extracting')}</span>
                   </div>
                 )}
               </div>
@@ -209,17 +212,17 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
 
         <div className="add-expense-right">
           <div className="form-group">
-            <label>Số tiền (VNĐ)</label>
+            <label>{t('amount_label')} ({currSymbol})</label>
             <input
               type="text"
               value={amount}
               onChange={e => setAmount(formatAmountInput(e.target.value))}
-              placeholder="Ví dụ: 50,000"
+              placeholder={t('amount_placeholder')}
             />
           </div>
 
           <div className="form-group">
-            <label>Danh mục</label>
+            <label>{t('category_label')}</label>
             <CustomSelect
               options={categoryOptions}
               value={category}
@@ -231,7 +234,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
                 className="btn-add-category"
                 onClick={() => setIsAddingCategory(true)}
               >
-                <Plus size={14} /> Thêm danh mục mới
+                <Plus size={14} /> {t('add_category_btn')}
               </button>
             ) : (
               <div className="add-category-inline">
@@ -239,7 +242,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
                   type="text"
                   value={newCategoryLabel}
                   onChange={e => setNewCategoryLabel(e.target.value)}
-                  placeholder="Tên danh mục mới..."
+                  placeholder={t('new_cat_placeholder')}
                   autoFocus
                   onKeyDown={e => {
                     if (e.key === 'Enter' && newCategoryLabel.trim()) {
@@ -259,7 +262,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
                       setNewCategoryLabel(''); setIsAddingCategory(false)
                     }
                   }}
-                >Thêm</button>
+                >{t('add_btn')}</button>
                 <button type="button" className="btn-cancel-category" onClick={() => { setIsAddingCategory(false); setNewCategoryLabel('') }}>
                   <X size={14} />
                 </button>
@@ -268,18 +271,18 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
           </div>
 
           <div className="form-group">
-            <label>Ghi chú / Tên đồ vật</label>
+            <label>{t('note_label')}</label>
             <input
               type="text"
               value={note}
               onChange={e => setNote(e.target.value)}
-              placeholder={isAFMAvailable ? 'AI sẽ tự điền khi có ảnh...' : 'Nhập ghi chú...'}
+              placeholder={isAFMAvailable ? t('note_ai_placeholder') : t('note_placeholder')}
             />
           </div>
 
           <div className="form-actions">
-            <button className="btn-utility" onClick={onCancel}>Huỷ</button>
-            <button className="btn-primary" onClick={handleSave}>Lưu chi tiêu</button>
+            <button className="btn-utility" onClick={onCancel}>{t('cancel')}</button>
+            <button className="btn-primary" onClick={handleSave}>{t('save_expense')}</button>
           </div>
         </div>
       </div>

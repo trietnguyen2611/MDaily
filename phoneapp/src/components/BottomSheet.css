@@ -1,28 +1,30 @@
 /* =========================================================
-   Bottom Sheet — Apple iOS Fluid Spring Animation & Physics
+   Bottom Sheet — Apple System Liquid Glass Modal Panel
    ========================================================= */
 
 .bottom-sheet-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.40);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.44);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   z-index: 10000;
   opacity: 1;
   pointer-events: auto;
   -webkit-tap-highlight-color: transparent;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
-  transition: opacity 0.28s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: opacity 0.35s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
+/* Slower, graceful overlay fade-in */
 .bottom-sheet-overlay.entering {
-  animation: overlayFadeIn 0.34s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  animation: overlayFadeIn 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Slower, graceful overlay fade-out */
 .bottom-sheet-overlay.closing {
-  animation: overlayFadeOut 0.26s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  animation: overlayFadeOut 0.36s cubic-bezier(0.32, 0.72, 0, 1) forwards;
   pointer-events: none;
 }
 
@@ -34,16 +36,16 @@
   }
   to {
     opacity: 1;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
   }
 }
 
 @keyframes overlayFadeOut {
   from {
     opacity: 1;
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
   }
   to {
     opacity: 0;
@@ -64,23 +66,24 @@
   pointer-events: none;
 }
 
+/* Pure Apple System Liquid Glass Modal Panel */
 .bottom-sheet-panel {
   width: 100%;
   max-width: 600px;
-  height: 84vh;
+  height: 86vh;
   max-height: calc(100vh - 44px);
-  background: rgba(255, 255, 255, 0.94);
-  -webkit-backdrop-filter: blur(32px) saturate(200%);
-  backdrop-filter: blur(32px) saturate(200%);
-  border: 0.5px solid rgba(255, 255, 255, 0.85);
+  background: var(--liquid-glass-bg);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  backdrop-filter: var(--liquid-glass-blur);
+  border: var(--liquid-glass-border);
   border-bottom: none;
   border-radius: 28px 28px 0 0;
   display: flex;
   flex-direction: column;
   position: relative;
   box-shadow:
-    0 -14px 44px rgba(0, 0, 0, 0.16),
-    inset 0 1px 0.5px rgba(255, 255, 255, 0.9);
+    0 -16px 54px rgba(0, 0, 0, 0.22),
+    var(--liquid-glass-inner-glow);
   pointer-events: auto;
   overflow: hidden;
   touch-action: pan-y;
@@ -91,19 +94,19 @@
   will-change: transform;
 }
 
-/* Snap spring transition (applied when gesture released without dismissing) */
+/* Snap Spring Transition with Natural Human Inertia (0.45s) */
 .bottom-sheet-panel.snapping {
-  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.45s cubic-bezier(0.18, 1, 0.28, 1);
 }
 
-/* Entry Animation (Fluid iOS Bottom Sheet Slide-Up) */
+/* Entry Animation (Slower, Smooth 0.50s Human Deceleration Curve) */
 .bottom-sheet-panel.entering {
-  animation: sheetSlideUp 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: sheetSlideUp 0.50s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Closing Animation (Smooth Slide Down) */
+/* Closing Animation (0.38s Smooth Downward Glide) */
 .bottom-sheet-panel.closing {
-  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
   transform: translate3d(0, 105%, 0) !important;
   -webkit-transform: translate3d(0, 105%, 0) !important;
 }
@@ -121,11 +124,9 @@
 
 @media (prefers-color-scheme: dark) {
   .bottom-sheet-panel {
-    background: rgba(30, 30, 34, 0.94);
-    border-color: rgba(255, 255, 255, 0.18);
     box-shadow:
-      0 -14px 50px rgba(0, 0, 0, 0.65),
-      inset 0 1px 0.5px rgba(255, 255, 255, 0.2);
+      0 -18px 60px rgba(0, 0, 0, 0.75),
+      var(--liquid-glass-inner-glow);
   }
 }
 

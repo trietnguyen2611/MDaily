@@ -8,8 +8,8 @@ interface BottomSheetProps {
   children: React.ReactNode
 }
 
-const VELOCITY_THRESHOLD = 0.3 // px/ms for swipe/flick dismiss
-const DISMISS_DISTANCE = 80 // px drag down threshold
+const VELOCITY_THRESHOLD = 0.28 // px/ms for swipe/flick dismiss
+const DISMISS_DISTANCE = 85 // px drag down threshold
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
   isOpen,
@@ -29,7 +29,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   const isGestureActive = useRef(false)
   const isDraggingSheet = useRef(false)
 
-  // Open / Close lifecycle
+  // Open / Close lifecycle with natural human inertia timing
   useEffect(() => {
     let timer: any = null
     if (isOpen) {
@@ -39,7 +39,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       setPhase('entering')
       timer = setTimeout(() => {
         setPhase('open')
-      }, 360)
+      }, 500)
     } else if (shouldRender) {
       setPhase('closing')
       timer = setTimeout(() => {
@@ -47,7 +47,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         setShouldRender(false)
         setDragOffset(0)
         setIsDragging(false)
-      }, 280)
+      }, 380)
     }
 
     return () => {
@@ -70,7 +70,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     return false
   }
 
-  // Touch Gesture Handling
+  // Touch Gesture Handling with smooth momentum tracking
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0]
     touchStartY.current = touch.clientY
@@ -102,10 +102,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
     if (isDraggingSheet.current) {
       if (deltaY > 0) {
+        // Natural inertial drag tracking
         setDragOffset(deltaY)
       } else {
-        // Pulling up: rubber banding
-        setDragOffset(deltaY * 0.12)
+        // Soft rubber banding on upward pull
+        setDragOffset(deltaY * 0.1)
       }
     }
   }, [])
@@ -128,7 +129,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       if (deltaY > 0 && (isFlickDown || isDraggedDownEnough)) {
         onClose()
       } else {
-        // Spring back smoothly
+        // Smooth inertial spring snap back
         setDragOffset(0)
       }
     }

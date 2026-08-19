@@ -1,5 +1,4 @@
-/* Chatbot — content styles only
-   (overlay, sheet, handle, close btn handled by BottomSheet) */
+/* Chatbot — Apple System Liquid Glass AI Interface */
 
 .chatbot-sheet-content {
   display: flex;
@@ -7,6 +6,7 @@
   height: 100%;
   overflow: hidden;
   transition: max-height 0.3s ease;
+  background: transparent;
 }
 
 /* When keyboard is open, constrain the sheet */
@@ -90,7 +90,9 @@
 
 .chatbot-action-btn {
   background: var(--surface-pearl);
-  border: 1px solid var(--divider-soft);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 0.5px solid var(--divider-soft);
   color: var(--ink);
   width: 36px;
   height: 36px;
@@ -152,7 +154,7 @@
   line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-word;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
   animation: bubblePop 0.2s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
@@ -169,6 +171,8 @@
 
 .chat-bubble.assistant {
   background: var(--surface-tile-1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   color: var(--ink);
   border: 0.5px solid var(--divider-soft);
   border-bottom-left-radius: 4px;
@@ -176,8 +180,8 @@
 
 @media (prefers-color-scheme: dark) {
   .chat-bubble.assistant {
-    background: rgba(45, 45, 48, 0.9);
-    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(45, 45, 52, 0.75);
+    border-color: rgba(255, 255, 255, 0.14);
   }
 }
 
@@ -218,8 +222,11 @@
   flex-shrink: 0;
   padding: 8px 14px;
   border-radius: var(--radius-pill);
-  background: var(--surface-pearl);
-  border: 0.5px solid var(--hairline);
+  background: var(--liquid-glass-bg);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: var(--liquid-glass-border);
+  box-shadow: var(--liquid-glass-inner-glow);
   color: var(--ink);
   font-size: 13px;
   font-weight: 500;
@@ -230,7 +237,6 @@
 }
 
 .quick-prompt-chip:hover {
-  background: var(--surface-tile-1);
   border-color: var(--primary);
   transform: translateY(-1px);
 }
@@ -239,7 +245,7 @@
   transform: scale(0.95);
 }
 
-/* Input Bar */
+/* Input Bar with System Liquid Glass */
 .chatbot-input-bar {
   display: flex;
   align-items: center;
@@ -247,20 +253,15 @@
   padding: 12px 16px;
   padding-bottom: calc(env(safe-area-inset-bottom, 12px) + 8px);
   border-top: 0.5px solid var(--divider-soft);
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(20px);
+  background: var(--liquid-glass-bg);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  backdrop-filter: var(--liquid-glass-blur);
   flex-shrink: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .chatbot-input-bar {
-    background: rgba(35, 35, 38, 0.8);
-  }
 }
 
 .chatbot-input-bar input {
   flex: 1;
-  border: 1px solid var(--divider-soft);
+  border: 0.5px solid var(--divider-soft);
   background: var(--surface-pearl);
   border-radius: 22px;
   padding: 10px 16px;

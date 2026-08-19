@@ -1,5 +1,5 @@
 /* =========================================================
-   Reports & Categories Page — Vertical Mobile-First Layout
+   Reports & Categories Page — System Liquid Glass Layout
    ========================================================= */
 
 .reports-container {
@@ -7,7 +7,7 @@
   flex-direction: column;
   gap: 16px;
   width: 100%;
-  max-width: 600px;
+  max-width: 640px;
   margin: 0 auto;
   padding-bottom: 20px;
   box-sizing: border-box;
@@ -19,13 +19,17 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 1. Overview Donut Chart Card */
+/* 1. Overview Donut Chart Liquid Glass Card */
 .chart-overview-card {
-  background: var(--surface-tile-2);
-  border: 1px solid var(--divider-soft);
+  background: var(--liquid-glass-bg);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  backdrop-filter: var(--liquid-glass-blur);
+  border: var(--liquid-glass-border);
   border-radius: var(--radius-lg);
-  padding: 18px 16px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  padding: 20px 18px;
+  box-shadow:
+    var(--liquid-glass-shadow),
+    var(--liquid-glass-inner-glow);
 }
 
 .chart-content-row {
@@ -181,68 +185,117 @@
   transform: scale(0.95);
 }
 
-/* Inline Add Card */
-.add-category-inline-card {
+/* 3. Dedicated Add Category Form Card */
+.add-category-form-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  background: var(--surface-tile-2);
-  border: 1px solid var(--primary);
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--liquid-glass-bg);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  backdrop-filter: var(--liquid-glass-blur);
+  border: 1.5px solid var(--primary);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.12);
+  box-shadow:
+    0 4px 20px rgba(0, 122, 255, 0.2),
+    var(--liquid-glass-inner-glow);
   animation: fadeInReports 0.2s ease-out;
 }
 
-.add-category-inline-card input {
-  flex: 1;
-  border: none;
-  background: transparent;
+.add-cat-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-cat-icon-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #007aff, #5ac8fa);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-cat-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.add-cat-input-row {
+  width: 100%;
+}
+
+.add-cat-input-field {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--divider-soft);
+  background: var(--surface-pearl);
   font-size: 15px;
   color: var(--ink);
   outline: none;
   font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-.add-cat-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.add-cat-input-field:focus {
+  border-color: var(--primary);
+  background: var(--surface-tile-1);
 }
 
-.btn-cat-save, .btn-cat-cancel {
+.add-cat-footer-actions, .cat-edit-action-btns {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn-cat-footer {
+  padding: 8px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   transition: all 0.15s ease;
   -webkit-tap-highlight-color: transparent;
+  outline: none;
 }
 
-.btn-cat-save {
-  background: var(--primary);
-  color: #ffffff;
-}
-
-.btn-cat-save:active {
-  transform: scale(0.9);
-}
-
-.btn-cat-cancel {
+.btn-cat-footer.cancel {
   background: var(--surface-pearl);
   color: var(--body-muted);
-  border: 1px solid var(--divider-soft);
+  border: 0.5px solid var(--divider-soft);
 }
 
-.btn-cat-cancel:active {
-  transform: scale(0.9);
+.btn-cat-footer.cancel:active {
+  transform: scale(0.96);
 }
 
-/* 3. Category Breakdown List (Vertical stack) */
+.btn-cat-footer.save {
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+}
+
+.btn-cat-footer.save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-cat-footer.save:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+/* 4. Category Breakdown List (Liquid Glass Vertical Stack) */
 .category-breakdown-list {
   display: flex;
   flex-direction: column;
@@ -251,16 +304,72 @@
 }
 
 .category-breakdown-card {
-  background: var(--surface-tile-2);
-  border: 1px solid var(--divider-soft);
+  background: var(--liquid-glass-bg);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  backdrop-filter: var(--liquid-glass-blur);
+  border: var(--liquid-glass-border);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow:
+    var(--liquid-glass-shadow),
+    var(--liquid-glass-inner-glow);
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.2s ease;
 }
 
+.category-breakdown-card.is-editing {
+  border: 1.5px solid var(--primary);
+  box-shadow:
+    0 4px 20px rgba(0, 122, 255, 0.2),
+    var(--liquid-glass-inner-glow);
+}
+
+/* Edit Mode inside card */
+.cat-edit-mode-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.cat-edit-top-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cat-edit-heading {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cat-edit-input-wrap {
+  width: 100%;
+}
+
+.cat-edit-full-input {
+  width: 100%;
+  border: 0.5px solid var(--divider-soft);
+  background: var(--surface-pearl);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 15px;
+  color: var(--ink);
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.cat-edit-full-input:focus {
+  border-color: var(--primary);
+  background: var(--surface-tile-1);
+}
+
+/* Normal Display Row */
 .cat-card-top-row {
   display: flex;
   align-items: center;
@@ -306,18 +415,6 @@
 .cat-sub-stats {
   font-size: 12px;
   color: var(--body-muted);
-}
-
-.cat-inline-edit-input {
-  flex: 1;
-  border: 1px solid var(--primary);
-  background: var(--surface-pearl);
-  border-radius: var(--radius-md);
-  padding: 6px 10px;
-  font-size: 14px;
-  color: var(--ink);
-  outline: none;
-  font-family: inherit;
 }
 
 .cat-card-right {
@@ -384,13 +481,7 @@
   color: #ff3b30;
 }
 
-.cat-edit-btn-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* 4. Progress Track */
+/* 5. Progress Track */
 .cat-progress-track {
   width: 100%;
   height: 6px;

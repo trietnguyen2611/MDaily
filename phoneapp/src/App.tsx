@@ -11,6 +11,8 @@ import { SplashScreen } from './components/SplashScreen'
 import { getExpenses, saveExpense, deleteExpense, updateExpense } from './services/db'
 import { getCategories, addCategory, deleteCategory, updateCategory, categoriesToSelectOptions } from './services/categories'
 import { checkAFMStatus, getAutoExtractEnabled, getAiChatEnabled } from './services/ai'
+import { getLanguage, getCurrency, t } from './services/i18n'
+import type { Language, Currency } from './services/i18n'
 import type { CategoryItem } from './services/categories'
 import type { Expense } from './types'
 import './App.css'
@@ -25,6 +27,25 @@ function App() {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [quickPhoto, setQuickPhoto] = useState<string | null>(null)
+
+  // Language & Currency settings state
+  const [lang, setLang] = useState<Language>(getLanguage())
+  const [, setCurr] = useState<Currency>(getCurrency())
+
+  const handleSettingsChanged = useCallback(() => {
+    setLang(getLanguage())
+    setCurr(getCurrency())
+  }, [])
+
+  // Listen to cross-window or internal settings events
+  useEffect(() => {
+    const handleSettingEvent = () => {
+      setLang(getLanguage())
+      setCurr(getCurrency())
+    }
+    window.addEventListener('mdaily_settings_change', handleSettingEvent)
+    return () => window.removeEventListener('mdaily_settings_change', handleSettingEvent)
+  }, [])
 
   // AI state
   const [isAFMAvailable, setIsAFMAvailable] = useState(false)
@@ -147,18 +168,18 @@ function App() {
   }
 
   const categoryOptions = categoriesToSelectOptions(categories)
-  const allCategoryOptions = [{ value: 'all', label: 'Tất cả danh mục' }, ...categoryOptions]
+  const allCategoryOptions = [{ value: 'all', label: t('all_categories', lang) }, ...categoryOptions]
 
   const timeOptions = [
-    { value: 'all', label: 'Tất cả thời gian' },
-    { value: 'today', label: 'Hôm nay' },
-    { value: 'this_week', label: 'Tuần này' },
-    { value: 'this_month', label: 'Tháng này' },
-    { value: 'this_year', label: 'Năm nay' },
-    { value: 'custom_day', label: 'Chọn ngày cụ thể...' },
-    { value: 'custom_month', label: 'Chọn tháng cụ thể...' },
-    { value: 'custom_year', label: 'Chọn năm cụ thể...' },
-    { value: 'custom_range', label: 'Khoảng thời gian...' }
+    { value: 'all', label: t('all_time', lang) },
+    { value: 'today', label: t('today', lang) },
+    { value: 'this_week', label: t('this_week', lang) },
+    { value: 'this_month', label: t('this_month', lang) },
+    { value: 'this_year', label: t('this_year', lang) },
+    { value: 'custom_day', label: t('custom_day', lang) },
+    { value: 'custom_month', label: t('custom_month', lang) },
+    { value: 'custom_year', label: t('custom_year', lang) },
+    { value: 'custom_range', label: t('custom_range', lang) }
   ]
 
   const getLocalYYYYMMDD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -199,10 +220,10 @@ function App() {
 
   const getPageTitle = (tab: string) => {
     switch (tab) {
-      case 'dashboard': return 'Tổng quan'
-      case 'add-expense': return 'Thêm chi tiêu'
-      case 'reports': return 'Phân loại'
-      case 'settings': return 'Cài đặt'
+      case 'dashboard': return t('tab_dashboard', lang)
+      case 'add-expense': return t('tab_add_expense', lang)
+      case 'reports': return t('tab_reports', lang)
+      case 'settings': return t('tab_settings', lang)
       default: return ''
     }
   }
@@ -222,10 +243,10 @@ function App() {
               <button
                 className="ai-chat-trigger-btn"
                 onClick={() => setIsChatOpen(true)}
-                title="Mở MDaily AI"
+                title={t('mdaily_ai', lang)}
               >
                 <Sparkles size={16} className="ai-btn-sparkle" />
-                <span>MDaily AI</span>
+                <span>{t('mdaily_ai', lang)}</span>
               </button>
             )}
           </div>
@@ -247,13 +268,13 @@ function App() {
                 <input type="month" className="custom-filter-input" value={customMonth} onChange={e => setCustomMonth(e.target.value)} />
               )}
               {timeFilter === 'custom_year' && (
-                <input type="number" min="2000" max="2100" className="custom-filter-input" value={customYear} onChange={e => setCustomYear(e.target.value)} placeholder="Năm" />
+                <input type="number" min="2000" max="2100" className="custom-filter-input" value={customYear} onChange={e => setCustomYear(e.target.value)} placeholder={t('year_placeholder', lang)} />
               )}
               {timeFilter === 'custom_range' && (
                 <div className="custom-range-group">
-                  <input type="date" className="custom-filter-input" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} title="Từ ngày" />
+                  <input type="date" className="custom-filter-input" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} title={t('from_date', lang)} />
                   <span className="range-separator">-</span>
-                  <input type="date" className="custom-filter-input" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} title="Đến ngày" />
+                  <input type="date" className="custom-filter-input" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} title={t('to_date', lang)} />
                 </div>
               )}
 
@@ -309,6 +330,7 @@ function App() {
             <SettingsPage
               onDataCleared={() => setExpenses([])}
               onAiSettingsChanged={refreshAiSettings}
+              onSettingsChanged={handleSettingsChanged}
             />
           </div>
         )}
