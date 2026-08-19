@@ -29,7 +29,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
   }, [])
 
   const handleClearData = async () => {
-    if (confirm('Bạn có chắc chắn muốn xoá toàn bộ dữ liệu chi tiêu? Thao tác này không thể hoàn tác.')) {
+    if (confirm('Bạn chắc chắn muốn xoá toàn bộ dữ liệu chi tiêu?')) {
       setIsClearing(true)
       await clearExpenses()
       setIsClearing(false)

@@ -55,7 +55,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared }) => 
   }
 
   const handleClearData = async () => {
-    if (confirm('Bạn có chắc chắn muốn xoá toàn bộ dữ liệu chi tiêu? Thao tác này không thể hoàn tác.')) {
+    if (confirm('Bạn chắc chắn muốn xoá toàn bộ dữ liệu chi tiêu?')) {
       setIsClearing(true)
       await clearExpenses()
       setIsClearing(false)
@@ -123,10 +123,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared }) => 
                 </span>
               )}
             </div>
-            
+
             <div className="settings-action-row">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className="settings-input"
                 value={aiUrl}
                 onChange={(e) => {
@@ -146,7 +146,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared }) => 
                 </button>
               )}
             </div>
-            
+
             {aiStatus === 'ok' && aiModel && (
               <div className="ai-model-info">
                 Mô hình đang dùng: <strong>{aiModel}</strong>

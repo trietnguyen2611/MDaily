@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { LayoutDashboard, PlusCircle, PieChart, Settings, Camera } from 'lucide-react'
+import { Home, Plus, PieChart, Settings, Sparkles } from 'lucide-react'
 import './BottomTabBar.css'
 
 interface BottomTabBarProps {
@@ -35,6 +35,13 @@ const compressImage = (file: File, maxDim = 1280, quality = 0.8): Promise<string
   })
 }
 
+const DOCK_TABS = [
+  { id: 'dashboard', icon: Home, label: 'Tổng quan' },
+  { id: 'add-expense', icon: Plus, label: 'Thêm' },
+  { id: 'reports', icon: PieChart, label: 'Phân loại' },
+  { id: 'settings', icon: Settings, label: 'Cài đặt' }
+]
+
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeTab,
   onTabChange,
@@ -43,16 +50,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 }) => {
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
-  const tabs = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
-    { id: 'add-expense', icon: PlusCircle, label: 'Thêm' },
-    { id: 'quick-camera', icon: Camera, label: 'Chụp', isCamera: true },
-    { id: 'reports', icon: PieChart, label: 'Phân loại' },
-    { id: 'settings', icon: Settings, label: 'Cài đặt' }
-  ]
-
-  const regularTabs = tabs.filter(t => !t.isCamera)
-  const activeIndex = regularTabs.findIndex(t => t.id === activeTab)
+  const activeIndex = DOCK_TABS.findIndex(t => t.id === activeTab)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -60,20 +58,22 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
     try {
       const compressedBase64 = await compressImage(file)
       if (compressedBase64 && onQuickPhotoCaptured) onQuickPhotoCaptured(compressedBase64)
-    } catch (err) { console.error('Error processing camera image:', err) }
-    finally { e.target.value = '' }
+    } catch (err) {
+      console.error('Error processing camera image:', err)
+    } finally {
+      e.target.value = ''
+    }
   }
 
-  const handleTabClick = (tabId: string, isCamera?: boolean) => {
-    if (isCamera) cameraInputRef.current?.click()
-    else onTabChange(tabId)
+  const handleCameraClick = () => {
+    cameraInputRef.current?.click()
   }
 
   return (
-    <nav
-      className={`bottom-tab-bar ${isKeyboardOpen ? 'keyboard-hidden' : ''}`}
+    <div
+      className={`liquid-dock-wrapper ${isKeyboardOpen ? 'keyboard-hidden' : ''}`}
       role="navigation"
-      aria-label="Bottom Navigation"
+      aria-label="Liquid Glass Dock"
     >
       <input
         type="file"
@@ -84,51 +84,60 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         onChange={handleFileChange}
       />
 
-      <div className="tab-items-wrapper">
-        {/* Active pill indicator */}
+      {/* Main Liquid Glass Capsule Dock */}
+      <nav className="liquid-glass-dock">
+        {/* Dynamic Glowing Teal/Cyan Active Pill */}
         {activeIndex >= 0 && (
           <div
-            className="tab-active-pill"
+            className="dock-active-pill"
             style={{
-              width: `calc(100% / ${regularTabs.length})`,
-              transform: `translateX(${(activeIndex >= 2 ? activeIndex + 1 : activeIndex) * 100}%)`
+              transform: `translateX(${activeIndex * 100}%)`
             }}
           />
         )}
 
-        {tabs.map((tab) => {
-          const isActive = activeTab === tab.id
+        <div className="dock-items-grid">
+          {DOCK_TABS.map((tab) => {
+            const isActive = activeTab === tab.id
+            const IconComponent = tab.icon
 
-          if (tab.isCamera) {
             return (
               <button
                 key={tab.id}
                 type="button"
-                className="tab-btn camera-action-tab"
-                onClick={() => handleTabClick(tab.id, true)}
-                title="Chụp nhanh hoá đơn"
+                className={`dock-tab-btn ${isActive ? 'active' : ''}`}
+                onClick={() => onTabChange(tab.id)}
+                title={tab.label}
+                aria-label={tab.label}
+                aria-selected={isActive}
               >
-                <div className="camera-btn-inner">
-                  <Camera size={22} className="camera-btn-icon" />
-                </div>
-                <span className="tab-label camera-label">{tab.label}</span>
+                <IconComponent size={22} className="dock-tab-icon" />
               </button>
             )
-          }
+          })}
+        </div>
+      </nav>
 
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              className={`tab-btn ${isActive ? 'active' : ''}`}
-              onClick={() => handleTabClick(tab.id, false)}
-            >
-              <tab.icon size={21} className="tab-icon" />
-              <span className="tab-label">{tab.label}</span>
-            </button>
-          )
-        })}
-      </div>
-    </nav>
+      {/* Standalone Circular Liquid Glass Camera Action Button (Right) */}
+      <button
+        type="button"
+        className="liquid-glass-circle-btn"
+        onClick={handleCameraClick}
+        title="Chụp nhanh hoá đơn & chi tiêu"
+        aria-label="Chụp ảnh chi tiêu"
+      >
+        <div className="circle-sparkle-dot">
+          <Sparkles size={11} />
+        </div>
+
+        {/* 4-Tile Vibrant Colorful 3D App Icon Badge */}
+        <div className="vibrant-tiles-cluster">
+          <span className="tile tile-cyan" />
+          <span className="tile tile-blue" />
+          <span className="tile tile-orange" />
+          <span className="tile tile-green" />
+        </div>
+      </button>
+    </div>
   )
 }

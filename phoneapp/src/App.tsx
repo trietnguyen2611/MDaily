@@ -47,15 +47,24 @@ function App() {
       const target = e.target as HTMLElement | null
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
         const inputType = (target as HTMLInputElement).type
-        if (inputType !== 'file' && inputType !== 'checkbox' && inputType !== 'radio') {
+        if (inputType !== 'file' && inputType !== 'checkbox' && inputType !== 'radio' && inputType !== 'submit' && inputType !== 'button') {
           setIsKeyboardOpen(true)
         }
       }
     }
-    const handleFocusOut = () => setIsKeyboardOpen(false)
+    const handleFocusOut = () => {
+      setTimeout(() => {
+        const active = document.activeElement as HTMLElement | null
+        const isStillInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)
+        const isShrunk = window.visualViewport ? (window.innerHeight - window.visualViewport.height > 120) : false
+        if (!isStillInput && !isShrunk) {
+          setIsKeyboardOpen(false)
+        }
+      }, 50)
+    }
     const handleViewportResize = () => {
       if (window.visualViewport) {
-        const isShrunk = window.innerHeight - window.visualViewport.height > 140
+        const isShrunk = window.innerHeight - window.visualViewport.height > 120
         setIsKeyboardOpen(isShrunk)
       }
     }

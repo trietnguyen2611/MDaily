@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Check } from 'lucide-react'
+import React from 'react'
+import { ChevronDown } from 'lucide-react'
 import './CustomSelect.css'
 
 export type SelectOption = {
@@ -15,67 +15,37 @@ interface CustomSelectProps {
   placeholder?: string
 }
 
-export const CustomSelect: React.FC<CustomSelectProps> = ({ 
-  options = [], 
-  value, 
-  onChange, 
-  placeholder = 'Chọn...' 
+export const CustomSelect: React.FC<CustomSelectProps> = ({
+  options = [],
+  value,
+  onChange,
+  placeholder = 'Chọn...'
 }) => {
-  const [isOpen, setIsOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-
   const selectedOption = (options || []).find(opt => opt.value === value)
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('touchstart', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('touchstart', handleClickOutside)
-    }
-  }, [])
-
   return (
-    <div className="custom-select-container" ref={containerRef}>
-      <button 
-        type="button"
-        className={`custom-select-trigger ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-      >
+    <div className="custom-select-container">
+      <div className="custom-select-trigger">
         <span className="custom-select-value">
           {selectedOption?.icon && <span className="custom-select-icon">{selectedOption.icon}</span>}
           {selectedOption ? selectedOption.label : placeholder}
         </span>
-        <ChevronDown size={16} className={`custom-select-arrow ${isOpen ? 'rotate' : ''}`} />
-      </button>
+        <ChevronDown size={16} className="custom-select-arrow" />
+      </div>
 
-      {isOpen && (
-        <div className="custom-select-dropdown">
-          <div className="custom-select-scroll">
-            {options.map(option => (
-              <div
-                key={option.value}
-                className={`custom-select-option ${option.value === value ? 'selected' : ''}`}
-                onClick={() => {
-                  onChange(option.value)
-                  setIsOpen(false)
-                }}
-              >
-                <div className="option-label-wrapper">
-                  {option.icon && <span className="option-icon">{option.icon}</span>}
-                  <span>{option.label}</span>
-                </div>
-                {option.value === value && <Check size={16} className="check-icon" />}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Native iOS Picker Select Overlay */}
+      <select
+        className="native-select-overlay"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={selectedOption ? selectedOption.label : placeholder}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
     </div>
   )
 }
