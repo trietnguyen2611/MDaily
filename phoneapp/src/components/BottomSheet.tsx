@@ -2,148 +2,139 @@ import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import './BottomSheet.css'
 
-export type SnapPoint = 'closed' | 'partial' | 'full'
-
 interface BottomSheetProps {
   isOpen: boolean
   onClose: () => void
   children: React.ReactNode
-  /** Initial snap point when opened. Default: 'partial' */
-  initialSnap?: 'partial' | 'full'
 }
 
-// Heights as fraction of viewport
-const SNAP_PARTIAL = 0.82
-const SNAP_FULL = 1.0
-// Thresholds
-const CLOSE_DISTANCE = 120
-const FULL_DISTANCE = 80
-const VELOCITY_THRESHOLD = 0.5
+const VELOCITY_THRESHOLD = 0.35 // px/ms for swipe/flick dismiss
+const DISMISS_DISTANCE = 90 // px drag down threshold
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
   isOpen,
   onClose,
   children,
-  initialSnap = 'partial',
 }) => {
   const [shouldRender, setShouldRender] = useState(false)
   const [phase, setPhase] = useState<'entering' | 'open' | 'closing' | 'closed'>('closed')
-  const [snap, setSnap] = useState<SnapPoint>(initialSnap)
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
   const panelRef = useRef<HTMLDivElement>(null)
   const touchStartY = useRef(0)
+  const touchStartX = useRef(0)
   const touchStartTime = useRef(0)
   const lastTouchY = useRef(0)
-  const currentSnap = useRef<SnapPoint>(initialSnap)
-  const startHeight = useRef(0)
-
-  // Viewport height (for iOS keyboard)
-  const [vh, setVh] = useState(window.innerHeight)
-
-  useEffect(() => {
-    const updateVh = () => {
-      setVh(window.visualViewport?.height ?? window.innerHeight)
-    }
-    window.visualViewport?.addEventListener('resize', updateVh)
-    return () => window.visualViewport?.removeEventListener('resize', updateVh)
-  }, [])
+  const isGestureActive = useRef(false)
+  const isDraggingSheet = useRef(false)
 
   // Open / Close lifecycle
   useEffect(() => {
     if (isOpen && phase === 'closed') {
       setShouldRender(true)
-      setSnap(initialSnap)
-      currentSnap.current = initialSnap
       setDragOffset(0)
+      setIsDragging(false)
 
-      // Wait for render, then play entry animation
       requestAnimationFrame(() => {
         setPhase('entering')
-        setTimeout(() => setPhase('open'), 500)
+        const timer = setTimeout(() => setPhase('open'), 420)
+        return () => clearTimeout(timer)
       })
     } else if (!isOpen && (phase === 'open' || phase === 'entering')) {
       setPhase('closing')
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setPhase('closed')
         setShouldRender(false)
-        setSnap('closed')
         setDragOffset(0)
-      }, 350)
+        setIsDragging(false)
+      }, 320)
+      return () => clearTimeout(timer)
     }
-  }, [isOpen, phase, initialSnap])
+  }, [isOpen, phase])
 
-  // --- Touch Gesture Handling ---
-  const getSnapHeight = useCallback((s: SnapPoint) => {
-    if (s === 'full') return vh * SNAP_FULL
-    if (s === 'partial') return vh * SNAP_PARTIAL
-    return 0
-  }, [vh])
+  // Find if any scrollable parent under target has scrollTop > 0
+  const isTargetScrolled = (target: EventTarget | null): boolean => {
+    let el = target as HTMLElement | null
+    while (el && el !== panelRef.current && el !== document.body) {
+      if (el.scrollHeight > el.clientHeight) {
+        const overflowY = window.getComputedStyle(el).overflowY
+        if (overflowY === 'auto' || overflowY === 'scroll') {
+          if (el.scrollTop > 2) return true
+        }
+      }
+      el = el.parentElement
+    }
+    return false
+  }
 
+  // --- Touch Gesture Handling for whole Sheet ---
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0]
     touchStartY.current = touch.clientY
+    touchStartX.current = touch.clientX
     lastTouchY.current = touch.clientY
     touchStartTime.current = Date.now()
-    startHeight.current = getSnapHeight(currentSnap.current)
-    setIsDragging(true)
-  }, [getSnapHeight])
+    isGestureActive.current = true
+    isDraggingSheet.current = false
+  }, [])
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging) return
+    if (!isGestureActive.current) return
     const touch = e.touches[0]
-    const delta = touch.clientY - touchStartY.current
+    const deltaY = touch.clientY - touchStartY.current
+    const deltaX = touch.clientX - touchStartX.current
     lastTouchY.current = touch.clientY
 
-    // Allow dragging down freely, limit dragging up based on snap
-    if (currentSnap.current === 'full' && delta < 0) {
-      // Already full, don't go higher — apply rubber band
-      setDragOffset(delta * 0.15)
-    } else {
-      setDragOffset(delta)
+    // Determine if vertical drag
+    if (!isDraggingSheet.current) {
+      if (Math.abs(deltaY) > 8 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        // If pulling down
+        if (deltaY > 0) {
+          // Check if inner content is scrolled
+          if (!isTargetScrolled(e.target)) {
+            isDraggingSheet.current = true
+            setIsDragging(true)
+          }
+        }
+      }
     }
-  }, [isDragging])
+
+    if (isDraggingSheet.current) {
+      // Pulling down sheet
+      if (deltaY > 0) {
+        setDragOffset(deltaY)
+      } else {
+        // Pulling up: slight resistance
+        setDragOffset(deltaY * 0.15)
+      }
+    }
+  }, [])
 
   const handleTouchEnd = useCallback(() => {
-    if (!isDragging) return
-    setIsDragging(false)
+    if (!isGestureActive.current) return
+    isGestureActive.current = false
 
-    const elapsed = Date.now() - touchStartTime.current
-    const distance = lastTouchY.current - touchStartY.current
-    const velocity = Math.abs(distance) / Math.max(elapsed, 1)
-    const isFlick = velocity > VELOCITY_THRESHOLD
+    if (isDraggingSheet.current) {
+      setIsDragging(false)
+      isDraggingSheet.current = false
 
-    let nextSnap: SnapPoint = currentSnap.current
+      const elapsed = Date.now() - touchStartTime.current
+      const deltaY = lastTouchY.current - touchStartY.current
+      const velocity = deltaY / Math.max(elapsed, 1)
 
-    if (distance > 0) {
-      // Dragging DOWN
-      if (distance > CLOSE_DISTANCE || (isFlick && distance > 40)) {
-        if (currentSnap.current === 'full') {
-          nextSnap = 'partial'
-        } else {
-          nextSnap = 'closed'
-        }
-      }
-    } else {
-      // Dragging UP
-      const absDist = Math.abs(distance)
-      if (absDist > FULL_DISTANCE || (isFlick && absDist > 30)) {
-        if (currentSnap.current === 'partial') {
-          nextSnap = 'full'
-        }
+      const isFlickDown = velocity > VELOCITY_THRESHOLD
+      const isDraggedDownEnough = deltaY > DISMISS_DISTANCE
+
+      if (deltaY > 0 && (isFlickDown || isDraggedDownEnough)) {
+        // Dismiss sheet
+        onClose()
+      } else {
+        // Spring back
+        setDragOffset(0)
       }
     }
-
-    setDragOffset(0)
-
-    if (nextSnap === 'closed') {
-      onClose()
-    } else {
-      setSnap(nextSnap)
-      currentSnap.current = nextSnap
-    }
-  }, [isDragging, onClose])
+  }, [onClose])
 
   const handleOverlayClick = useCallback(() => {
     onClose()
@@ -151,27 +142,26 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
   if (!shouldRender) return null
 
-  const snapHeight = getSnapHeight(snap)
-  const displayHeight = isDragging
-    ? Math.max(0, startHeight.current - dragOffset)
-    : snapHeight
-
-  const isFull = snap === 'full' && !isDragging
   const isClosing = phase === 'closing'
   const isEntering = phase === 'entering'
 
-  // Overlay opacity fades with drag
+  // Dynamic overlay opacity based on drag distance
   const overlayOpacity = isDragging
-    ? Math.max(0, 1 - (dragOffset / (vh * 0.5)))
+    ? Math.max(0, 1 - dragOffset / 350)
     : 1
 
   const panelClasses = [
     'bottom-sheet-panel',
     isEntering && 'entering',
     isClosing && 'closing',
-    !isDragging && !isEntering && 'snapping',
-    isFull && 'snap-full',
+    !isDragging && !isEntering && !isClosing && 'snapping',
   ].filter(Boolean).join(' ')
+
+  const panelStyle: React.CSSProperties = {
+    transform: isDragging 
+      ? `translateY(${Math.max(0, dragOffset)}px)` 
+      : undefined
+  }
 
   return createPortal(
     <>
@@ -184,22 +174,18 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         <div
           ref={panelRef}
           className={panelClasses}
-          style={{
-            height: `${displayHeight}px`,
-            maxHeight: `${vh}px`,
-          }}
+          style={panelStyle}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
         >
-          {/* Handle bar — drag target */}
-          <div
-            className="bottom-sheet-handle-zone"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-          >
+          {/* Top Grab Handle Area */}
+          <div className="bottom-sheet-handle-zone">
             <div className="bottom-sheet-handle-indicator" />
           </div>
 
-          {/* Content */}
+          {/* Sheet Body */}
           <div className="bottom-sheet-body">
             {children}
           </div>

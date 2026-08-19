@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Sparkles } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { AddExpense } from './components/AddExpense'
@@ -7,6 +7,7 @@ import { SettingsPage } from './components/SettingsPage'
 import { BottomTabBar } from './components/BottomTabBar'
 import { Chatbot } from './components/Chatbot'
 import { CustomSelect } from './components/CustomSelect'
+import { SplashScreen } from './components/SplashScreen'
 import { getExpenses, saveExpense, deleteExpense, updateExpense } from './services/db'
 import { getCategories, addCategory, deleteCategory, updateCategory, categoriesToSelectOptions } from './services/categories'
 import type { CategoryItem } from './services/categories'
@@ -20,28 +21,65 @@ function App() {
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [timeFilter, setTimeFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
   
-  // Scroll tracking
+  // Scroll tracking per active view
   const [isScrolled, setIsScrolled] = useState(false)
   const [quickPhoto, setQuickPhoto] = useState<string | null>(null)
-  const lastScrollY = useRef(0)
+
+  // Listen to keyboard show/hide events
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement | null
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable)
+      ) {
+        const inputType = (target as HTMLInputElement).type
+        if (inputType !== 'file' && inputType !== 'checkbox' && inputType !== 'radio') {
+          setIsKeyboardOpen(true)
+        }
+      }
+    }
+
+    const handleFocusOut = () => {
+      setIsKeyboardOpen(false)
+    }
+
+    const handleViewportResize = () => {
+      if (window.visualViewport) {
+        const isShrunk = window.innerHeight - window.visualViewport.height > 140
+        setIsKeyboardOpen(isShrunk)
+      }
+    }
+
+    window.addEventListener('focusin', handleFocusIn)
+    window.addEventListener('focusout', handleFocusOut)
+    window.visualViewport?.addEventListener('resize', handleViewportResize)
+
+    return () => {
+      window.removeEventListener('focusin', handleFocusIn)
+      window.removeEventListener('focusout', handleFocusOut)
+      window.visualViewport?.removeEventListener('resize', handleViewportResize)
+    }
+  }, [])
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const currentScrollY = e.currentTarget.scrollTop
-    
-    setIsScrolled(prev => {
-      const next = currentScrollY > 5
-      return prev !== next ? next : prev
-    })
-    
-    if (Math.abs(currentScrollY - lastScrollY.current) > 15 || currentScrollY <= 0) {
-      lastScrollY.current = currentScrollY
-    }
+    const nextScrolled = currentScrollY > 8
+    setIsScrolled(prev => (prev !== nextScrolled ? nextScrolled : prev))
+  }
+
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab)
+    setIsScrolled(false)
   }
 
   const handleQuickPhotoCaptured = (photoBase64: string) => {
     setQuickPhoto(photoBase64)
-    setActiveTab('add-expense')
+    handleTabChange('add-expense')
   }
   
   const [customDate, setCustomDate] = useState('')
@@ -68,7 +106,7 @@ function App() {
     const updated = await saveExpense(expense)
     setExpenses([...updated])
     setQuickPhoto(null)
-    setActiveTab('dashboard')
+    handleTabChange('dashboard')
   }
 
   const handleDeleteExpense = async (id: string) => {
@@ -129,37 +167,37 @@ function App() {
       // 1. Category Filter
       if (categoryFilter !== 'all' && ex.category !== categoryFilter) return false
 
-    // 3. Time Filter
-    if (timeFilter !== 'all') {
-      const exDate = new Date(ex.date)
-      const now = new Date()
-      
-      if (timeFilter === 'today') {
-        if (exDate.toDateString() !== now.toDateString()) return false
-      } else if (timeFilter === 'this_week') {
-        const today = new Date()
-        const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)))
-        firstDayOfWeek.setHours(0, 0, 0, 0)
-        if (exDate < firstDayOfWeek) return false
-      } else if (timeFilter === 'this_month') {
-        if (exDate.getMonth() !== now.getMonth() || exDate.getFullYear() !== now.getFullYear()) return false
-      } else if (timeFilter === 'this_year') {
-        if (exDate.getFullYear() !== now.getFullYear()) return false
-      } else if (timeFilter === 'custom_day' && customDate) {
-        if (getLocalYYYYMMDD(exDate) !== customDate) return false
-      } else if (timeFilter === 'custom_month' && customMonth) {
-        if (getLocalYYYYMM(exDate) !== customMonth) return false
-      } else if (timeFilter === 'custom_year' && customYear) {
-        if (exDate.getFullYear().toString() !== customYear) return false
-      } else if (timeFilter === 'custom_range') {
-        const exDateStr = getLocalYYYYMMDD(exDate)
-        if (customStartDate && exDateStr < customStartDate) return false
-        if (customEndDate && exDateStr > customEndDate) return false
+      // 2. Time Filter
+      if (timeFilter !== 'all') {
+        const exDate = new Date(ex.date)
+        const now = new Date()
+        
+        if (timeFilter === 'today') {
+          if (exDate.toDateString() !== now.toDateString()) return false
+        } else if (timeFilter === 'this_week') {
+          const today = new Date()
+          const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)))
+          firstDayOfWeek.setHours(0, 0, 0, 0)
+          if (exDate < firstDayOfWeek) return false
+        } else if (timeFilter === 'this_month') {
+          if (exDate.getMonth() !== now.getMonth() || exDate.getFullYear() !== now.getFullYear()) return false
+        } else if (timeFilter === 'this_year') {
+          if (exDate.getFullYear() !== now.getFullYear()) return false
+        } else if (timeFilter === 'custom_day' && customDate) {
+          if (getLocalYYYYMMDD(exDate) !== customDate) return false
+        } else if (timeFilter === 'custom_month' && customMonth) {
+          if (getLocalYYYYMM(exDate) !== customMonth) return false
+        } else if (timeFilter === 'custom_year' && customYear) {
+          if (exDate.getFullYear().toString() !== customYear) return false
+        } else if (timeFilter === 'custom_range') {
+          const exDateStr = getLocalYYYYMMDD(exDate)
+          if (customStartDate && exDateStr < customStartDate) return false
+          if (customEndDate && exDateStr > customEndDate) return false
+        }
       }
-    }
 
-    return true
-  })
+      return true
+    })
   }, [expenses, categoryFilter, timeFilter, customDate, customMonth, customYear, customStartDate, customEndDate])
 
   const getPageTitle = (tab: string) => {
@@ -174,6 +212,9 @@ function App() {
 
   return (
     <div className="app-layout">
+      {/* Launch Splash Screen */}
+      <SplashScreen />
+
       <main className="main-content">
         <div className="top-bar">
           <h2 className="page-header-title">{getPageTitle(activeTab)}</h2>
@@ -242,7 +283,7 @@ function App() {
               onSave={handleSaveExpense}
               onCancel={() => {
                 setQuickPhoto(null)
-                setActiveTab('dashboard')
+                handleTabChange('dashboard')
               }}
               categoryOptions={categoryOptions}
               onAddCategory={handleAddCategory}
@@ -272,9 +313,9 @@ function App() {
 
       <BottomTabBar 
         activeTab={activeTab} 
-        onTabChange={setActiveTab} 
+        onTabChange={handleTabChange} 
         onQuickPhotoCaptured={handleQuickPhotoCaptured}
-        isCollapsed={false} 
+        isKeyboardOpen={isKeyboardOpen}
       />
 
       <Chatbot

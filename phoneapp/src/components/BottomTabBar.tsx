@@ -6,7 +6,7 @@ interface BottomTabBarProps {
   activeTab: string
   onTabChange: (tab: string) => void
   onQuickPhotoCaptured?: (photoBase64: string) => void
-  isCollapsed?: boolean
+  isKeyboardOpen?: boolean
 }
 
 const compressImage = (file: File, maxDim = 1280, quality = 0.8): Promise<string> => {
@@ -51,23 +51,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeTab, 
   onTabChange, 
   onQuickPhotoCaptured,
-  isCollapsed = false 
+  isKeyboardOpen = false
 }) => {
   const cameraInputRef = useRef<HTMLInputElement>(null)
-  const [userExpanded, setUserExpanded] = React.useState(false)
-  const prevCollapsed = useRef(isCollapsed)
-
-  const [manualCollapsed, setManualCollapsed] = React.useState(false)
-
-  React.useEffect(() => {
-    if (!isCollapsed) {
-      setUserExpanded(false)
-      setManualCollapsed(false)
-    }
-    prevCollapsed.current = isCollapsed
-  }, [isCollapsed])
-
-  const effectiveCollapsed = (isCollapsed || manualCollapsed) && !userExpanded
 
   const tabs = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
@@ -78,10 +64,6 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   ]
 
   const activeIndex = tabs.findIndex(t => t.id === activeTab)
-
-  const handleCameraClick = () => {
-    cameraInputRef.current?.click()
-  }
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -100,18 +82,8 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   }
 
   const handleTabClick = (tabId: string, isCamera?: boolean) => {
-    if (effectiveCollapsed) {
-      setUserExpanded(true)
-      setManualCollapsed(false)
-      return
-    }
-    if (activeTab === tabId && !isCamera) {
-      setManualCollapsed(true)
-      setUserExpanded(false)
-      return
-    }
     if (isCamera) {
-      handleCameraClick()
+      cameraInputRef.current?.click()
     } else {
       onTabChange(tabId)
     }
@@ -119,13 +91,9 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
   return (
     <nav 
-      className={`bottom-tab-bar ${effectiveCollapsed ? 'collapsed' : ''}`}
-      onClick={(e) => {
-        if (effectiveCollapsed) {
-          e.stopPropagation()
-          setUserExpanded(true)
-        }
-      }}
+      className={`bottom-tab-bar ${isKeyboardOpen ? 'keyboard-hidden' : ''}`}
+      role="navigation"
+      aria-label="Bottom Navigation"
     >
       <input 
         type="file" 
@@ -135,29 +103,52 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
         capture="environment"
         onChange={handleFileChange} 
       />
-      {activeIndex >= 0 && (
-        <div 
-          className="tab-active-indicator" 
-          style={{ 
-            width: 'calc((100% - 32px) / 5)',
-            transform: `translateX(${activeIndex * 100}%)` 
-          }}
-        />
-      )}
-      {tabs.map(tab => {
-        const isActive = activeTab === tab.id
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            className={`tab-btn ${isActive ? 'active' : ''} ${effectiveCollapsed && !isActive ? 'hidden' : ''}`}
-            onClick={() => handleTabClick(tab.id, tab.isCamera)}
-          >
-            <tab.icon size={22} className="tab-icon" />
-            <span className="tab-label">{tab.label}</span>
-          </button>
-        )
-      })}
+
+      <div className="tab-items-wrapper">
+        {activeIndex >= 0 && activeTab !== 'quick-camera' && (
+          <div 
+            className="tab-active-pill" 
+            style={{ 
+              width: 'calc(100% / 5)',
+              transform: `translateX(${activeIndex * 100}%)` 
+            }}
+          />
+        )}
+
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id
+          const isCameraBtn = tab.isCamera
+
+          if (isCameraBtn) {
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className="tab-btn camera-action-tab"
+                onClick={() => handleTabClick(tab.id, true)}
+                title="Chụp nhanh hoá đơn"
+              >
+                <div className="camera-btn-inner">
+                  <Camera size={22} className="camera-btn-icon" />
+                </div>
+                <span className="tab-label camera-label">{tab.label}</span>
+              </button>
+            )
+          }
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              className={`tab-btn ${isActive ? 'active' : ''}`}
+              onClick={() => handleTabClick(tab.id, false)}
+            >
+              <tab.icon size={21} className="tab-icon" />
+              <span className="tab-label">{tab.label}</span>
+            </button>
+          )
+        })}
+      </div>
     </nav>
   )
 }

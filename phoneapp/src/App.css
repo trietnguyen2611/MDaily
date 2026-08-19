@@ -21,8 +21,10 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 110px; /* Space for BottomTabBar */
-  transition: -webkit-mask-image 0.2s ease, mask-image 0.2s ease;
+  padding-bottom: 120px; /* Space for floating BottomTabBar */
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 60px), transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 60px), transparent 100%);
+  transition: -webkit-mask-image 0.25s cubic-bezier(0.25, 1, 0.5, 1), mask-image 0.25s cubic-bezier(0.25, 1, 0.5, 1);
   transform: translateZ(0);
   will-change: scroll-position;
   -ms-overflow-style: none;  /* IE and Edge */
@@ -34,8 +36,8 @@
 }
 
 .scroll-container.is-scrolled {
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 28px, black 100%);
-  mask-image: linear-gradient(to bottom, transparent 0px, black 28px, black 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0px, black 32px, black calc(100% - 60px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0px, black 32px, black calc(100% - 60px), transparent 100%);
 }
 
 .non-scroll-container {

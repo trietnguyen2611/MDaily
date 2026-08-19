@@ -191,17 +191,26 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
       <div className="add-expense-body">
         <div className="add-expense-left">
           {!photoPreview ? (
-            <div className="upload-area" onClick={() => !isConverting && fileInputRef.current?.click()}>
+            <div className="upload-area">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="file-input-overlay"
+                accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif"
+                onChange={handleFileChange}
+                disabled={isConverting}
+                title="Chọn hoặc chụp ảnh đồ vật / hoá đơn"
+              />
               {isConverting ? (
-                <>
+                <div className="upload-placeholder-content">
                   <Loader2 size={48} className="spinner" />
                   <p>Đang xử lý ảnh...</p>
-                </>
+                </div>
               ) : (
-                <>
+                <div className="upload-placeholder-content">
                   <Upload size={48} />
                   <p>Chọn hoặc chụp ảnh đồ vật / hoá đơn</p>
-                </>
+                </div>
               )}
             </div>
           ) : (
@@ -214,7 +223,6 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
               </div>
             </>
           )}
-          <input type="file" ref={fileInputRef} hidden accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif" onChange={handleFileChange} />
         </div>
 
         <div className="add-expense-right">
