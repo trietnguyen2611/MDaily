@@ -191,25 +191,32 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
       <div className="add-expense-body">
         <div className="add-expense-left">
           {!photoPreview ? (
-            <div className="upload-area">
+            <div 
+              className="upload-area"
+              onClick={() => {
+                if (!isConverting) {
+                  fileInputRef.current?.click()
+                }
+              }}
+            >
               <input
                 type="file"
                 ref={fileInputRef}
-                className="file-input-overlay"
-                accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif"
+                style={{ display: 'none' }}
+                accept="image/*"
                 onChange={handleFileChange}
                 disabled={isConverting}
-                title="Chọn hoặc chụp ảnh đồ vật / hoá đơn"
               />
               {isConverting ? (
                 <div className="upload-placeholder-content">
-                  <Loader2 size={48} className="spinner" />
+                  <Loader2 size={44} className="spinner" />
                   <p>Đang xử lý ảnh...</p>
                 </div>
               ) : (
                 <div className="upload-placeholder-content">
-                  <Upload size={48} />
-                  <p>Chọn hoặc chụp ảnh đồ vật / hoá đơn</p>
+                  <Upload size={44} />
+                  <p>Chạm để chụp hoặc tải lên ảnh hoá đơn</p>
+                  <span className="upload-sub-text">Hỗ trợ JPG, PNG, HEIC (iPhone)</span>
                 </div>
               )}
             </div>

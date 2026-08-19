@@ -31,27 +31,30 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
   // Open / Close lifecycle
   useEffect(() => {
-    if (isOpen && phase === 'closed') {
+    let timer: any = null
+    if (isOpen) {
       setShouldRender(true)
       setDragOffset(0)
       setIsDragging(false)
-
-      requestAnimationFrame(() => {
-        setPhase('entering')
-        const timer = setTimeout(() => setPhase('open'), 420)
-        return () => clearTimeout(timer)
-      })
-    } else if (!isOpen && (phase === 'open' || phase === 'entering')) {
+      // Start in entering state immediately
+      setPhase('entering')
+      timer = setTimeout(() => {
+        setPhase('open')
+      }, 380)
+    } else if (shouldRender) {
       setPhase('closing')
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         setPhase('closed')
         setShouldRender(false)
         setDragOffset(0)
         setIsDragging(false)
-      }, 320)
-      return () => clearTimeout(timer)
+      }, 300)
     }
-  }, [isOpen, phase])
+
+    return () => {
+      if (timer) clearTimeout(timer)
+    }
+  }, [isOpen])
 
   // Find if any scrollable parent under target has scrollTop > 0
   const isTargetScrolled = (target: EventTarget | null): boolean => {
@@ -166,7 +169,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   return createPortal(
     <>
       <div
-        className={`bottom-sheet-overlay ${isClosing ? 'closing' : ''}`}
+        className={`bottom-sheet-overlay ${isEntering ? 'entering' : ''} ${isClosing ? 'closing' : ''}`}
         onClick={handleOverlayClick}
         style={{ opacity: overlayOpacity }}
       />
