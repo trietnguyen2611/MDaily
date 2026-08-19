@@ -29,6 +29,7 @@ public struct ContentView: View {
     @State private var showAiChat: Bool = false
     @State private var selectedExpense: Expense? = nil
     @State private var capturedPhotoData: Data? = nil
+    @State private var showCameraFromQuickAction: Bool = false
 
     private var filteredExpenses: [Expense] {
         store.expenses.filter { expense in
@@ -204,6 +205,30 @@ public struct ContentView: View {
                 store: store,
                 onClose: { showAiChat = false }
             )
+        }
+        .sheet(isPresented: $showCameraFromQuickAction) {
+            ImagePickerView(sourceType: UIImagePickerController.isSourceTypeAvailable(.camera) ? .camera : .photoLibrary) { image in
+                if let data = image.jpegData(compressionQuality: 0.85) {
+                    self.capturedPhotoData = data
+                    activeTab = .addExpense
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .handleQuickAction)) { notification in
+            guard let actionType = notification.object as? String else { return }
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                switch actionType {
+                case "org.mdaily.app.quickAdd":
+                    activeTab = .addExpense
+                case "org.mdaily.app.quickCamera":
+                    activeTab = .addExpense
+                    showCameraFromQuickAction = true
+                case "org.mdaily.app.quickReports":
+                    activeTab = .reports
+                default:
+                    break
+                }
+            }
         }
     }
 }

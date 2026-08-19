@@ -84,6 +84,10 @@ public final class ExpenseStore: ObservableObject {
         }
     }
 
+    public func updateCategory(id: String, label: String) {
+        updateCategory(id: id, newLabel: label)
+    }
+
     public func deleteCategory(id: String) {
         categories.removeAll(where: { $0.id == id })
         saveCategories()
