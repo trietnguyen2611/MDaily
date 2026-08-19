@@ -3,21 +3,47 @@ import SwiftUI
 @MainActor
 public struct ExpenseDetailSheet: View {
     @ObservedObject public var store: ExpenseStore
-    @Binding public var expense: Expense?
+    public var expense: Expense
     public var onClose: () -> Void
 
+    @State private var currentExpense: Expense
     @State private var isEditing: Bool = false
     @State private var editAmountText: String = ""
     @State private var editCategory: String = ""
     @State private var editNote: String = ""
     @State private var isFullscreenImage: Bool = false
-    @State private var showDeleteAlert: Bool = false
+    @State private var showDeleteModal: Bool = false
 
-    private func setupInitialState(for exp: Expense) {
-        editAmountText = "\(Int(exp.amount))"
+    private static func formatAmountString(_ input: String) -> String {
+        let cleanDigits = input.filter { $0.isNumber }
+        guard !cleanDigits.isEmpty, let num = Double(cleanDigits) else { return "" }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        formatter.maximumFractionDigits = 0
+        return formatter.string(from: NSNumber(value: num)) ?? cleanDigits
+    }
+
+    public init(
+        store: ExpenseStore,
+        expense: Expense,
+        onClose: @escaping () -> Void
+    ) {
+        self.store = store
+        self.expense = expense
+        self.onClose = onClose
+
+        _currentExpense = State(initialValue: expense)
+        _editAmountText = State(initialValue: ExpenseDetailSheet.formatAmountString("\(Int(expense.amount))"))
+        _editCategory = State(initialValue: expense.category)
+        _editNote = State(initialValue: expense.note ?? "")
+    }
+
+    private func syncState(from exp: Expense) {
+        currentExpense = exp
+        editAmountText = ExpenseDetailSheet.formatAmountString("\(Int(exp.amount))")
         editCategory = exp.category
         editNote = exp.note ?? ""
-        isEditing = false
     }
 
     private func formatDate(_ date: Date) -> String {
@@ -27,8 +53,8 @@ public struct ExpenseDetailSheet: View {
     }
 
     public var body: some View {
-        if let currentExpense = expense {
-            NavigationView {
+        NavigationView {
+            ZStack {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 20) {
                         // Full-Height Uncropped Photo with Ambient Blur
@@ -58,9 +84,9 @@ public struct ExpenseDetailSheet: View {
                                         Spacer()
                                         HStack(spacing: 4) {
                                             Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                                .font(.system(size: 11))
+                                                .font(.appFont(size: 11, weight: .semibold))
                                             Text(store.t("view_full"))
-                                                .font(.system(size: 11, weight: .semibold))
+                                                .font(.appFont(size: 11, weight: .semibold))
                                         }
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 10)
@@ -82,23 +108,29 @@ public struct ExpenseDetailSheet: View {
                         // Hero Amount Display / Edit
                         VStack(spacing: 6) {
                             Text(store.t("expense_amount"))
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.appFont(size: 13, weight: .medium))
                                 .foregroundColor(.secondary)
 
                             if isEditing {
                                 HStack {
                                     TextField("0", text: $editAmountText)
                                         .keyboardType(.numberPad)
-                                        .font(.system(size: 32, weight: .bold))
+                                        .font(.appFont(size: 32, weight: .bold))
                                         .multilineTextAlignment(.center)
+                                        .onChange(of: editAmountText) { _, newValue in
+                                            let formatted = ExpenseDetailSheet.formatAmountString(newValue)
+                                            if formatted != newValue {
+                                                editAmountText = formatted
+                                            }
+                                        }
                                     Text(store.currencySymbol)
-                                        .font(.system(size: 24, weight: .bold))
+                                        .font(.appFont(size: 24, weight: .bold))
                                         .foregroundColor(.secondary)
                                 }
                             } else {
                                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                                     Text(store.formatCurrency(currentExpense.amount))
-                                        .font(.system(size: 34, weight: .bold))
+                                        .font(.appFont(size: 34, weight: .bold))
                                         .foregroundColor(.primary)
                                 }
                             }
@@ -112,7 +144,7 @@ public struct ExpenseDetailSheet: View {
                             HStack {
                                 Label {
                                     Text(store.t("category"))
-                                        .font(.system(size: 16))
+                                        .font(.appFont(size: 16, weight: .medium))
                                 } icon: {
                                     Image(systemName: "tag.fill")
                                         .foregroundColor(.blue)
@@ -129,54 +161,85 @@ public struct ExpenseDetailSheet: View {
                                     .pickerStyle(.menu)
                                 } else {
                                     Text(store.categoryLabel(for: currentExpense.category))
-                                        .font(.system(size: 15, weight: .medium))
-                                        .foregroundColor(.secondary)
+                                        .font(.appFont(size: 16, weight: .semibold))
+                                        .foregroundColor(.primary)
                                 }
                             }
                             .padding(.vertical, 14)
                             .padding(.horizontal, 16)
 
-                            Divider().padding(.leading, 44)
+                            Divider()
+                                .padding(.leading, 44)
 
                             // Date Row
                             HStack {
                                 Label {
-                                    Text(store.t("time"))
-                                        .font(.system(size: 16))
+                                    Text(store.t("date"))
+                                        .font(.appFont(size: 16, weight: .medium))
                                 } icon: {
                                     Image(systemName: "calendar")
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(.blue)
                                 }
 
                                 Spacer()
 
                                 Text(formatDate(currentExpense.date))
-                                    .font(.system(size: 15, weight: .medium))
+                                    .font(.appFont(size: 15, weight: .regular))
                                     .foregroundColor(.secondary)
                             }
                             .padding(.vertical, 14)
                             .padding(.horizontal, 16)
 
-                            Divider().padding(.leading, 44)
+                            Divider()
+                                .padding(.leading, 44)
+
+                            // AI Processed Badge (if applicable)
+                            if currentExpense.isAiProcessed {
+                                HStack {
+                                    Label {
+                                        Text("Nhận diện bởi AI")
+                                            .font(.appFont(size: 16, weight: .medium))
+                                    } icon: {
+                                        Image(systemName: "sparkles")
+                                            .foregroundColor(.purple)
+                                    }
+
+                                    Spacer()
+
+                                    Text("Apple Intelligence")
+                                        .font(.appFont(size: 13, weight: .semibold))
+                                        .foregroundColor(.purple)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.purple.opacity(0.12))
+                                        .clipShape(Capsule())
+                                }
+                                .padding(.vertical, 14)
+                                .padding(.horizontal, 16)
+
+                                Divider()
+                                    .padding(.leading, 44)
+                            }
 
                             // Note Row
-                            HStack {
+                            HStack(alignment: isEditing ? .top : .center) {
                                 Label {
                                     Text(store.t("note"))
-                                        .font(.system(size: 16))
+                                        .font(.appFont(size: 16, weight: .medium))
                                 } icon: {
                                     Image(systemName: "note.text")
-                                        .foregroundColor(.purple)
+                                        .foregroundColor(.blue)
                                 }
 
                                 Spacer()
 
                                 if isEditing {
                                     TextField(store.t("note_placeholder"), text: $editNote)
+                                        .font(.appFont(size: 15, weight: .regular))
                                         .multilineTextAlignment(.trailing)
                                 } else {
                                     Text(currentExpense.note ?? store.t("no_note"))
-                                        .font(.system(size: 15, weight: .medium))
+                                        .font(.appFont(size: 15, weight: .medium))
                                         .foregroundColor(.secondary)
                                         .lineLimit(2)
                                 }
@@ -188,13 +251,13 @@ public struct ExpenseDetailSheet: View {
 
                         // Danger Zone Delete Button
                         Button {
-                            showDeleteAlert = true
+                            showDeleteModal = true
                         } label: {
                             HStack {
                                 Image(systemName: "trash")
                                 Text(store.t("delete_this_expense"))
                             }
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.appFont(size: 16, weight: .semibold))
                             .foregroundColor(.red)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
@@ -205,77 +268,72 @@ public struct ExpenseDetailSheet: View {
                     }
                     .padding(16)
                 }
-                .navigationTitle(isEditing ? store.t("edit_expense") : store.t("expense_details"))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        if isEditing {
-                            Button(store.t("cancel")) {
-                                setupInitialState(for: currentExpense)
-                            }
-                        } else {
-                            Button {
-                                onClose()
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
-                            }
+                .scrollDismissesKeyboard(.interactively)
+                .hideKeyboardOnTap()
+            }
+            .alert(store.t("delete_confirm"), isPresented: $showDeleteModal) {
+                Button(store.t("delete"), role: .destructive) {
+                    store.deleteExpense(id: currentExpense.id)
+                    onClose()
+                }
+                Button(store.t("cancel"), role: .cancel) {}
+            } message: {
+                Text("\(store.categoryLabel(for: currentExpense.category)) • \(store.formatCurrency(currentExpense.amount))")
+            }
+            .navigationTitle(isEditing ? store.t("edit_expense") : store.t("expense_details"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                // LEFT: Nút Sửa (Edit) khi xem / Nút Huỷ (Cancel) khi đang sửa
+                ToolbarItem(placement: .cancellationAction) {
+                    if isEditing {
+                        Button(store.t("cancel")) {
+                            syncState(from: currentExpense)
+                            isEditing = false
                         }
-                    }
-
-                    ToolbarItem(placement: .confirmationAction) {
-                        if isEditing {
-                            Button(store.t("done")) {
-                                if let amount = Double(editAmountText.replacingOccurrences(of: ",", with: "")), amount > 0 {
-                                    var updated = currentExpense
-                                    updated.amount = amount
-                                    updated.category = editCategory
-                                    updated.note = editNote.trimmingCharacters(in: .whitespaces).isEmpty ? nil : editNote.trimmingCharacters(in: .whitespaces)
-                                    store.updateExpense(updated)
-                                    self.expense = updated
-                                    isEditing = false
-                                }
-                            }
-                            .fontWeight(.semibold)
-                        } else {
-                            Button(store.t("edit")) {
-                                isEditing = true
-                            }
+                        .font(.appFont(size: 16, weight: .regular))
+                    } else {
+                        Button(store.t("edit")) {
+                            isEditing = true
                         }
+                        .font(.appFont(size: 16, weight: .semibold))
+                        .foregroundColor(.blue)
                     }
                 }
-                .alert(store.t("delete_confirm"), isPresented: $showDeleteAlert) {
-                    Button(store.t("delete"), role: .destructive) {
-                        store.deleteExpense(id: currentExpense.id)
-                        onClose()
-                    }
-                    Button(store.t("cancel"), role: .cancel) {}
-                }
-                .fullScreenCover(isPresented: $isFullscreenImage) {
-                    if let photoData = currentExpense.photoData, let uiImage = UIImage(data: photoData) {
-                        ZStack(alignment: .topTrailing) {
-                            Color.black.ignoresSafeArea()
 
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                            Button {
-                                isFullscreenImage = false
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .font(.system(size: 30))
-                                    .foregroundColor(.white.opacity(0.8))
-                                    .padding(24)
+                // RIGHT: Dấu X (Close) khi xem / Nút Xong (Save) khi đang sửa
+                ToolbarItem(placement: .confirmationAction) {
+                    if isEditing {
+                        Button(store.t("done")) {
+                            let cleanDigits = editAmountText.replacingOccurrences(of: ",", with: "").replacingOccurrences(of: ".", with: "")
+                            if let amount = Double(cleanDigits), amount > 0 {
+                                var updated = currentExpense
+                                updated.amount = amount
+                                updated.category = editCategory
+                                updated.note = editNote.trimmingCharacters(in: .whitespaces).isEmpty ? nil : editNote.trimmingCharacters(in: .whitespaces)
+                                store.updateExpense(updated)
+                                currentExpense = updated
+                                isEditing = false
                             }
+                        }
+                        .font(.appFont(size: 16, weight: .bold))
+                        .foregroundColor(.blue)
+                    } else {
+                        LiquidGlassCloseButton(size: 32) {
+                            onClose()
                         }
                     }
                 }
             }
-            .onAppear {
-                setupInitialState(for: currentExpense)
+            .fullScreenCover(isPresented: $isFullscreenImage) {
+                if let photoData = currentExpense.photoData, let uiImage = UIImage(data: photoData) {
+                    FullScreenImageViewer(uiImage: uiImage) {
+                        isFullscreenImage = false
+                    }
+                }
             }
+        }
+        .onAppear {
+            syncState(from: expense)
         }
     }
 }

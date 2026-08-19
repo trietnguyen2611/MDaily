@@ -32,6 +32,7 @@
 		AA0100132FE993A700000002 /* ChatbotSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100132FE993A700000001 /* ChatbotSheet.swift */; };
 		AA0100142FE993A700000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100142FE993A700000001 /* ContentView.swift */; };
 		AA0100152FE993A700000002 /* ImagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100152FE993A700000001 /* ImagePickerView.swift */; };
+		AA0100162FE993A700000002 /* FullScreenImageViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100162FE993A700000001 /* FullScreenImageViewer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -62,6 +63,7 @@
 		AA0100132FE993A700000001 /* ChatbotSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ChatbotSheet.swift; sourceTree = "<group>"; };
 		AA0100142FE993A700000001 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ContentView.swift; sourceTree = "<group>"; };
 		AA0100152FE993A700000001 /* ImagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ImagePickerView.swift; sourceTree = "<group>"; };
+		AA0100162FE993A700000001 /* FullScreenImageViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/FullScreenImageViewer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,6 +113,7 @@
 				AA0100132FE993A700000001 /* ChatbotSheet.swift */,
 				AA0100142FE993A700000001 /* ContentView.swift */,
 				AA0100152FE993A700000001 /* ImagePickerView.swift */,
+				AA0100162FE993A700000001 /* FullScreenImageViewer.swift */,
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				9582B6842FE993A70072D4E9 /* AFMPlugin.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -221,6 +224,7 @@
 				AA0100132FE993A700000002 /* ChatbotSheet.swift in Sources */,
 				AA0100142FE993A700000002 /* ContentView.swift in Sources */,
 				AA0100152FE993A700000002 /* ImagePickerView.swift in Sources */,
+				AA0100162FE993A700000002 /* FullScreenImageViewer.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				9582B6852FE993A70072D4E9 /* AFMPlugin.swift in Sources */,

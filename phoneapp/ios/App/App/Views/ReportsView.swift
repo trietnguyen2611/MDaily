@@ -30,14 +30,12 @@ public struct ReportsView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 100)
+            .padding(.bottom, 110)
         }
-        .confirmationDialog(
-            "Bạn có chắc muốn xoá phân loại này không?",
-            isPresented: $showDeleteCategoryAlert,
-            titleVisibility: .visible
-        ) {
-            Button("Xoá phân loại", role: .destructive) {
+        .scrollDismissesKeyboard(.interactively)
+        .hideKeyboardOnTap()
+        .alert("Xoá phân loại?", isPresented: $showDeleteCategoryAlert) {
+            Button("Xoá", role: .destructive) {
                 if let cat = categoryToDelete {
                     store.deleteCategory(id: cat.id)
                     categoryToDelete = nil
@@ -45,6 +43,10 @@ public struct ReportsView: View {
             }
             Button("Huỷ", role: .cancel) {
                 categoryToDelete = nil
+            }
+        } message: {
+            if let cat = categoryToDelete {
+                Text("Bạn có chắc muốn xoá phân loại '\(cat.label)' không?")
             }
         }
     }
@@ -59,9 +61,9 @@ public struct ReportsView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "chart.pie.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appFont(size: 13, weight: .semibold))
                     Text(store.language == .en ? "Spending Analytics" : "Báo cáo chi tiêu")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.appFont(size: 14, weight: .bold))
                 }
                 .foregroundColor(selectedSegment == 0 ? .white : .primary)
                 .frame(maxWidth: .infinity)
@@ -89,9 +91,9 @@ public struct ReportsView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "square.grid.2x2.fill")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appFont(size: 13, weight: .semibold))
                     Text(store.language == .en ? "Categories" : "Quản lý phân loại")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.appFont(size: 14, weight: .bold))
                 }
                 .foregroundColor(selectedSegment == 1 ? .white : .primary)
                 .frame(maxWidth: .infinity)
@@ -149,11 +151,11 @@ public struct ReportsView: View {
 
                             VStack(spacing: 2) {
                                 Text("\(Int(total))")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.appFont(size: 14, weight: .bold))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.7)
                                 Text(store.currencySymbol)
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(.appFont(size: 11, weight: .medium))
                                     .foregroundColor(.secondary)
                             }
                             .padding(8)
@@ -162,15 +164,15 @@ public struct ReportsView: View {
                         // Stats text
                         VStack(alignment: .leading, spacing: 6) {
                             Text(store.t("chart_overview"))
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.appFont(size: 13, weight: .medium))
                                 .foregroundColor(.secondary)
 
                             Text(store.formatCurrency(total))
-                                .font(.system(size: 22, weight: .bold))
+                                .font(.appFont(size: 22, weight: .bold))
                                 .foregroundColor(.primary)
 
                             Text("\(expenses.count) \(store.t("expenses_count"))")
-                                .font(.system(size: 12))
+                                .font(.appFont(size: 12, weight: .regular))
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
@@ -181,7 +183,7 @@ public struct ReportsView: View {
                             .font(.system(size: 40))
                             .foregroundColor(.secondary.opacity(0.5))
                         Text(store.t("no_expenses"))
-                            .font(.system(size: 14))
+                            .font(.appFont(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity)
@@ -203,10 +205,10 @@ public struct ReportsView: View {
                                         .fill(catData.color)
                                         .frame(width: 10, height: 10)
                                     Image(systemName: catData.item.iconName)
-                                        .font(.system(size: 13))
+                                        .font(.appFont(size: 13, weight: .semibold))
                                         .foregroundColor(.secondary)
                                     Text(catData.item.label)
-                                        .font(.system(size: 15, weight: .semibold))
+                                        .font(.appFont(size: 15, weight: .semibold))
                                         .foregroundColor(.primary)
                                 }
 
@@ -214,10 +216,10 @@ public struct ReportsView: View {
 
                                 VStack(alignment: .trailing, spacing: 2) {
                                     Text(store.formatCurrency(catData.total))
-                                        .font(.system(size: 15, weight: .bold))
+                                        .font(.appFont(size: 15, weight: .bold))
                                         .foregroundColor(.primary)
                                     Text(String(format: "%.1f%%", percentage))
-                                        .font(.system(size: 12))
+                                        .font(.appFont(size: 12, weight: .regular))
                                         .foregroundColor(.secondary)
                                 }
                             }
@@ -257,7 +259,7 @@ public struct ReportsView: View {
                             .font(.system(size: 18))
                             .foregroundColor(.blue)
                         Text(store.t("add_new_category"))
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.appFont(size: 15, weight: .bold))
                             .foregroundColor(.blue)
                         Spacer()
                     }
@@ -268,11 +270,12 @@ public struct ReportsView: View {
             } else {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(store.t("add_new_category"))
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.appFont(size: 15, weight: .bold))
                         .foregroundColor(.primary)
 
                     HStack(spacing: 10) {
                         TextField(store.t("new_cat_placeholder"), text: $newCategoryLabel)
+                            .font(.appFont(size: 15, weight: .regular))
                             .padding(12)
                             .background(Color(.secondarySystemBackground))
                             .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -285,15 +288,12 @@ public struct ReportsView: View {
                                 isAddingCategory = false
                             }
                         }
+                        .font(.appFont(size: 14, weight: .semibold))
                         .buttonStyle(.borderedProminent)
 
-                        Button {
+                        LiquidGlassCloseButton(size: 32) {
                             isAddingCategory = false
                             newCategoryLabel = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -322,6 +322,7 @@ public struct ReportsView: View {
     private func categoryEditRow(for cat: CategoryItem) -> some View {
         HStack(spacing: 10) {
             TextField("Tên danh mục", text: $editCategoryLabel)
+                .font(.appFont(size: 15, weight: .regular))
                 .padding(10)
                 .background(Color(.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -333,13 +334,11 @@ public struct ReportsView: View {
                     editingCategoryId = nil
                 }
             }
+            .font(.appFont(size: 14, weight: .semibold))
             .buttonStyle(.borderedProminent)
 
-            Button {
+            LiquidGlassCloseButton(size: 30) {
                 editingCategoryId = nil
-            } label: {
-                Image(systemName: "xmark")
-                    .foregroundColor(.secondary)
             }
         }
         .padding(16)
@@ -351,18 +350,18 @@ public struct ReportsView: View {
         HStack {
             HStack(spacing: 12) {
                 Image(systemName: cat.iconName)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appFont(size: 16, weight: .semibold))
                     .foregroundColor(.blue)
                     .frame(width: 36, height: 36)
                     .background(Circle().fill(Color.blue.opacity(0.12)))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(cat.label)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.appFont(size: 16, weight: .bold))
                         .foregroundColor(.primary)
 
                     Text("\(count) giao dịch • \(store.formatCurrency(total))")
-                        .font(.system(size: 12))
+                        .font(.appFont(size: 12, weight: .regular))
                         .foregroundColor(.secondary)
                 }
             }
@@ -385,7 +384,9 @@ public struct ReportsView: View {
                 if !cat.isDefault {
                     Button {
                         categoryToDelete = cat
-                        showDeleteCategoryAlert = true
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            showDeleteCategoryAlert = true
+                        }
                     } label: {
                         Image(systemName: "trash")
                             .font(.system(size: 13, weight: .semibold))

@@ -30,6 +30,9 @@ public struct ContentView: View {
     @State private var selectedExpense: Expense? = nil
     @State private var capturedPhotoData: Data? = nil
     @State private var showCameraFromQuickAction: Bool = false
+    @State private var isKeyboardVisible: Bool = false
+
+    @Environment(\.colorScheme) private var colorScheme
 
     private var filteredExpenses: [Expense] {
         store.expenses.filter { expense in
@@ -66,85 +69,12 @@ public struct ContentView: View {
             // 1. Ambient Dynamic Atmosphere Canvas
             AmbientBackgroundView()
 
-            // 2. Main Content & Navigation
+            // 2. Main Content
             VStack(spacing: 0) {
-                // Top Liquid Glass Header
-                HStack(alignment: .center) {
-                    Text(pageTitle)
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
+                // Top Liquid Glass Navigation Header
+                topLiquidGlassHeader
 
-                    Spacer()
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 14)
-                .padding(.bottom, 6)
-
-                // Filter Bar (For Dashboard & Reports)
-                if activeTab == .dashboard || activeTab == .reports {
-                    HStack(spacing: 10) {
-                        Menu {
-                            ForEach(TimeFilter.allCases) { filter in
-                                Button(filter.title(lang: store.language)) {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                        timeFilter = filter
-                                    }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: "calendar")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.blue)
-                                Text(timeFilter.title(lang: store.language))
-                                    .font(.system(size: 13, weight: .medium))
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.secondary)
-                            }
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .liquidGlassPill()
-                        }
-
-                        Menu {
-                            Button(store.t("all_categories")) {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                    categoryFilter = "all"
-                                }
-                            }
-                            ForEach(store.categories) { cat in
-                                Button(cat.label) {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                        categoryFilter = cat.id
-                                    }
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: "tag.fill")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.orange)
-                                Text(categoryFilter == "all" ? store.t("all_categories") : store.categoryLabel(for: categoryFilter))
-                                    .font(.system(size: 13, weight: .medium))
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.secondary)
-                            }
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .liquidGlassPill()
-                        }
-
-                        Spacer()
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.bottom, 10)
-                }
-
-                // Main Tab View with Fluid Spring Transition
+                // Main Tab Content View with Spring Transitions
                 Group {
                     switch activeTab {
                     case .dashboard:
@@ -187,16 +117,30 @@ public struct ContentView: View {
                 activeTab: $activeTab,
                 onQuickPhotoCaptured: { photoData in
                     self.capturedPhotoData = photoData
-                }
+                },
+                isKeyboardActive: isKeyboardVisible
             )
+        }
+        .hideKeyboardOnTap()
+        .onChange(of: activeTab) { _, newTab in
+            if newTab != .addExpense {
+                capturedPhotoData = nil
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                isKeyboardVisible = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                isKeyboardVisible = false
+            }
         }
         .sheet(item: $selectedExpense) { exp in
             ExpenseDetailSheet(
                 store: store,
-                expense: Binding(
-                    get: { selectedExpense },
-                    set: { selectedExpense = $0 }
-                ),
+                expense: exp,
                 onClose: { selectedExpense = nil }
             )
         }
@@ -229,6 +173,124 @@ public struct ContentView: View {
                     break
                 }
             }
+        }
+    }
+
+    // MARK: - Top Liquid Glass Header (iOS 27 Design)
+    private var topLiquidGlassHeader: some View {
+        VStack(spacing: 8) {
+            HStack(alignment: .center) {
+                Text(pageTitle)
+                    .font(.appLargeTitle)
+                    .foregroundColor(.primary)
+
+                Spacer()
+
+                // Top-Right AI Chat Button (Apple Intelligence AFM)
+                Button {
+                    showAiChat = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color.blue, Color.purple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        Text("AI")
+                            .font(.appFont(size: 13, weight: .bold))
+                            .foregroundColor(.primary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .liquidGlassPill()
+                }
+                .liquidGlassButton()
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 8)
+
+            // Filter Bar (For Dashboard & Reports)
+            if activeTab == .dashboard || activeTab == .reports {
+                HStack(spacing: 10) {
+                    Menu {
+                        ForEach(TimeFilter.allCases) { filter in
+                            Button(filter.title(lang: store.language)) {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    timeFilter = filter
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "calendar")
+                                .font(.appFont(size: 12, weight: .semibold))
+                                .foregroundColor(.blue)
+                            Text(timeFilter.title(lang: store.language))
+                                .font(.appFont(size: 13, weight: .medium))
+                            Image(systemName: "chevron.down")
+                                .font(.appFont(size: 10, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        }
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .liquidGlassPill()
+                    }
+
+                    Menu {
+                        Button(store.t("all_categories")) {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                categoryFilter = "all"
+                            }
+                        }
+                        ForEach(store.categories) { cat in
+                            Button(cat.label) {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    categoryFilter = cat.id
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "tag.fill")
+                                .font(.appFont(size: 11, weight: .semibold))
+                                .foregroundColor(.orange)
+                            Text(categoryFilter == "all" ? store.t("all_categories") : store.categoryLabel(for: categoryFilter))
+                                .font(.appFont(size: 13, weight: .medium))
+                            Image(systemName: "chevron.down")
+                                .font(.appFont(size: 10, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        }
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .liquidGlassPill()
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal, 18)
+                .padding(.bottom, 6)
+            }
+        }
+        .padding(.bottom, 4)
+        .background {
+            Rectangle()
+                .fill(.ultraThinMaterial.opacity(0.85))
+                .overlay {
+                    Rectangle()
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.02) : Color.white.opacity(0.20))
+                }
+                .overlay(alignment: .bottom) {
+                    Rectangle()
+                        .fill(Color.white.opacity(colorScheme == .dark ? 0.10 : 0.40))
+                        .frame(height: 0.5)
+                }
+                .ignoresSafeArea(edges: .top)
         }
     }
 }

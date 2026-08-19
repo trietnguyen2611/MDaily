@@ -22,15 +22,32 @@ public struct ChatbotSheet: View {
     @State private var isLoading: Bool = false
     @State private var afmStatus: AFMStatus = AFMService.shared.checkStatus()
 
-    private var quickPrompts: [String] {
-        store.language == .en
-            ? ["💡 Total spending?", "📊 Saving advice", "🍔 Food expenses?", "⚡ Highest expense?"]
-            : ["💡 Tổng chi tiêu?", "📊 Lời khuyên tiết kiệm", "🍔 Chi ăn uống?", "⚡ Khoản chi lớn nhất?"]
+    public init(store: ExpenseStore, onClose: @escaping () -> Void) {
+        self.store = store
+        self.onClose = onClose
     }
 
     public var body: some View {
         NavigationView {
             VStack(spacing: 0) {
+                // AFM Status Banner
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.purple)
+                    Text("Apple Intelligence AFM")
+                        .font(.appFont(size: 12, weight: .semibold))
+                        .foregroundColor(.primary)
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 6, height: 6)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .liquidGlassPill()
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
                 // Messages List
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
@@ -40,7 +57,7 @@ public struct ChatbotSheet: View {
                                     if msg.role == "user" {
                                         Spacer()
                                         Text(msg.content)
-                                            .font(.system(size: 15))
+                                            .font(.appFont(size: 15, weight: .regular))
                                             .foregroundColor(.white)
                                             .padding(.horizontal, 16)
                                             .padding(.vertical, 10)
@@ -73,7 +90,7 @@ public struct ChatbotSheet: View {
                                                 HStack(spacing: 6) {
                                                     ProgressView()
                                                     Text(store.t("ai_thinking"))
-                                                        .font(.system(size: 14))
+                                                        .font(.appFont(size: 14, weight: .medium))
                                                         .foregroundColor(.secondary)
                                                 }
                                                 .padding(.horizontal, 14)
@@ -81,7 +98,7 @@ public struct ChatbotSheet: View {
                                                 .liquidGlass(cornerRadius: 18)
                                             } else {
                                                 Text(msg.content)
-                                                    .font(.system(size: 15))
+                                                    .font(.appFont(size: 15, weight: .regular))
                                                     .foregroundColor(.primary)
                                                     .padding(.horizontal, 16)
                                                     .padding(.vertical, 10)
@@ -105,29 +122,10 @@ public struct ChatbotSheet: View {
                     }
                 }
 
-                // Quick Suggestion Chips
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(quickPrompts, id: \.self) { prompt in
-                            Button {
-                                sendMessage(prompt)
-                            } label: {
-                                Text(prompt)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.primary)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 7)
-                                    .liquidGlassPill()
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-                }
-
                 // Input Bar
                 HStack(spacing: 10) {
                     TextField(store.t("type_message"), text: $inputText)
+                        .font(.appFont(size: 15, weight: .regular))
                         .padding(12)
                         .background(Color(.secondarySystemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 22))
@@ -145,24 +143,24 @@ public struct ChatbotSheet: View {
                 .padding(.vertical, 10)
                 .background(Color(.systemBackground))
             }
-            .navigationTitle("MDaily AI")
+            .scrollDismissesKeyboard(.interactively)
+            .hideKeyboardOnTap()
+            .navigationTitle("Apple Intelligence")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
-                        onClose()
+                        resetChat()
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
+                        Image(systemName: "trash")
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
                     }
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button {
-                        resetChat()
-                    } label: {
-                        Image(systemName: "trash")
-                            .foregroundColor(.secondary)
+                    LiquidGlassCloseButton(size: 32) {
+                        onClose()
                     }
                 }
             }
@@ -176,8 +174,8 @@ public struct ChatbotSheet: View {
 
     private func resetChat() {
         let initialGreeting = store.language == .en
-            ? "Hey there! What are you planning to spend today? Let me help you manage and optimize your expenses!"
-            : "Mở app lên làm gì đấy? Lại định phung phí tiền đúng không? Khai mau, nay mày đã tiêu bao nhiêu tiền rồi!"
+            ? "Hello! I am Apple Intelligence on MDaily. I analyze your on-device expense data privately. How can I assist you today?"
+            : "Chào bạn! Tôi là trợ lý Apple Intelligence (AFM) trên MDaily. Dữ liệu chi tiêu được phân tích hoàn toàn an toàn trên thiết bị của bạn. Bạn cần tư vấn hay thống kê tài chính gì hôm nay?"
 
         messages = [
             ChatMessageSwift(role: "assistant", content: initialGreeting)

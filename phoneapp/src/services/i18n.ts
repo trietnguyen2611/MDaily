@@ -84,7 +84,7 @@ export const TRANSLATIONS = {
     year_placeholder: 'Năm',
 
     // Dashboard
-    no_expenses: 'Chưa có chi tiêu nào. Bấm "Thêm" để thêm mới.',
+    no_expenses: 'Chưa có chi tiêu nào. Bấm "+" hoặc nút chụp ảnh để thêm chi tiêu mới.',
     delete_expense_confirm: 'Bạn chắc chắn muốn xoá khoản chi tiêu này?',
     delete: 'Xoá',
     ai_badge: 'AI',

@@ -25,10 +25,8 @@ public struct LiquidGlassDock: View {
     public var onQuickPhotoCaptured: (Data) -> Void
     public var isKeyboardActive: Bool = false
 
-    @State private var showPhotoSourceDialog: Bool = false
     @State private var showCameraPicker: Bool = false
     @State private var showLibraryPicker: Bool = false
-    @State private var selectedPhotoItem: PhotosPickerItem?
 
     @Environment(\.colorScheme) private var colorScheme
     @Namespace private var dockNamespace
@@ -44,32 +42,26 @@ public struct LiquidGlassDock: View {
     }
 
     public var body: some View {
-        ZStack(alignment: .bottom) {
-            // 1. Ambient Frosted Glass Scrim under content
+        Group {
             if !isKeyboardActive {
-                dockScrim
-                dockContent
-            }
-        }
-        .animation(.spring(response: 0.40, dampingFraction: 0.82), value: isKeyboardActive)
-        .confirmationDialog("Chọn ảnh hoá đơn / chi tiêu", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
-            if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button("Chụp ảnh từ Máy ảnh") {
-                    showCameraPicker = true
+                HStack(spacing: 12) {
+                    capsuleTabs
+                    cameraButton
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            Button("Chọn từ Thư viện ảnh") {
-                showLibraryPicker = true
-            }
-            Button("Huỷ", role: .cancel) {}
         }
-        .sheet(isPresented: $showCameraPicker) {
+        .animation(.spring(response: 0.38, dampingFraction: 0.82), value: isKeyboardActive)
+        .fullScreenCover(isPresented: $showCameraPicker) {
             ImagePickerView(sourceType: .camera) { image in
                 if let data = image.jpegData(compressionQuality: 0.85) {
                     onQuickPhotoCaptured(data)
                     activeTab = .addExpense
                 }
             }
+            .ignoresSafeArea()
         }
         .sheet(isPresented: $showLibraryPicker) {
             ImagePickerView(sourceType: .photoLibrary) { image in
@@ -81,32 +73,6 @@ public struct LiquidGlassDock: View {
         }
     }
 
-    // MARK: - Subviews
-    private var dockScrim: some View {
-        let baseColor: Color = colorScheme == .dark ? Color.black : Color.white
-        return LinearGradient(
-            stops: [
-                .init(color: Color.clear, location: 0.0),
-                .init(color: baseColor.opacity(0.45), location: 0.35),
-                .init(color: baseColor.opacity(0.85), location: 0.70),
-                .init(color: baseColor.opacity(0.96), location: 1.0)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .frame(height: 110)
-        .allowsHitTesting(false)
-    }
-
-    private var dockContent: some View {
-        HStack(spacing: 12) {
-            capsuleTabs
-            cameraButton
-        }
-        .padding(.bottom, 6)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
-    }
-
     // MARK: - 4-Tab Main Capsule
     private var capsuleTabs: some View {
         HStack(spacing: 0) {
@@ -114,34 +80,40 @@ public struct LiquidGlassDock: View {
                 tabButton(for: tab)
             }
         }
-        .frame(width: 240, height: 56)
+        .frame(width: 276, height: 62)
         .background {
             Capsule(style: .continuous)
-                .fill(
-                    colorScheme == .dark
-                        ? Color(white: 0.15).opacity(0.70)
-                        : Color.white.opacity(0.72)
-                )
-                .background(Capsule().fill(.ultraThinMaterial))
+                .fill(.ultraThinMaterial)
+                .overlay {
+                    Capsule(style: .continuous)
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.35))
+                }
                 .overlay {
                     Capsule(style: .continuous)
                         .strokeBorder(
                             LinearGradient(
-                                colors: [
-                                    Color.white.opacity(colorScheme == .dark ? 0.40 : 0.88),
-                                    Color.white.opacity(colorScheme == .dark ? 0.08 : 0.25)
+                                stops: [
+                                    .init(color: Color.white.opacity(colorScheme == .dark ? 0.45 : 0.85), location: 0.0),
+                                    .init(color: Color.white.opacity(colorScheme == .dark ? 0.12 : 0.35), location: 0.5),
+                                    .init(color: Color.white.opacity(colorScheme == .dark ? 0.04 : 0.10), location: 1.0)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 0.5
+                            lineWidth: 0.75
                         )
                 }
                 .shadow(
-                    color: Color.black.opacity(colorScheme == .dark ? 0.38 : 0.08),
-                    radius: 22,
+                    color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.10),
+                    radius: 20,
                     x: 0,
                     y: 8
+                )
+                .shadow(
+                    color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.04),
+                    radius: 6,
+                    x: 0,
+                    y: 2
                 )
         }
     }
@@ -154,12 +126,12 @@ public struct LiquidGlassDock: View {
             : (colorScheme == .dark ? Color.white.opacity(0.55) : Color.black.opacity(0.50))
 
         Button {
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.75)) {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                 activeTab = tab
             }
         } label: {
             Image(systemName: tab.iconName)
-                .font(.system(size: 19, weight: isSelected ? .semibold : .regular))
+                .font(.system(size: 21, weight: isSelected ? .bold : .regular))
                 .foregroundColor(iconColor)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background {
@@ -167,69 +139,74 @@ public struct LiquidGlassDock: View {
                         Capsule(style: .continuous)
                             .fill(
                                 LinearGradient(
-                                    colors: [Color.blue, Color(red: 0, green: 0.72, blue: 0.96)],
+                                    colors: [Color.blue, Color(red: 0, green: 0.68, blue: 0.96)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
                             )
                             .overlay {
                                 Capsule(style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5)
+                                    .strokeBorder(Color.white.opacity(0.40), lineWidth: 0.65)
                             }
                             .matchedGeometryEffect(id: "activeTabPill", in: dockNamespace)
-                            .shadow(color: Color.blue.opacity(0.38), radius: 8, x: 0, y: 3)
+                            .shadow(color: Color.blue.opacity(0.40), radius: 8, x: 0, y: 3)
                             .padding(4)
                     }
                 }
         }
         .buttonStyle(.plain)
-        .frame(height: 50)
+        .frame(height: 54)
     }
 
-    // MARK: - Standalone Camera Button
+    // MARK: - Standalone Camera Button (Direct Camera Trigger)
     private var cameraButton: some View {
         Button {
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                showPhotoSourceDialog = true
+                showCameraPicker = true
             } else {
-                // Directly open photo library on simulator / device without camera
                 showLibraryPicker = true
             }
         } label: {
             ZStack {
                 Circle()
-                    .fill(
-                        colorScheme == .dark
-                            ? Color(white: 0.15).opacity(0.70)
-                            : Color.white.opacity(0.72)
-                    )
-                    .background(Circle().fill(.ultraThinMaterial))
+                    .fill(.ultraThinMaterial)
+                    .overlay {
+                        Circle()
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.35))
+                    }
                     .overlay {
                         Circle()
                             .strokeBorder(
                                 LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(colorScheme == .dark ? 0.40 : 0.88),
-                                        Color.white.opacity(colorScheme == .dark ? 0.08 : 0.25)
+                                    stops: [
+                                        .init(color: Color.white.opacity(colorScheme == .dark ? 0.45 : 0.85), location: 0.0),
+                                        .init(color: Color.white.opacity(colorScheme == .dark ? 0.12 : 0.35), location: 0.5),
+                                        .init(color: Color.white.opacity(colorScheme == .dark ? 0.04 : 0.10), location: 1.0)
                                     ],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                lineWidth: 0.5
+                                lineWidth: 0.75
                             )
                     }
                     .shadow(
-                        color: Color.black.opacity(colorScheme == .dark ? 0.38 : 0.08),
-                        radius: 22,
+                        color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.10),
+                        radius: 20,
                         x: 0,
                         y: 8
                     )
+                    .shadow(
+                        color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.04),
+                        radius: 6,
+                        x: 0,
+                        y: 2
+                    )
 
                 Image(systemName: "camera.fill")
-                    .font(.system(size: 21, weight: .semibold))
+                    .font(.system(size: 23, weight: .semibold))
                     .foregroundColor(Color.blue)
             }
-            .frame(width: 56, height: 56)
+            .frame(width: 62, height: 62)
         }
         .liquidGlassButton()
     }

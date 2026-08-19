@@ -20,6 +20,7 @@ public struct AddExpenseView: View {
     @State private var showCameraPicker: Bool = false
     @State private var showLibraryPicker: Bool = false
     @State private var showAmountError: Bool = false
+    @State private var isFullscreenImage: Bool = false
 
     public init(
         store: ExpenseStore,
@@ -31,6 +32,26 @@ public struct AddExpenseView: View {
         self.initialPhotoData = initialPhotoData
         self.onSave = onSave
         self.onCancel = onCancel
+    }
+
+    public func resetForm() {
+        amountText = ""
+        noteText = ""
+        photoData = nil
+        extractResultText = nil
+        showAmountError = false
+        isAddingCategory = false
+        newCategoryName = ""
+    }
+
+    private func formatAmountString(_ input: String) -> String {
+        let cleanDigits = input.filter { $0.isNumber }
+        guard !cleanDigits.isEmpty, let num = Double(cleanDigits) else { return "" }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = ","
+        formatter.maximumFractionDigits = 0
+        return formatter.string(from: NSNumber(value: num)) ?? cleanDigits
     }
 
     private func processPhoto(_ data: Data) {
@@ -50,7 +71,7 @@ public struct AddExpenseView: View {
                             self.noteText = item
                         }
                         if let amount = result.amount, amount > 0 {
-                            self.amountText = "\(Int(amount))"
+                            self.amountText = formatAmountString("\(Int(amount))")
                         }
                         if let cat = result.category {
                             if store.categories.contains(where: { $0.id == cat }) {
@@ -89,96 +110,18 @@ public struct AddExpenseView: View {
         )
 
         store.addExpense(expense)
-
-        // Reset state
-        amountText = ""
-        noteText = ""
-        photoData = nil
-        extractResultText = nil
-        showAmountError = false
-
+        resetForm()
         onSave()
     }
 
     public var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 20) {
-                // Photo Upload / Preview Hero Card
+                // Photo Upload / Preview Hero Card (Optimized for Portrait & Receipts)
                 if let photoData, let uiImage = UIImage(data: photoData) {
-                    ZStack(alignment: .topTrailing) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 220)
-                            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-
-                        Button {
-                            self.photoData = nil
-                            self.extractResultText = nil
-                        } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 32, height: 32)
-                                .background(Circle().fill(Color.black.opacity(0.6)))
-                        }
-                        .padding(12)
-
-                        if isExtracting {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .fill(Color.black.opacity(0.6))
-                                HStack(spacing: 8) {
-                                    ProgressView()
-                                        .tint(.white)
-                                    Text("AI đang nhận diện...")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(.white)
-                                }
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .liquidGlass(cornerRadius: 24)
-
-                    if let extractResultText {
-                        HStack(spacing: 6) {
-                            Image(systemName: "sparkles")
-                                .foregroundColor(.blue)
-                            Text(extractResultText)
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.primary)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .liquidGlassPill()
-                    }
+                    photoPreviewCard(uiImage: uiImage)
                 } else {
-                    Button {
-                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                            showPhotoSourceDialog = true
-                        } else {
-                            showLibraryPicker = true
-                        }
-                    } label: {
-                        VStack(spacing: 10) {
-                            Image(systemName: "camera.badge.ellipsis")
-                                .font(.system(size: 36))
-                                .foregroundColor(.blue)
-
-                            Text(store.t("add_photo"))
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.primary)
-
-                            Text(store.autoExtractEnabled ? store.t("ai_auto_extract") : store.t("take_photo"))
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 130)
-                        .liquidGlass(cornerRadius: 24)
-                    }
-                    .liquidGlassButton()
+                    photoPlaceholderCard
                 }
 
                 // Inset Grouped Form
@@ -187,14 +130,14 @@ public struct AddExpenseView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text("\(store.t("amount")) (\(store.currencySymbol))")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.appFont(size: 14, weight: .medium))
                                 .foregroundColor(.secondary)
 
                             Spacer()
 
                             if showAmountError {
                                 Text("Vui lòng nhập số tiền hợp lệ")
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(.appFont(size: 12, weight: .medium))
                                     .foregroundColor(.red)
                             }
                         }
@@ -202,13 +145,17 @@ public struct AddExpenseView: View {
                         HStack {
                             TextField("0", text: $amountText)
                                 .keyboardType(.numberPad)
-                                .font(.system(size: 24, weight: .bold))
-                                .onChange(of: amountText) { _, _ in
+                                .font(.appFont(size: 24, weight: .bold))
+                                .onChange(of: amountText) { _, newValue in
                                     showAmountError = false
+                                    let formatted = formatAmountString(newValue)
+                                    if formatted != newValue {
+                                        amountText = formatted
+                                    }
                                 }
 
                             Text(store.currencySymbol)
-                                .font(.system(size: 20, weight: .bold))
+                                .font(.appFont(size: 20, weight: .bold))
                                 .foregroundColor(.secondary)
                         }
                         .padding(14)
@@ -219,7 +166,7 @@ public struct AddExpenseView: View {
                     // Category Field
                     VStack(alignment: .leading, spacing: 6) {
                         Text(store.t("category"))
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.appFont(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
 
                         Picker("Category", selection: $selectedCategory) {
@@ -227,6 +174,7 @@ public struct AddExpenseView: View {
                                 Text(cat.label).tag(cat.id)
                             }
                         }
+                        .font(.appFont(size: 15, weight: .medium))
                         .pickerStyle(.menu)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
@@ -241,13 +189,14 @@ public struct AddExpenseView: View {
                                     Image(systemName: "plus.circle.fill")
                                     Text(store.t("add_new_category"))
                                 }
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appFont(size: 13, weight: .semibold))
                                 .foregroundColor(.blue)
                             }
                             .padding(.top, 2)
                         } else {
                             HStack {
                                 TextField(store.t("new_cat_placeholder"), text: $newCategoryName)
+                                    .font(.appFont(size: 14, weight: .regular))
                                     .padding(10)
                                     .background(Color(.tertiarySystemBackground))
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -263,14 +212,12 @@ public struct AddExpenseView: View {
                                         isAddingCategory = false
                                     }
                                 }
+                                .font(.appFont(size: 14, weight: .semibold))
                                 .buttonStyle(.borderedProminent)
 
-                                Button {
+                                LiquidGlassCloseButton(size: 28) {
                                     isAddingCategory = false
                                     newCategoryName = ""
-                                } label: {
-                                    Image(systemName: "xmark")
-                                        .foregroundColor(.secondary)
                                 }
                             }
                             .padding(.top, 4)
@@ -280,10 +227,11 @@ public struct AddExpenseView: View {
                     // Note Field
                     VStack(alignment: .leading, spacing: 6) {
                         Text(store.t("note"))
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.appFont(size: 14, weight: .medium))
                             .foregroundColor(.secondary)
 
                         TextField(store.t("note_placeholder"), text: $noteText)
+                            .font(.appFont(size: 15, weight: .regular))
                             .padding(14)
                             .background(Color(.secondarySystemBackground))
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -295,9 +243,10 @@ public struct AddExpenseView: View {
                 // Action Buttons
                 HStack(spacing: 12) {
                     Button(store.t("cancel")) {
+                        resetForm()
                         onCancel()
                     }
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appFont(size: 16, weight: .semibold))
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
@@ -307,7 +256,7 @@ public struct AddExpenseView: View {
                     Button(store.t("save_expense")) {
                         saveExpense()
                     }
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appFont(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
@@ -324,8 +273,10 @@ public struct AddExpenseView: View {
                 }
             }
             .padding(16)
-            .padding(.bottom, 100)
+            .padding(.bottom, 110)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .hideKeyboardOnTap()
         .confirmationDialog("Thêm ảnh chi tiêu", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
                 Button("Chụp ảnh từ Máy ảnh") {
@@ -351,10 +302,172 @@ public struct AddExpenseView: View {
                 }
             }
         }
+        .fullScreenCover(isPresented: $isFullscreenImage) {
+            if let photoData, let uiImage = UIImage(data: photoData) {
+                FullScreenImageViewer(uiImage: uiImage) {
+                    isFullscreenImage = false
+                }
+            }
+        }
         .onAppear {
-            if let initialPhotoData {
+            if let initialPhotoData, photoData == nil {
                 processPhoto(initialPhotoData)
             }
         }
+        .onDisappear {
+            resetForm()
+        }
+        .onChange(of: initialPhotoData) { _, newData in
+            if let newData {
+                processPhoto(newData)
+            }
+        }
+    }
+
+    // MARK: - Subviews
+    @ViewBuilder
+    private func photoPreviewCard(uiImage: UIImage) -> some View {
+        let isVertical = uiImage.size.height >= uiImage.size.width
+        let previewHeight: CGFloat = isVertical ? 320 : 220
+
+        VStack(spacing: 10) {
+            ZStack(alignment: .topTrailing) {
+                // 1. Ambient Blurred Backdrop to fill card gracefully
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: previewHeight)
+                    .blur(radius: 28)
+                    .opacity(0.38)
+                    .clipped()
+
+                // 2. Optical Glass Tint Layer
+                Rectangle()
+                    .fill(.ultraThinMaterial.opacity(0.30))
+                    .frame(height: previewHeight)
+
+                // 3. Foreground Uncropped High-Res Image (Preserves full vertical receipt / bill)
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: previewHeight - 16)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .shadow(color: Color.black.opacity(0.25), radius: 10, x: 0, y: 4)
+                    .padding(8)
+
+                // 4. Action Controls Bar (Zoom, Retake, Remove)
+                HStack(spacing: 8) {
+                    Button {
+                        isFullscreenImage = true
+                    } label: {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 34, height: 34)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .overlay(Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 0.6))
+                    }
+
+                    Button {
+                        showPhotoSourceDialog = true
+                    } label: {
+                        Image(systemName: "camera.rotate.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 34, height: 34)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                            .overlay(Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 0.6))
+                    }
+
+                    LiquidGlassCloseButton(size: 34, color: .white) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            self.photoData = nil
+                            self.extractResultText = nil
+                        }
+                    }
+                }
+                .padding(10)
+
+                // 5. AI Extraction Loading Status
+                if isExtracting {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .background(Color.black.opacity(0.35))
+
+                        HStack(spacing: 8) {
+                            ProgressView()
+                                .tint(.white)
+                            Text("AI đang nhận diện...")
+                                .font(.appFont(size: 14, weight: .medium))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(Capsule().fill(Color.black.opacity(0.65)))
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: previewHeight)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.75)
+            )
+            .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 4)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isFullscreenImage = true
+            }
+
+            if let extractResultText {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .foregroundColor(.blue)
+                    Text(extractResultText)
+                        .font(.appFont(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .liquidGlassPill()
+            }
+        }
+    }
+
+    private var photoPlaceholderCard: some View {
+        Button {
+            showPhotoSourceDialog = true
+        } label: {
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(Color.blue.opacity(0.12))
+                        .frame(width: 48, height: 48)
+
+                    Image(systemName: "camera.badge.ellipsis")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(.blue)
+                }
+
+                Text(store.t("add_photo"))
+                    .font(.appFont(size: 15, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                Text(store.autoExtractEnabled ? store.t("ai_auto_extract") : store.t("take_photo"))
+                    .font(.appFont(size: 12, weight: .regular))
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 125)
+            .liquidGlass(cornerRadius: 24)
+        }
+        .liquidGlassButton()
     }
 }

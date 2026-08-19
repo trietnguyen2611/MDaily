@@ -15,7 +15,7 @@ public struct SettingsView: View {
                 // 1. Apple Intelligence / Smart Financial AI Section
                 VStack(alignment: .leading, spacing: 10) {
                     Text(store.t("apple_intelligence"))
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(.appFont(size: 14, weight: .bold))
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
 
@@ -26,9 +26,9 @@ public struct SettingsView: View {
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(store.t("status"))
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.appFont(size: 16, weight: .medium))
                                 Text(afmStatus.message)
-                                    .font(.system(size: 12))
+                                    .font(.appFont(size: 12, weight: .regular))
                                     .foregroundColor(.secondary)
                             }
                             .padding(.leading, 6)
@@ -39,7 +39,7 @@ public struct SettingsView: View {
                                 Image(systemName: afmStatus.available ? "checkmark.circle.fill" : "xmark.circle.fill")
                                     .foregroundColor(afmStatus.available ? .green : .orange)
                                 Text(afmStatus.available ? store.t("available") : store.t("unavailable"))
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.appFont(size: 13, weight: .semibold))
                                     .foregroundColor(afmStatus.available ? .green : .orange)
                             }
                             .padding(.horizontal, 10)
@@ -60,9 +60,9 @@ public struct SettingsView: View {
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(store.t("auto_extract"))
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.appFont(size: 16, weight: .medium))
                                 Text(store.t("auto_extract_desc"))
-                                    .font(.system(size: 12))
+                                    .font(.appFont(size: 12, weight: .regular))
                                     .foregroundColor(.secondary)
                             }
                             .padding(.leading, 6)
@@ -85,9 +85,9 @@ public struct SettingsView: View {
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(store.t("ai_chat"))
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.appFont(size: 16, weight: .medium))
                                 Text(store.t("ai_chat_desc"))
-                                    .font(.system(size: 12))
+                                    .font(.appFont(size: 12, weight: .regular))
                                     .foregroundColor(.secondary)
                             }
                             .padding(.leading, 6)
@@ -99,7 +99,7 @@ public struct SettingsView: View {
                             } label: {
                                 HStack(spacing: 4) {
                                     Text("Trò chuyện")
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.appFont(size: 13, weight: .semibold))
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 11, weight: .semibold))
                                 }
@@ -117,7 +117,7 @@ public struct SettingsView: View {
                 // 2. Language & Currency Options
                 VStack(alignment: .leading, spacing: 10) {
                     Text(store.t("ui_options"))
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(.appFont(size: 14, weight: .bold))
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
 
@@ -128,9 +128,9 @@ public struct SettingsView: View {
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(store.t("language"))
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.appFont(size: 16, weight: .medium))
                                 Text(store.t("language_desc"))
-                                    .font(.system(size: 12))
+                                    .font(.appFont(size: 12, weight: .regular))
                                     .foregroundColor(.secondary)
                             }
                             .padding(.leading, 6)
@@ -144,6 +144,7 @@ public struct SettingsView: View {
                                 Text(Language.vi.displayName).tag(Language.vi)
                                 Text(Language.en.displayName).tag(Language.en)
                             }
+                            .font(.appFont(size: 15, weight: .medium))
                             .pickerStyle(.menu)
                         }
                         .padding(16)
@@ -156,9 +157,9 @@ public struct SettingsView: View {
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(store.t("currency"))
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.appFont(size: 16, weight: .medium))
                                 Text(store.t("currency_desc"))
-                                    .font(.system(size: 12))
+                                    .font(.appFont(size: 12, weight: .regular))
                                     .foregroundColor(.secondary)
                             }
                             .padding(.leading, 6)
@@ -173,6 +174,7 @@ public struct SettingsView: View {
                                     Text(curr.displayName).tag(curr)
                                 }
                             }
+                            .font(.appFont(size: 15, weight: .medium))
                             .pickerStyle(.menu)
                         }
                         .padding(16)
@@ -183,7 +185,7 @@ public struct SettingsView: View {
                 // 3. Data Management
                 VStack(alignment: .leading, spacing: 10) {
                     Text(store.t("data_management"))
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(.appFont(size: 14, weight: .bold))
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
 
@@ -195,7 +197,7 @@ public struct SettingsView: View {
                                 settingsIcon(name: "trash.fill", color: .red)
 
                                 Text(store.t("delete_all_data"))
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.appFont(size: 16, weight: .semibold))
                                     .foregroundColor(.red)
                                     .padding(.leading, 6)
 
@@ -214,28 +216,28 @@ public struct SettingsView: View {
 
                 // 4. App Info Card
                 VStack(spacing: 6) {
-                    Text("MDaily — Quản Lý Chi Tiêu Liquid Glass")
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                    Text("MDaily — Quản Lý Chi Tiêu")
+                        .font(.appFont(size: 14, weight: .bold))
                         .foregroundColor(.primary)
-                    Text("Phiên bản 2.0 • Pure Native SwiftUI (iOS 26 / 27)")
-                        .font(.system(size: 12))
+                    Text("v2.2")
+                        .font(.appFont(size: 12, weight: .regular))
                         .foregroundColor(.secondary)
                 }
                 .padding(.top, 8)
             }
             .padding(16)
-            .padding(.bottom, 100)
+            .padding(.bottom, 110)
         }
-        .confirmationDialog(
-            store.t("delete_all_confirm"),
-            isPresented: $showDeleteAllAlert,
-            titleVisibility: .visible
-        ) {
+        .scrollDismissesKeyboard(.interactively)
+        .hideKeyboardOnTap()
+        .alert(store.t("delete_all_confirm"), isPresented: $showDeleteAllAlert) {
             Button(store.t("delete_all_data"), role: .destructive) {
                 store.clearAllData()
                 showDeletedNotice = true
             }
             Button(store.t("cancel"), role: .cancel) {}
+        } message: {
+            Text("Toàn bộ chi tiêu và dữ liệu của bạn sẽ bị xoá hoàn toàn.")
         }
         .alert(store.t("data_cleared"), isPresented: $showDeletedNotice) {
             Button(store.t("done"), role: .cancel) {}

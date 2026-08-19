@@ -13,6 +13,8 @@ public enum Language: String, Codable, CaseIterable, Identifiable, Sendable {
         case .en: return "English"
         }
     }
+
+    public var displayName: String { title }
 }
 
 public enum Currency: String, Codable, CaseIterable, Identifiable, Sendable {
@@ -33,6 +35,8 @@ public enum Currency: String, Codable, CaseIterable, Identifiable, Sendable {
         case .gbp: return "GBP (£)"
         }
     }
+
+    public var displayName: String { title }
 
     public var symbol: String {
         switch self {
