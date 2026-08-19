@@ -12,6 +12,7 @@ public struct ChatMessageSwift: Identifiable, Sendable {
     }
 }
 
+@MainActor
 public struct ChatbotSheet: View {
     @ObservedObject public var store: ExpenseStore
     public var onClose: () -> Void
@@ -194,17 +195,18 @@ public struct ChatbotSheet: View {
         inputText = ""
         isLoading = true
 
-        let expenseContext = store.expenses.prefix(20).map {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "dd/MM/yyyy"
-            return "\(formatter.string(from: $0.date)): \(store.categoryLabel(for: $0.category)) - \(store.formatCurrency($0.amount))\($0.note != nil ? " (\($0.note!))" : "")"
-        }.joined(separator: "\n")
+        let currentExpenses = store.expenses
+        let currentCategories = store.categories
+        let currentSymbol = store.currencySymbol
+        let isEn = store.language == .en
 
         Task {
             let reply = await AFMService.shared.chatWithAI(
                 userMessage: userText,
-                expensesContext: expenseContext,
-                isEnglish: store.language == .en
+                expenses: currentExpenses,
+                categories: currentCategories,
+                currencySymbol: currentSymbol,
+                isEnglish: isEn
             )
 
             await MainActor.run {

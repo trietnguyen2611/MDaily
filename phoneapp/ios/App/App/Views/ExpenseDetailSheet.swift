@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 public struct ExpenseDetailSheet: View {
     @ObservedObject public var store: ExpenseStore
     @Binding public var expense: Expense?

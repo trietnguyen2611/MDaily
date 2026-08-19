@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 
+@MainActor
 public struct AddExpenseView: View {
     @ObservedObject public var store: ExpenseStore
     public var initialPhotoData: Data?
@@ -11,11 +12,14 @@ public struct AddExpenseView: View {
     @State private var selectedCategory: String = "shopping"
     @State private var noteText: String = ""
     @State private var photoData: Data?
-    @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isExtracting: Bool = false
     @State private var extractResultText: String?
     @State private var isAddingCategory: Bool = false
     @State private var newCategoryName: String = ""
+    @State private var showPhotoSourceDialog: Bool = false
+    @State private var showCameraPicker: Bool = false
+    @State private var showLibraryPicker: Bool = false
+    @State private var showAmountError: Bool = false
 
     public init(
         store: ExpenseStore,
@@ -31,33 +35,69 @@ public struct AddExpenseView: View {
 
     private func processPhoto(_ data: Data) {
         self.photoData = data
-        guard store.autoExtractEnabled, let uiImage = UIImage(data: data) else { return }
+        guard let uiImage = UIImage(data: data) else { return }
 
-        isExtracting = true
-        extractResultText = nil
+        if store.autoExtractEnabled {
+            isExtracting = true
+            extractResultText = nil
 
-        Task {
-            let result = await AFMService.shared.extractExpense(from: uiImage)
-            await MainActor.run {
-                isExtracting = false
-                if result.success {
-                    if let item = result.itemName, !item.isEmpty {
-                        self.noteText = item
-                    }
-                    if let amount = result.amount, amount > 0 {
-                        self.amountText = "\(Int(amount))"
-                    }
-                    if let cat = result.category {
-                        if store.categories.contains(where: { $0.id == cat }) {
-                            self.selectedCategory = cat
+            Task {
+                let result = await AFMService.shared.extractExpense(from: uiImage)
+                await MainActor.run {
+                    self.isExtracting = false
+                    if result.success {
+                        if let item = result.itemName, !item.isEmpty {
+                            self.noteText = item
                         }
-                    }
-                    if let item = result.itemName {
-                        self.extractResultText = "✨ \(item)"
+                        if let amount = result.amount, amount > 0 {
+                            self.amountText = "\(Int(amount))"
+                        }
+                        if let cat = result.category {
+                            if store.categories.contains(where: { $0.id == cat }) {
+                                self.selectedCategory = cat
+                            }
+                        }
+                        if let item = result.itemName {
+                            self.extractResultText = "✨ \(item)"
+                        }
                     }
                 }
             }
         }
+    }
+
+    private func saveExpense() {
+        let cleanDigits = amountText
+            .replacingOccurrences(of: ".", with: "")
+            .replacingOccurrences(of: ",", with: "")
+            .replacingOccurrences(of: " ", with: "")
+            .trimmingCharacters(in: .whitespaces)
+
+        guard let amount = Double(cleanDigits), amount > 0 else {
+            showAmountError = true
+            return
+        }
+
+        let cleanNote = noteText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let expense = Expense(
+            amount: amount,
+            category: selectedCategory,
+            date: Date(),
+            note: cleanNote.isEmpty ? nil : cleanNote,
+            photoData: photoData,
+            isAiProcessed: extractResultText != nil
+        )
+
+        store.addExpense(expense)
+
+        // Reset state
+        amountText = ""
+        noteText = ""
+        photoData = nil
+        extractResultText = nil
+        showAmountError = false
+
+        onSave()
     }
 
     public var body: some View {
@@ -114,9 +154,15 @@ public struct AddExpenseView: View {
                         .liquidGlassPill()
                     }
                 } else {
-                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    Button {
+                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                            showPhotoSourceDialog = true
+                        } else {
+                            showLibraryPicker = true
+                        }
+                    } label: {
                         VStack(spacing: 10) {
-                            Image(systemName: "photo.badge.plus")
+                            Image(systemName: "camera.badge.ellipsis")
                                 .font(.system(size: 36))
                                 .foregroundColor(.blue)
 
@@ -129,38 +175,40 @@ public struct AddExpenseView: View {
                                 .foregroundColor(.secondary)
                         }
                         .frame(maxWidth: .infinity)
-                        .frame(height: 140)
+                        .frame(height: 130)
                         .liquidGlass(cornerRadius: 24)
                     }
-                    .buttonStyle(.plain)
-                    .onChange(of: selectedPhotoItem) { _, newItem in
-                        guard let newItem else { return }
-                        Task {
-                            if let data = try? await newItem.loadTransferable(type: Data.self) {
-                                await MainActor.run {
-                                    processPhoto(data)
-                                    selectedPhotoItem = nil
-                                }
-                            }
-                        }
-                    }
+                    .liquidGlassButton()
                 }
 
                 // Inset Grouped Form
-                VStack(spacing: 14) {
+                VStack(spacing: 16) {
                     // Amount Field
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("\(store.t("amount")) (\(store.currencySymbol))")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                        HStack {
+                            Text("\(store.t("amount")) (\(store.currencySymbol))")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.secondary)
+
+                            Spacer()
+
+                            if showAmountError {
+                                Text("Vui lòng nhập số tiền hợp lệ")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.red)
+                            }
+                        }
 
                         HStack {
                             TextField("0", text: $amountText)
                                 .keyboardType(.numberPad)
-                                .font(.system(size: 20, weight: .bold))
+                                .font(.system(size: 24, weight: .bold))
+                                .onChange(of: amountText) { _, _ in
+                                    showAmountError = false
+                                }
 
                             Text(store.currencySymbol)
-                                .font(.system(size: 18, weight: .bold))
+                                .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(.secondary)
                         }
                         .padding(14)
@@ -190,23 +238,24 @@ public struct AddExpenseView: View {
                                 isAddingCategory = true
                             } label: {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "plus")
+                                    Image(systemName: "plus.circle.fill")
                                     Text(store.t("add_new_category"))
                                 }
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.blue)
                             }
                             .padding(.top, 2)
                         } else {
                             HStack {
                                 TextField(store.t("new_cat_placeholder"), text: $newCategoryName)
-                                    .padding(8)
+                                    .padding(10)
                                     .background(Color(.tertiarySystemBackground))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
                                 Button(store.t("save")) {
-                                    if !newCategoryName.trimmingCharacters(in: .whitespaces).isEmpty {
-                                        store.addCategory(label: newCategoryName.trimmingCharacters(in: .whitespaces))
+                                    let trimmed = newCategoryName.trimmingCharacters(in: .whitespaces)
+                                    if !trimmed.isEmpty {
+                                        store.addCategory(label: trimmed)
                                         if let last = store.categories.last {
                                             selectedCategory = last.id
                                         }
@@ -221,6 +270,7 @@ public struct AddExpenseView: View {
                                     newCategoryName = ""
                                 } label: {
                                     Image(systemName: "xmark")
+                                        .foregroundColor(.secondary)
                                 }
                             }
                             .padding(.top, 4)
@@ -252,21 +302,10 @@ public struct AddExpenseView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .liquidGlass(cornerRadius: 22)
+                    .liquidGlassButton()
 
                     Button(store.t("save_expense")) {
-                        guard let amount = Double(amountText.replacingOccurrences(of: ",", with: "").replacingOccurrences(of: ".", with: "")), amount > 0 else {
-                            return
-                        }
-                        let expense = Expense(
-                            amount: amount,
-                            category: selectedCategory,
-                            date: Date(),
-                            note: noteText.trimmingCharacters(in: .whitespaces).isEmpty ? nil : noteText.trimmingCharacters(in: .whitespaces),
-                            photoData: photoData,
-                            isAiProcessed: extractResultText != nil
-                        )
-                        store.addExpense(expense)
-                        onSave()
+                        saveExpense()
                     }
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
@@ -281,10 +320,36 @@ public struct AddExpenseView: View {
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                     .shadow(color: Color.blue.opacity(0.35), radius: 10, x: 0, y: 4)
+                    .liquidGlassButton()
                 }
             }
             .padding(16)
             .padding(.bottom, 100)
+        }
+        .confirmationDialog("Thêm ảnh chi tiêu", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
+            if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                Button("Chụp ảnh từ Máy ảnh") {
+                    showCameraPicker = true
+                }
+            }
+            Button("Chọn từ Thư viện ảnh") {
+                showLibraryPicker = true
+            }
+            Button("Huỷ", role: .cancel) {}
+        }
+        .sheet(isPresented: $showCameraPicker) {
+            ImagePickerView(sourceType: .camera) { image in
+                if let data = image.jpegData(compressionQuality: 0.85) {
+                    processPhoto(data)
+                }
+            }
+        }
+        .sheet(isPresented: $showLibraryPicker) {
+            ImagePickerView(sourceType: .photoLibrary) { image in
+                if let data = image.jpegData(compressionQuality: 0.85) {
+                    processPhoto(data)
+                }
+            }
         }
         .onAppear {
             if let initialPhotoData {

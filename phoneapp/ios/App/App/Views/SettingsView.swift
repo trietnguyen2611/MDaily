@@ -1,37 +1,37 @@
 import SwiftUI
 
+@MainActor
 public struct SettingsView: View {
     @ObservedObject public var store: ExpenseStore
 
     @State private var afmStatus: AFMStatus = AFMService.shared.checkStatus()
     @State private var showDeleteAllAlert: Bool = false
     @State private var showDeletedNotice: Bool = false
+    @State private var showAiChatSheet: Bool = false
 
     public var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 24) {
-                // 1. Apple Intelligence Section
+                // 1. Apple Intelligence / Smart Financial AI Section
                 VStack(alignment: .leading, spacing: 10) {
                     Text(store.t("apple_intelligence"))
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
 
                     VStack(spacing: 0) {
-                        // AFM Status
+                        // AI Status
                         HStack {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(store.t("status"))
-                                        .font(.system(size: 16))
-                                    Text(afmStatus.message)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: "sparkles")
-                                    .foregroundColor(.purple)
+                            settingsIcon(name: "sparkles", color: .purple)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(store.t("status"))
+                                    .font(.system(size: 16, weight: .medium))
+                                Text(afmStatus.message)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
                             }
+                            .padding(.leading, 6)
 
                             Spacer()
 
@@ -52,22 +52,20 @@ public struct SettingsView: View {
                         }
                         .padding(16)
 
-                        Divider().padding(.leading, 44)
+                        Divider().padding(.leading, 56)
 
                         // Auto Extract Toggle
                         HStack {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(store.t("auto_extract"))
-                                        .font(.system(size: 16))
-                                    Text(store.t("auto_extract_desc"))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: "viewfinder")
-                                    .foregroundColor(.blue)
+                            settingsIcon(name: "viewfinder", color: .blue)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(store.t("auto_extract"))
+                                    .font(.system(size: 16, weight: .medium))
+                                Text(store.t("auto_extract_desc"))
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
                             }
+                            .padding(.leading, 6)
 
                             Spacer()
 
@@ -79,58 +77,63 @@ public struct SettingsView: View {
                         }
                         .padding(16)
 
-                        Divider().padding(.leading, 44)
+                        Divider().padding(.leading, 56)
 
-                        // AI Chat Toggle
+                        // AI Chat Toggle & Open Button
                         HStack {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(store.t("ai_chat"))
-                                        .font(.system(size: 16))
-                                    Text(store.t("ai_chat_desc"))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: "message.badge.filled.fill")
-                                    .foregroundColor(.cyan)
+                            settingsIcon(name: "bubble.left.and.bubble.right.fill", color: .cyan)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(store.t("ai_chat"))
+                                    .font(.system(size: 16, weight: .medium))
+                                Text(store.t("ai_chat_desc"))
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
                             }
+                            .padding(.leading, 6)
 
                             Spacer()
 
-                            Toggle("", isOn: Binding(
-                                get: { store.aiChatEnabled },
-                                set: { store.setAiChat($0) }
-                            ))
-                            .labelsHidden()
+                            Button {
+                                showAiChatSheet = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text("Trò chuyện")
+                                        .font(.system(size: 13, weight: .semibold))
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 11, weight: .semibold))
+                                }
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .liquidGlassPill()
+                            }
                         }
                         .padding(16)
                     }
                     .liquidGlass(cornerRadius: 24)
                 }
 
-                // 2. Appearance & Options
+                // 2. Language & Currency Options
                 VStack(alignment: .leading, spacing: 10) {
                     Text(store.t("ui_options"))
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
 
                     VStack(spacing: 0) {
                         // Language Picker
                         HStack {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(store.t("language"))
-                                        .font(.system(size: 16))
-                                    Text(store.t("language_desc"))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: "globe")
-                                    .foregroundColor(.blue)
+                            settingsIcon(name: "globe", color: .blue)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(store.t("language"))
+                                    .font(.system(size: 16, weight: .medium))
+                                Text(store.t("language_desc"))
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
                             }
+                            .padding(.leading, 6)
 
                             Spacer()
 
@@ -138,30 +141,27 @@ public struct SettingsView: View {
                                 get: { store.language },
                                 set: { store.setLanguage($0) }
                             )) {
-                                ForEach(Language.allCases) { lang in
-                                    Text(lang.title).tag(lang)
-                                }
+                                Text(Language.vi.displayName).tag(Language.vi)
+                                Text(Language.en.displayName).tag(Language.en)
                             }
                             .pickerStyle(.menu)
                         }
                         .padding(16)
 
-                        Divider().padding(.leading, 44)
+                        Divider().padding(.leading, 56)
 
                         // Currency Picker
                         HStack {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(store.t("currency"))
-                                        .font(.system(size: 16))
-                                    Text(store.t("currency_desc"))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: "banknote")
-                                    .foregroundColor(.green)
+                            settingsIcon(name: "banknote.fill", color: .green)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(store.t("currency"))
+                                    .font(.system(size: 16, weight: .medium))
+                                Text(store.t("currency_desc"))
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
                             }
+                            .padding(.leading, 6)
 
                             Spacer()
 
@@ -169,8 +169,8 @@ public struct SettingsView: View {
                                 get: { store.currency },
                                 set: { store.setCurrency($0) }
                             )) {
-                                ForEach(Currency.allCases) { curr in
-                                    Text(curr.title).tag(curr)
+                                ForEach(Currency.allCases, id: \.self) { curr in
+                                    Text(curr.displayName).tag(curr)
                                 }
                             }
                             .pickerStyle(.menu)
@@ -183,90 +183,89 @@ public struct SettingsView: View {
                 // 3. Data Management
                 VStack(alignment: .leading, spacing: 10) {
                     Text(store.t("data_management"))
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
 
                     VStack(spacing: 0) {
-                        HStack {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(store.t("delete_all_data"))
-                                        .font(.system(size: 16))
-                                    Text(store.t("delete_all_desc"))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: "trash")
+                        Button {
+                            showDeleteAllAlert = true
+                        } label: {
+                            HStack {
+                                settingsIcon(name: "trash.fill", color: .red)
+
+                                Text(store.t("delete_all_data"))
+                                    .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(.red)
-                            }
+                                    .padding(.leading, 6)
 
-                            Spacer()
+                                Spacer()
 
-                            Button(store.t("delete_data_btn")) {
-                                showDeleteAllAlert = true
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.secondary)
                             }
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(Color.red)
-                            .clipShape(Capsule())
+                            .padding(16)
                         }
-                        .padding(16)
+                        .buttonStyle(.plain)
                     }
                     .liquidGlass(cornerRadius: 24)
                 }
 
-                // 4. App Info
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(store.t("app_info"))
-                        .font(.system(size: 14, weight: .bold))
+                // 4. App Info Card
+                VStack(spacing: 6) {
+                    Text("MDaily — Quản Lý Chi Tiêu Liquid Glass")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                    Text("Phiên bản 2.0 • Pure Native SwiftUI (iOS 26 / 27)")
+                        .font(.system(size: 12))
                         .foregroundColor(.secondary)
-                        .padding(.horizontal, 8)
-
-                    VStack(spacing: 0) {
-                        HStack {
-                            Label {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("MDaily Mobile")
-                                        .font(.system(size: 16, weight: .semibold))
-                                    Text(store.t("app_version"))
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                            } icon: {
-                                Image(systemName: "info.circle.fill")
-                                    .foregroundColor(.blue)
-                            }
-
-                            Spacer()
-
-                            Text("SwiftUI")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.blue)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Capsule().fill(Color.blue.opacity(0.12)))
-                        }
-                        .padding(16)
-                    }
-                    .liquidGlass(cornerRadius: 24)
                 }
+                .padding(.top, 8)
             }
             .padding(16)
             .padding(.bottom, 100)
         }
-        .alert(store.t("delete_confirm_all"), isPresented: $showDeleteAllAlert) {
-            Button(store.t("delete"), role: .destructive) {
+        .confirmationDialog(
+            store.t("delete_all_confirm"),
+            isPresented: $showDeleteAllAlert,
+            titleVisibility: .visible
+        ) {
+            Button(store.t("delete_all_data"), role: .destructive) {
                 store.clearAllData()
                 showDeletedNotice = true
             }
             Button(store.t("cancel"), role: .cancel) {}
         }
-        .alert("Đã xoá toàn bộ dữ liệu.", isPresented: $showDeletedNotice) {
-            Button("OK", role: .cancel) {}
+        .alert(store.t("data_cleared"), isPresented: $showDeletedNotice) {
+            Button(store.t("done"), role: .cancel) {}
+        }
+        .sheet(isPresented: $showAiChatSheet) {
+            ChatbotSheet(
+                store: store,
+                onClose: { showAiChatSheet = false }
+            )
+        }
+    }
+
+    // MARK: - Icon Tile Helper
+    @ViewBuilder
+    private func settingsIcon(name: String, color: Color) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [color, color.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 32, height: 32)
+                .shadow(color: color.opacity(0.35), radius: 4, x: 0, y: 2)
+
+            Image(systemName: name)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.white)
         }
     }
 }

@@ -1,11 +1,14 @@
 import SwiftUI
 
+@MainActor
 public struct DashboardView: View {
     @ObservedObject public var store: ExpenseStore
     public var expenses: [Expense]
     public var onSelectExpense: (Expense) -> Void
 
-    @Environment(\.colorScheme) var colorScheme
+    @State private var expenseToDelete: Expense? = nil
+    @State private var showDeleteConfirmation: Bool = false
+    @Environment(\.colorScheme) private var colorScheme
 
     private let columns = [
         GridItem(.flexible(), spacing: 14),
@@ -18,20 +21,47 @@ public struct DashboardView: View {
         return formatter.string(from: date)
     }
 
+    private func categoryIconName(for id: String) -> String {
+        switch id {
+        case "bills": return "doc.text.fill"
+        case "shopping": return "bag.fill"
+        case "food": return "fork.knife"
+        case "transport": return "car.fill"
+        default: return "tag.fill"
+        }
+    }
+
     public var body: some View {
         ScrollView(showsIndicators: false) {
             if expenses.isEmpty {
                 VStack(spacing: 16) {
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary.opacity(0.6))
-                        .padding(.top, 60)
+                    ZStack {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 84, height: 84)
+                            .overlay(
+                                Circle()
+                                    .strokeBorder(Color.white.opacity(colorScheme == .dark ? 0.3 : 0.8), lineWidth: 0.5)
+                            )
+                            .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 4)
+
+                        Image(systemName: "receipt")
+                            .font(.system(size: 38))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color.blue, Color(red: 0, green: 0.7, blue: 0.95)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    }
+                    .padding(.top, 70)
 
                     Text(store.t("no_expenses"))
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.system(size: 16, weight: .medium, design: .rounded))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, 36)
                 }
                 .frame(maxWidth: .infinity)
             } else {
@@ -42,12 +72,12 @@ public struct DashboardView: View {
                         let hasNote = (expense.note?.isEmpty == false) && expense.note != "MDaily AI processed"
 
                         if let photoData = expense.photoData, let uiImage = UIImage(data: photoData) {
-                            // Photo Card (3:4 Portrait Aspect Ratio)
+                            // MARK: - Photo Card (3:4 Aspect Ratio)
                             Button {
                                 onSelectExpense(expense)
                             } label: {
                                 ZStack(alignment: .topLeading) {
-                                    // Background Image
+                                    // 1. High-Res Image
                                     Image(uiImage: uiImage)
                                         .resizable()
                                         .scaledToFill()
@@ -55,27 +85,50 @@ public struct DashboardView: View {
                                         .aspectRatio(3 / 4, contentMode: .fill)
                                         .clipped()
 
-                                    // Dual Vignette Gradient Overlay
+                                    // 2. Dual-Layer Vignette Gradient Overlay
                                     LinearGradient(
                                         stops: [
                                             .init(color: Color.black.opacity(0.72), location: 0.0),
-                                            .init(color: Color.black.opacity(0.18), location: 0.45),
+                                            .init(color: Color.black.opacity(0.15), location: 0.42),
                                             .init(color: Color.black.opacity(0.20), location: 0.65),
-                                            .init(color: Color.black.opacity(0.75), location: 1.0)
+                                            .init(color: Color.black.opacity(0.78), location: 1.0)
                                         ],
                                         startPoint: .top,
                                         endPoint: .bottom
                                     )
 
-                                    // Top Content: 1. Time -> 2. Category -> 3. Note
+                                    // 3. AI Badge
+                                    if expense.isAiProcessed {
+                                        VStack {
+                                            HStack {
+                                                Spacer()
+                                                HStack(spacing: 3) {
+                                                    Image(systemName: "sparkles")
+                                                        .font(.system(size: 9, weight: .bold))
+                                                    Text("AI")
+                                                        .font(.system(size: 10, weight: .bold))
+                                                }
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 7)
+                                                .padding(.vertical, 3)
+                                                .background(Capsule().fill(Color.blue.opacity(0.85)))
+                                                .overlay(Capsule().strokeBorder(Color.white.opacity(0.4), lineWidth: 0.5))
+                                                .shadow(radius: 4)
+                                                .padding(10)
+                                            }
+                                            Spacer()
+                                        }
+                                    }
+
+                                    // 4. Content Hierarchy: Time -> Category -> Note -> Amount Pill
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(timeStr)
-                                            .font(.system(size: 12, weight: .semibold))
+                                            .font(.system(size: 11, weight: .semibold, design: .rounded))
                                             .foregroundColor(.white.opacity(0.85))
                                             .shadow(color: .black.opacity(0.6), radius: 4, x: 0, y: 1)
 
                                         Text(catLabel)
-                                            .font(.system(size: 18, weight: .bold))
+                                            .font(.system(size: 18, weight: .bold, design: .rounded))
                                             .foregroundColor(.white)
                                             .lineLimit(1)
                                             .shadow(color: .black.opacity(0.75), radius: 6, x: 0, y: 2)
@@ -83,39 +136,40 @@ public struct DashboardView: View {
                                         if hasNote, let note = expense.note {
                                             Text(note)
                                                 .font(.system(size: 13, weight: .medium))
-                                                .foregroundColor(.white.opacity(0.88))
+                                                .foregroundColor(.white.opacity(0.90))
                                                 .lineLimit(2)
                                                 .shadow(color: .black.opacity(0.6), radius: 4, x: 0, y: 1)
                                         }
 
                                         Spacer()
 
-                                        // Bottom Content: Amount & Delete Button
+                                        // Bottom: Amount Glass Capsule & Delete
                                         HStack {
                                             Text(store.formatCurrency(expense.amount))
-                                                .font(.system(size: 13, weight: .bold))
+                                                .font(.system(size: 13, weight: .bold, design: .rounded))
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 10)
                                                 .padding(.vertical, 5)
                                                 .background(
                                                     Capsule()
-                                                        .fill(Color.black.opacity(0.55))
+                                                        .fill(Color.black.opacity(0.50))
                                                         .background(Capsule().fill(.ultraThinMaterial))
-                                                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.3), lineWidth: 0.5))
+                                                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.35), lineWidth: 0.5))
                                                 )
 
                                             Spacer()
 
                                             Button {
-                                                store.deleteExpense(id: expense.id)
+                                                expenseToDelete = expense
+                                                showDeleteConfirmation = true
                                             } label: {
                                                 Image(systemName: "trash")
-                                                    .font(.system(size: 13, weight: .medium))
+                                                    .font(.system(size: 12, weight: .semibold))
                                                     .foregroundColor(.red)
-                                                    .frame(width: 32, height: 32)
+                                                    .frame(width: 30, height: 30)
                                                     .background(
                                                         Circle()
-                                                            .fill(Color.black.opacity(0.55))
+                                                            .fill(Color.black.opacity(0.50))
                                                             .background(Circle().fill(.ultraThinMaterial))
                                                             .overlay(Circle().strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5))
                                                     )
@@ -128,26 +182,46 @@ public struct DashboardView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                        .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                                        .strokeBorder(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color.white.opacity(0.40),
+                                                    Color.white.opacity(0.10)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 0.65
+                                        )
                                 )
-                                .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 4)
+                                .shadow(color: Color.black.opacity(0.14), radius: 14, x: 0, y: 5)
                             }
-                            .buttonStyle(.plain)
+                            .liquidGlassButton()
                         } else {
-                            // Text Card
+                            // MARK: - Text Card (Authentic Liquid Glass)
                             Button {
                                 onSelectExpense(expense)
                             } label: {
                                 VStack(alignment: .leading, spacing: 0) {
-                                    // Top: Time
-                                    Text(timeStr)
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                        .padding(.bottom, 4)
+                                    // Top: Time & Category Icon
+                                    HStack(spacing: 4) {
+                                        Text(timeStr)
+                                            .font(.system(size: 12, weight: .medium, design: .rounded))
+                                            .foregroundColor(.secondary)
+
+                                        Spacer()
+
+                                        Image(systemName: categoryIconName(for: expense.category))
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(.blue)
+                                            .frame(width: 24, height: 24)
+                                            .background(Circle().fill(Color.blue.opacity(0.12)))
+                                    }
+                                    .padding(.bottom, 6)
 
                                     // Category Title
                                     Text(catLabel)
-                                        .font(.system(size: 18, weight: .bold))
+                                        .font(.system(size: 18, weight: .bold, design: .rounded))
                                         .foregroundColor(.primary)
                                         .lineLimit(2)
                                         .padding(.bottom, 2)
@@ -160,28 +234,29 @@ public struct DashboardView: View {
                                             .lineLimit(3)
                                     }
 
-                                    Spacer(minLength: 20)
+                                    Spacer(minLength: 22)
 
                                     // Bottom: Amount & Delete
                                     HStack {
                                         Text(store.formatCurrency(expense.amount))
-                                            .font(.system(size: 15, weight: .bold))
+                                            .font(.system(size: 15, weight: .bold, design: .rounded))
                                             .foregroundColor(.primary)
                                             .lineLimit(1)
 
                                         Spacer()
 
                                         Button {
-                                            store.deleteExpense(id: expense.id)
+                                            expenseToDelete = expense
+                                            showDeleteConfirmation = true
                                         } label: {
                                             Image(systemName: "trash")
-                                                .font(.system(size: 13, weight: .medium))
+                                                .font(.system(size: 12, weight: .semibold))
                                                 .foregroundColor(.red)
-                                                .frame(width: 32, height: 32)
+                                                .frame(width: 30, height: 30)
                                                 .background(
                                                     Circle()
                                                         .fill(Color.red.opacity(0.10))
-                                                        .overlay(Circle().strokeBorder(Color.red.opacity(0.25), lineWidth: 0.5))
+                                                        .overlay(Circle().strokeBorder(Color.red.opacity(0.20), lineWidth: 0.5))
                                                 )
                                         }
                                         .buttonStyle(.plain)
@@ -191,12 +266,23 @@ public struct DashboardView: View {
                                 .frame(minHeight: 180)
                                 .liquidGlass(cornerRadius: 28)
                             }
-                            .buttonStyle(.plain)
+                            .liquidGlassButton()
                         }
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 100)
+            }
+        }
+        .confirmationDialog(store.t("delete_confirm"), isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            Button(store.t("delete"), role: .destructive) {
+                if let exp = expenseToDelete {
+                    store.deleteExpense(id: exp.id)
+                    expenseToDelete = nil
+                }
+            }
+            Button(store.t("cancel"), role: .cancel) {
+                expenseToDelete = nil
             }
         }
     }

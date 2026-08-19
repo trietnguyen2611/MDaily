@@ -1,6 +1,10 @@
 import UIKit
 import SwiftUI
 
+public extension Notification.Name {
+    static let handleQuickAction = Notification.Name("org.mdaily.app.handleQuickAction")
+}
+
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
@@ -11,6 +15,19 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.rootViewController = UIHostingController(rootView: ContentView())
         self.window = window
         window.makeKeyAndVisible()
+
+        // Handle Home Screen Quick Action on launch
+        if let shortcutItem = connectionOptions.shortcutItem {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                NotificationCenter.default.post(name: .handleQuickAction, object: shortcutItem.type)
+            }
+        }
+    }
+
+    // Handle Home Screen Quick Action when app is in background / foreground
+    func windowScene(_ windowScene: UIWindowScene, performActionFor shortcutItem: UIApplicationShortcutItem, completionHandler: @escaping (Bool) -> Void) {
+        NotificationCenter.default.post(name: .handleQuickAction, object: shortcutItem.type)
+        completionHandler(true)
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {}

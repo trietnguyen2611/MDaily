@@ -11,6 +11,16 @@ public struct CategoryItem: Identifiable, Codable, Sendable, Hashable {
         self.label = label
         self.isDefault = isDefault
     }
+
+    public var iconName: String {
+        switch id {
+        case "bills": return "doc.text.fill"
+        case "shopping": return "bag.fill"
+        case "food": return "fork.knife"
+        case "transport": return "car.fill"
+        default: return "tag.fill"
+        }
+    }
 }
 
 public extension CategoryItem {

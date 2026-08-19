@@ -1,6 +1,6 @@
 import SwiftUI
 
-public enum TimeFilter: String, CaseIterable, Identifiable {
+public enum TimeFilter: String, CaseIterable, Identifiable, Sendable {
     case all = "all"
     case today = "today"
     case thisWeek = "this_week"
@@ -9,17 +9,18 @@ public enum TimeFilter: String, CaseIterable, Identifiable {
 
     public var id: String { rawValue }
 
-    public func title(for store: ExpenseStore) -> String {
+    public func title(lang: Language) -> String {
         switch self {
-        case .all: return store.t("all_time")
-        case .today: return store.t("today")
-        case .thisWeek: return store.t("this_week")
-        case .thisMonth: return store.t("this_month")
-        case .thisYear: return store.t("this_year")
+        case .all: return LocalizationService.t("all_time", lang: lang)
+        case .today: return LocalizationService.t("today", lang: lang)
+        case .thisWeek: return LocalizationService.t("this_week", lang: lang)
+        case .thisMonth: return LocalizationService.t("this_month", lang: lang)
+        case .thisYear: return LocalizationService.t("this_year", lang: lang)
         }
     }
 }
 
+@MainActor
 public struct ContentView: View {
     @StateObject private var store = ExpenseStore()
     @State private var activeTab: AppTab = .dashboard
@@ -61,88 +62,88 @@ public struct ContentView: View {
 
     public var body: some View {
         ZStack(alignment: .bottom) {
+            // 1. Ambient Dynamic Atmosphere Canvas
+            AmbientBackgroundView()
+
+            // 2. Main Content & Navigation
             VStack(spacing: 0) {
-                // Top Navigation Bar (Liquid Glass Header)
-                HStack {
+                // Top Liquid Glass Header
+                HStack(alignment: .center) {
                     Text(pageTitle)
-                        .font(.system(size: 28, weight: .bold))
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
 
                     Spacer()
-
-                    if store.aiChatEnabled {
-                        Button {
-                            showAiChat = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.blue)
-                                Text("MDaily AI")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(.primary)
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .liquidGlassPill()
-                        }
-                    }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
+                .padding(.horizontal, 18)
+                .padding(.top, 14)
+                .padding(.bottom, 6)
 
                 // Filter Bar (For Dashboard & Reports)
                 if activeTab == .dashboard || activeTab == .reports {
                     HStack(spacing: 10) {
                         Menu {
                             ForEach(TimeFilter.allCases) { filter in
-                                Button(filter.title(for: store)) {
-                                    timeFilter = filter
+                                Button(filter.title(lang: store.language)) {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        timeFilter = filter
+                                    }
                                 }
                             }
                         } label: {
-                            HStack(spacing: 4) {
-                                Text(timeFilter.title(for: store))
+                            HStack(spacing: 5) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.blue)
+                                Text(timeFilter.title(lang: store.language))
                                     .font(.system(size: 13, weight: .medium))
                                 Image(systemName: "chevron.down")
-                                    .font(.system(size: 11))
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.secondary)
                             }
                             .foregroundColor(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
                             .liquidGlassPill()
                         }
 
                         Menu {
                             Button(store.t("all_categories")) {
-                                categoryFilter = "all"
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    categoryFilter = "all"
+                                }
                             }
                             ForEach(store.categories) { cat in
                                 Button(cat.label) {
-                                    categoryFilter = cat.id
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        categoryFilter = cat.id
+                                    }
                                 }
                             }
                         } label: {
-                            HStack(spacing: 4) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "tag.fill")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.orange)
                                 Text(categoryFilter == "all" ? store.t("all_categories") : store.categoryLabel(for: categoryFilter))
                                     .font(.system(size: 13, weight: .medium))
                                 Image(systemName: "chevron.down")
-                                    .font(.system(size: 11))
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.secondary)
                             }
                             .foregroundColor(.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
                             .liquidGlassPill()
                         }
 
                         Spacer()
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 18)
                     .padding(.bottom, 10)
                 }
 
-                // Main Tab Content
+                // Main Tab View with Fluid Spring Transition
                 Group {
                     switch activeTab {
                     case .dashboard:
@@ -157,11 +158,15 @@ public struct ContentView: View {
                             initialPhotoData: capturedPhotoData,
                             onSave: {
                                 capturedPhotoData = nil
-                                withAnimation { activeTab = .dashboard }
+                                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                                    activeTab = .dashboard
+                                }
                             },
                             onCancel: {
                                 capturedPhotoData = nil
-                                withAnimation { activeTab = .dashboard }
+                                withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
+                                    activeTab = .dashboard
+                                }
                             }
                         )
                     case .reports:
