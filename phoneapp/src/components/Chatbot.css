@@ -6,6 +6,18 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+/* When keyboard is open, constrain the sheet */
+.chatbot-sheet-content.keyboard-open {
+  max-height: 100%;
+}
+
+.chatbot-sheet-content.keyboard-open .chatbot-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* Header */

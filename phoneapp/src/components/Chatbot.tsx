@@ -31,14 +31,16 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [afmStatus, setAfmStatus] = useState<{ available: boolean; model: string; message: string } | null>(null)
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
 
   const endRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const messagesRef = useRef<HTMLDivElement>(null)
 
   const quickPrompts = [
-    '💡 Tổng chi tiêu của tôi?',
+    '💡 Tổng chi tiêu?',
     '📊 Lời khuyên tiết kiệm',
-    '🍔 Tiêu cho ăn uống bao nhiêu?',
+    '🍔 Chi ăn uống?',
     '⚡ Khoản chi lớn nhất?'
   ]
 
@@ -47,6 +49,27 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 400)
       checkAFMStatus().then(status => setAfmStatus(status))
+    } else {
+      setKeyboardHeight(0)
+    }
+  }, [isOpen])
+
+  // Keyboard-aware height tracking
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleViewportResize = () => {
+      if (window.visualViewport) {
+        const vvHeight = window.visualViewport.height
+        const windowHeight = window.innerHeight
+        const kbHeight = windowHeight - vvHeight
+        setKeyboardHeight(kbHeight > 100 ? kbHeight : 0)
+      }
+    }
+
+    window.visualViewport?.addEventListener('resize', handleViewportResize)
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleViewportResize)
     }
   }, [isOpen])
 
@@ -61,9 +84,9 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
     const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', content: textToSend }
     const assistantId = (Date.now() + 1).toString()
     const typingMsg: ChatMessage = { id: assistantId, role: 'assistant', content: '...' }
-    
+
     const apiMessages = [...messages, userMsg]
-    
+
     setMessages(prev => [...prev, userMsg, typingMsg])
     if (!customText) setInput('')
     setIsLoading(true)
@@ -71,10 +94,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
     const formatDate = (dateStr: string) => {
       const d = new Date(dateStr)
       if (isNaN(d.getTime())) return dateStr
-      const day = String(d.getDate()).padStart(2, '0')
-      const month = String(d.getMonth() + 1).padStart(2, '0')
-      const year = d.getFullYear()
-      return `${day}/${month}/${year}`
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
     }
     const context = expenses
       .slice(0, 30)
@@ -89,7 +109,6 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
           setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: currentText } : m))
         }
       )
-
       setMessages(prev => prev.map(m => m.id === assistantId ? { ...m, content: responseText } : m))
     } catch (e) {
       console.error(e)
@@ -102,16 +121,17 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
   const handleClearHistory = () => {
     if (messages.length <= 1) return
     if (confirm('Xoá toàn bộ lịch sử trò chuyện với AI?')) {
-      setMessages([{
-        ...INITIAL_MESSAGE,
-        id: Date.now().toString()
-      }])
+      setMessages([{ ...INITIAL_MESSAGE, id: Date.now().toString() }])
     }
   }
 
+  const sheetStyle: React.CSSProperties = keyboardHeight > 0
+    ? { paddingBottom: 0, maxHeight: `calc(100vh - ${keyboardHeight}px)` }
+    : {}
+
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose}>
-      <div className="chatbot-sheet-content">
+      <div className={`chatbot-sheet-content ${keyboardHeight > 0 ? 'keyboard-open' : ''}`} style={sheetStyle}>
         {/* Header */}
         <div className="chatbot-header">
           <div className="chatbot-header-title">
@@ -132,7 +152,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
           </div>
 
           <div className="chatbot-header-actions">
-            <button 
+            <button
               className="chatbot-action-btn clear-btn"
               onClick={handleClearHistory}
               title="Xoá lịch sử chat"
@@ -143,7 +163,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
         </div>
 
         {/* Messages */}
-        <div className="chatbot-messages">
+        <div className="chatbot-messages" ref={messagesRef}>
           {messages.map(msg => (
             <div key={msg.id} className={`chat-bubble-row ${msg.role}`}>
               {msg.role === 'assistant' && (
@@ -167,33 +187,35 @@ export const Chatbot: React.FC<ChatbotProps> = ({ expenses, categories, isOpen, 
         </div>
 
         {/* Quick Suggestion Chips */}
-        <div className="quick-prompts-bar">
-          {quickPrompts.map((promptText, idx) => (
-            <button
-              key={idx}
-              className="quick-prompt-chip"
-              onClick={() => handleSend(promptText)}
-              disabled={isLoading}
-            >
-              {promptText}
-            </button>
-          ))}
-        </div>
+        {keyboardHeight === 0 && (
+          <div className="quick-prompts-bar">
+            {quickPrompts.map((promptText, idx) => (
+              <button
+                key={idx}
+                className="quick-prompt-chip"
+                onClick={() => handleSend(promptText)}
+                disabled={isLoading}
+              >
+                {promptText}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Input Bar */}
         <div className="chatbot-input-bar">
-          <input 
+          <input
             ref={inputRef}
-            type="text" 
-            placeholder="Hỏi AI về chi tiêu, lời khuyên..." 
-            value={input} 
+            type="text"
+            placeholder="Hỏi AI về chi tiêu, lời khuyên..."
+            value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
             disabled={isLoading}
           />
-          <button 
+          <button
             type="button"
-            className="chat-send-btn" 
+            className="chat-send-btn"
             onClick={() => handleSend()}
             disabled={!input.trim() || isLoading}
           >

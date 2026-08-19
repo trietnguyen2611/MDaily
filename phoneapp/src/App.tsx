@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Sparkles } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { AddExpense } from './components/AddExpense'
@@ -10,6 +10,7 @@ import { CustomSelect } from './components/CustomSelect'
 import { SplashScreen } from './components/SplashScreen'
 import { getExpenses, saveExpense, deleteExpense, updateExpense } from './services/db'
 import { getCategories, addCategory, deleteCategory, updateCategory, categoriesToSelectOptions } from './services/categories'
+import { checkAFMStatus, getAutoExtractEnabled, getAiChatEnabled } from './services/ai'
 import type { CategoryItem } from './services/categories'
 import type { Expense } from './types'
 import './App.css'
@@ -22,32 +23,36 @@ function App() {
   const [timeFilter, setTimeFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
-  
-  // Scroll tracking per active view
   const [isScrolled, setIsScrolled] = useState(false)
   const [quickPhoto, setQuickPhoto] = useState<string | null>(null)
+
+  // AI state
+  const [isAFMAvailable, setIsAFMAvailable] = useState(false)
+  const [autoExtractEnabled, setAutoExtractEnabledState] = useState(getAutoExtractEnabled())
+  const [aiChatEnabled, setAiChatEnabledState] = useState(getAiChatEnabled())
+
+  const refreshAiSettings = useCallback(() => {
+    setAutoExtractEnabledState(getAutoExtractEnabled())
+    setAiChatEnabledState(getAiChatEnabled())
+  }, [])
+
+  // Check AFM on mount
+  useEffect(() => {
+    checkAFMStatus().then(status => setIsAFMAvailable(status.available))
+  }, [])
 
   // Listen to keyboard show/hide events
   useEffect(() => {
     const handleFocusIn = (e: FocusEvent) => {
       const target = e.target as HTMLElement | null
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.isContentEditable)
-      ) {
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
         const inputType = (target as HTMLInputElement).type
         if (inputType !== 'file' && inputType !== 'checkbox' && inputType !== 'radio') {
           setIsKeyboardOpen(true)
         }
       }
     }
-
-    const handleFocusOut = () => {
-      setIsKeyboardOpen(false)
-    }
-
+    const handleFocusOut = () => setIsKeyboardOpen(false)
     const handleViewportResize = () => {
       if (window.visualViewport) {
         const isShrunk = window.innerHeight - window.visualViewport.height > 140
@@ -58,7 +63,6 @@ function App() {
     window.addEventListener('focusin', handleFocusIn)
     window.addEventListener('focusout', handleFocusOut)
     window.visualViewport?.addEventListener('resize', handleViewportResize)
-
     return () => {
       window.removeEventListener('focusin', handleFocusIn)
       window.removeEventListener('focusout', handleFocusOut)
@@ -67,9 +71,8 @@ function App() {
   }, [])
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const currentScrollY = e.currentTarget.scrollTop
-    const nextScrolled = currentScrollY > 8
-    setIsScrolled(prev => (prev !== nextScrolled ? nextScrolled : prev))
+    const nextScrolled = e.currentTarget.scrollTop > 8
+    setIsScrolled(prev => prev !== nextScrolled ? nextScrolled : prev)
   }
 
   const handleTabChange = (newTab: string) => {
@@ -81,7 +84,7 @@ function App() {
     setQuickPhoto(photoBase64)
     handleTabChange('add-expense')
   }
-  
+
   const [customDate, setCustomDate] = useState('')
   const [customMonth, setCustomMonth] = useState('')
   const [customYear, setCustomYear] = useState(new Date().getFullYear().toString())
@@ -149,29 +152,15 @@ function App() {
     { value: 'custom_range', label: 'Khoảng thời gian...' }
   ]
 
-  const getLocalYYYYMMDD = (d: Date) => {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const date = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${date}`
-  }
-  const getLocalYYYYMM = (d: Date) => {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    return `${y}-${m}`
-  }
+  const getLocalYYYYMMDD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const getLocalYYYYMM = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 
-  // Filter expenses based on time and category
   const filteredExpenses = useMemo(() => {
     return expenses.filter(ex => {
-      // 1. Category Filter
       if (categoryFilter !== 'all' && ex.category !== categoryFilter) return false
-
-      // 2. Time Filter
       if (timeFilter !== 'all') {
         const exDate = new Date(ex.date)
         const now = new Date()
-        
         if (timeFilter === 'today') {
           if (exDate.toDateString() !== now.toDateString()) return false
         } else if (timeFilter === 'this_week') {
@@ -195,7 +184,6 @@ function App() {
           if (customEndDate && exDateStr > customEndDate) return false
         }
       }
-
       return true
     })
   }, [expenses, categoryFilter, timeFilter, customDate, customMonth, customYear, customStartDate, customEndDate])
@@ -210,23 +198,27 @@ function App() {
     }
   }
 
+  // Show AI chat button only when AFM available AND AI chat enabled
+  const showAiChat = isAFMAvailable && aiChatEnabled
+
   return (
     <div className="app-layout">
-      {/* Launch Splash Screen */}
       <SplashScreen />
 
       <main className="main-content">
         <div className="top-bar">
           <h2 className="page-header-title">{getPageTitle(activeTab)}</h2>
           <div className="top-bar-right">
-            <button 
-              className="ai-chat-trigger-btn"
-              onClick={() => setIsChatOpen(true)}
-              title="Mở MDaily AI"
-            >
-              <Sparkles size={16} className="ai-btn-sparkle" />
-              <span>MDaily AI</span>
-            </button>
+            {showAiChat && (
+              <button
+                className="ai-chat-trigger-btn"
+                onClick={() => setIsChatOpen(true)}
+                title="Mở MDaily AI"
+              >
+                <Sparkles size={16} className="ai-btn-sparkle" />
+                <span>MDaily AI</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -238,7 +230,7 @@ function App() {
                 value={timeFilter}
                 onChange={setTimeFilter}
               />
-              
+
               {timeFilter === 'custom_day' && (
                 <input type="date" className="custom-filter-input" value={customDate} onChange={e => setCustomDate(e.target.value)} />
               )}
@@ -281,13 +273,12 @@ function App() {
           <div className={`scroll-container ${isScrolled ? 'is-scrolled' : ''}`} onScroll={handleScroll}>
             <AddExpense
               onSave={handleSaveExpense}
-              onCancel={() => {
-                setQuickPhoto(null)
-                handleTabChange('dashboard')
-              }}
+              onCancel={() => { setQuickPhoto(null); handleTabChange('dashboard') }}
               categoryOptions={categoryOptions}
               onAddCategory={handleAddCategory}
               initialPhoto={quickPhoto}
+              isAFMAvailable={isAFMAvailable}
+              autoExtractEnabled={autoExtractEnabled}
             />
           </div>
         )}
@@ -306,24 +297,29 @@ function App() {
 
         {activeTab === 'settings' && (
           <div className={`scroll-container ${isScrolled ? 'is-scrolled' : ''}`} onScroll={handleScroll}>
-            <SettingsPage onDataCleared={() => setExpenses([])} />
+            <SettingsPage
+              onDataCleared={() => setExpenses([])}
+              onAiSettingsChanged={refreshAiSettings}
+            />
           </div>
         )}
       </main>
 
-      <BottomTabBar 
-        activeTab={activeTab} 
-        onTabChange={handleTabChange} 
+      <BottomTabBar
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
         onQuickPhotoCaptured={handleQuickPhotoCaptured}
         isKeyboardOpen={isKeyboardOpen}
       />
 
-      <Chatbot
-        expenses={expenses}
-        categories={categories}
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-      />
+      {showAiChat && (
+        <Chatbot
+          expenses={expenses}
+          categories={categories}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
     </div>
   )
 }

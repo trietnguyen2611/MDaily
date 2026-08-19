@@ -5,7 +5,7 @@ export interface Expense {
   amount: number
   category: Category
   date: string
-  photo: string // base64 or blob URL
+  photo?: string // base64 or blob URL (optional)
   note?: string
   isAiProcessed?: boolean
 }

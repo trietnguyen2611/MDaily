@@ -17,27 +17,15 @@ const compressImage = (file: File, maxDim = 1280, quality = 0.8): Promise<string
       img.onload = () => {
         let width = img.naturalWidth || img.width
         let height = img.naturalHeight || img.height
-
         if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = Math.round((height * maxDim) / width)
-            width = maxDim
-          } else {
-            width = Math.round((width * maxDim) / height)
-            height = maxDim
-          }
+          if (width > height) { height = Math.round((height * maxDim) / width); width = maxDim }
+          else { width = Math.round((width * maxDim) / height); height = maxDim }
         }
-
         const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = height
+        canvas.width = width; canvas.height = height
         const ctx = canvas.getContext('2d')
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height)
-          resolve(canvas.toDataURL('image/jpeg', quality))
-        } else {
-          resolve(e.target?.result as string)
-        }
+        if (ctx) { ctx.drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/jpeg', quality)) }
+        else resolve(e.target?.result as string)
       }
       img.onerror = () => resolve(e.target?.result as string)
       img.src = e.target?.result as string
@@ -47,9 +35,9 @@ const compressImage = (file: File, maxDim = 1280, quality = 0.8): Promise<string
   })
 }
 
-export const BottomTabBar: React.FC<BottomTabBarProps> = ({ 
-  activeTab, 
-  onTabChange, 
+export const BottomTabBar: React.FC<BottomTabBarProps> = ({
+  activeTab,
+  onTabChange,
   onQuickPhotoCaptured,
   isKeyboardOpen = false
 }) => {
@@ -57,69 +45,61 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
   const tabs = [
     { id: 'dashboard', icon: LayoutDashboard, label: 'Tổng quan' },
-    { id: 'reports', icon: PieChart, label: 'Báo cáo' },
-    { id: 'quick-camera', icon: Camera, label: 'Chụp', isCamera: true },
     { id: 'add-expense', icon: PlusCircle, label: 'Thêm' },
+    { id: 'quick-camera', icon: Camera, label: 'Chụp', isCamera: true },
+    { id: 'reports', icon: PieChart, label: 'Phân loại' },
     { id: 'settings', icon: Settings, label: 'Cài đặt' }
   ]
 
-  const activeIndex = tabs.findIndex(t => t.id === activeTab)
+  const regularTabs = tabs.filter(t => !t.isCamera)
+  const activeIndex = regularTabs.findIndex(t => t.id === activeTab)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     try {
       const compressedBase64 = await compressImage(file)
-      if (compressedBase64 && onQuickPhotoCaptured) {
-        onQuickPhotoCaptured(compressedBase64)
-      }
-    } catch (err) {
-      console.error('Error processing camera image:', err)
-    } finally {
-      e.target.value = ''
-    }
+      if (compressedBase64 && onQuickPhotoCaptured) onQuickPhotoCaptured(compressedBase64)
+    } catch (err) { console.error('Error processing camera image:', err) }
+    finally { e.target.value = '' }
   }
 
   const handleTabClick = (tabId: string, isCamera?: boolean) => {
-    if (isCamera) {
-      cameraInputRef.current?.click()
-    } else {
-      onTabChange(tabId)
-    }
+    if (isCamera) cameraInputRef.current?.click()
+    else onTabChange(tabId)
   }
 
   return (
-    <nav 
+    <nav
       className={`bottom-tab-bar ${isKeyboardOpen ? 'keyboard-hidden' : ''}`}
       role="navigation"
       aria-label="Bottom Navigation"
     >
-      <input 
-        type="file" 
-        ref={cameraInputRef} 
-        hidden 
+      <input
+        type="file"
+        ref={cameraInputRef}
+        hidden
         accept="image/*"
         capture="environment"
-        onChange={handleFileChange} 
+        onChange={handleFileChange}
       />
 
       <div className="tab-items-wrapper">
-        {activeIndex >= 0 && activeTab !== 'quick-camera' && (
-          <div 
-            className="tab-active-pill" 
-            style={{ 
-              width: 'calc(100% / 5)',
-              transform: `translateX(${activeIndex * 100}%)` 
+        {/* Active pill indicator */}
+        {activeIndex >= 0 && (
+          <div
+            className="tab-active-pill"
+            style={{
+              width: `calc(100% / ${regularTabs.length})`,
+              transform: `translateX(${(activeIndex >= 2 ? activeIndex + 1 : activeIndex) * 100}%)`
             }}
           />
         )}
 
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id
-          const isCameraBtn = tab.isCamera
 
-          if (isCameraBtn) {
+          if (tab.isCamera) {
             return (
               <button
                 key={tab.id}

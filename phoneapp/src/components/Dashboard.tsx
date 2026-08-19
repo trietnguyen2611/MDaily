@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import type { Expense } from '../types'
-import { FileText, ShoppingBag, Utensils, Car, Trash2, Tag, Sparkles } from 'lucide-react'
+import { FileText, ShoppingBag, Utensils, Car, Trash2, Tag, Sparkles, Receipt } from 'lucide-react'
 import { ExpenseDetailModal } from './ExpenseDetailModal'
 import { getCategoryLabel } from '../services/categories'
 import type { CategoryItem } from '../services/categories'
@@ -15,13 +15,13 @@ interface DashboardProps {
   categoryOptions: SelectOption[]
 }
 
-const CategoryIcon = ({ category }: { category: string }) => {
+const CategoryIcon = ({ category, size = 20 }: { category: string; size?: number }) => {
   switch (category) {
-    case 'bills': return <FileText size={20} />
-    case 'shopping': return <ShoppingBag size={20} />
-    case 'food': return <Utensils size={20} />
-    case 'transport': return <Car size={20} />
-    default: return <Tag size={20} />
+    case 'bills': return <FileText size={size} />
+    case 'shopping': return <ShoppingBag size={size} />
+    case 'food': return <Utensils size={size} />
+    case 'transport': return <Car size={size} />
+    default: return <Tag size={size} />
   }
 }
 
@@ -41,25 +41,32 @@ export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpda
     <div className="dashboard">
       {expenses.length === 0 ? (
         <div className="empty-state">
-          <p>Chưa có chi tiêu nào. Bấm "Thêm chi tiêu" để thêm mới.</p>
+          <Receipt size={48} />
+          <p>Chưa có chi tiêu nào. Bấm "Thêm" để thêm mới.</p>
         </div>
       ) : (
         <div className="expense-grid">
           {expenses.map(expense => (
             <div
               key={expense.id}
-              className="expense-card"
+              className={`expense-card ${!expense.photo ? 'no-photo' : ''}`}
               onClick={() => setSelectedExpense(expense)}
             >
-              <div className="expense-photo">
-                <img src={expense.photo} alt="Chi tiêu" />
-                {expense.isAiProcessed && (
-                  <div className="ai-badge">
-                    <Sparkles size={11} />
-                    <span>MDaily AI</span>
-                  </div>
-                )}
-              </div>
+              {expense.photo ? (
+                <div className="expense-photo">
+                  <img src={expense.photo} alt="Chi tiêu" />
+                  {expense.isAiProcessed && (
+                    <div className="ai-badge">
+                      <Sparkles size={11} />
+                      <span>AI</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="expense-icon-placeholder">
+                  <CategoryIcon category={expense.category} size={32} />
+                </div>
+              )}
               <div className="expense-info">
                 <div className="expense-meta">
                   <span className="category">
@@ -75,9 +82,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpda
                 className="btn-icon delete-btn"
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (confirm('Xoá chi tiêu này?')) {
-                    onDelete(expense.id)
-                  }
+                  if (confirm('Xoá chi tiêu này?')) onDelete(expense.id)
                 }}
                 title="Xoá chi tiêu"
               >
@@ -92,10 +97,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpda
         expense={selectedExpense}
         onClose={() => setSelectedExpense(null)}
         onDelete={onDelete}
-        onUpdate={(updated) => {
-          onUpdate(updated)
-          setSelectedExpense(updated)
-        }}
+        onUpdate={(updated) => { onUpdate(updated); setSelectedExpense(updated) }}
         categories={categories}
         categoryOptions={categoryOptions}
       />

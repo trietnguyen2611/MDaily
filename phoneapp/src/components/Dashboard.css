@@ -17,6 +17,46 @@
   text-align: center;
   padding: var(--spacing-xxl);
   color: var(--body-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty-state svg {
+  opacity: 0.4;
+}
+
+/* No-photo card variant */
+.expense-card.no-photo {
+  flex-direction: row;
+  align-items: center;
+}
+
+.expense-icon-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  min-width: 64px;
+  border-radius: var(--radius-md);
+  background: var(--surface-tile-2);
+  color: var(--body-muted);
+  margin: 12px;
+}
+
+.expense-card.no-photo .expense-info {
+  flex: 1;
+  padding: 12px 12px 12px 0;
+}
+
+.expense-card.no-photo .delete-btn {
+  position: relative;
+  bottom: auto;
+  right: auto;
+  margin-right: 12px;
+  opacity: 1;
 }
 
 .expense-grid {
