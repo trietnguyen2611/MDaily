@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { Home, Plus, PieChart, Settings, Sparkles } from 'lucide-react'
+import { Home, Plus, PieChart, Settings, Camera } from 'lucide-react'
 import './BottomTabBar.css'
 
 interface BottomTabBarProps {
@@ -42,6 +42,15 @@ const DOCK_TABS = [
   { id: 'settings', icon: Settings, label: 'Cài đặt' }
 ]
 
+/* Camera / Quick Capture Icon without sparkle */
+const CameraCaptureIcon: React.FC = () => (
+  <div className="camera-capture-icon-container">
+    <div className="camera-icon-badge">
+      <Camera size={23} className="camera-main-icon" />
+    </div>
+  </div>
+)
+
 export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   activeTab,
   onTabChange,
@@ -70,74 +79,70 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   }
 
   return (
-    <div
-      className={`liquid-dock-wrapper ${isKeyboardOpen ? 'keyboard-hidden' : ''}`}
-      role="navigation"
-      aria-label="Liquid Glass Dock"
-    >
-      <input
-        type="file"
-        ref={cameraInputRef}
-        hidden
-        accept="image/*"
-        capture="environment"
-        onChange={handleFileChange}
-      />
+    <>
+      {/* Soft Ambient Frosted Glass Blur Scrim under dock area */}
+      <div className={`dock-ambient-scrim ${isKeyboardOpen ? 'keyboard-hidden' : ''}`} />
 
-      {/* Main Liquid Glass Capsule Dock */}
-      <nav className="liquid-glass-dock">
-        {/* Dynamic Glowing Teal/Cyan Active Pill */}
-        {activeIndex >= 0 && (
-          <div
-            className="dock-active-pill"
-            style={{
-              transform: `translateX(${activeIndex * 100}%)`
-            }}
-          />
-        )}
-
-        <div className="dock-items-grid">
-          {DOCK_TABS.map((tab) => {
-            const isActive = activeTab === tab.id
-            const IconComponent = tab.icon
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                className={`dock-tab-btn ${isActive ? 'active' : ''}`}
-                onClick={() => onTabChange(tab.id)}
-                title={tab.label}
-                aria-label={tab.label}
-                aria-selected={isActive}
-              >
-                <IconComponent size={22} className="dock-tab-icon" />
-              </button>
-            )
-          })}
-        </div>
-      </nav>
-
-      {/* Standalone Circular Liquid Glass Camera Action Button (Right) */}
-      <button
-        type="button"
-        className="liquid-glass-circle-btn"
-        onClick={handleCameraClick}
-        title="Chụp nhanh hoá đơn & chi tiêu"
-        aria-label="Chụp ảnh chi tiêu"
+      {/* Floating Liquid Glass Dock */}
+      <div
+        className={`liquid-dock-wrapper ${isKeyboardOpen ? 'keyboard-hidden' : ''}`}
+        role="navigation"
+        aria-label="Liquid Glass Dock"
       >
-        <div className="circle-sparkle-dot">
-          <Sparkles size={11} />
-        </div>
+        <input
+          type="file"
+          ref={cameraInputRef}
+          hidden
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+        />
 
-        {/* 4-Tile Vibrant Colorful 3D App Icon Badge */}
-        <div className="vibrant-tiles-cluster">
-          <span className="tile tile-cyan" />
-          <span className="tile tile-blue" />
-          <span className="tile tile-orange" />
-          <span className="tile tile-green" />
-        </div>
-      </button>
-    </div>
+        {/* Main Liquid Glass Capsule Dock */}
+        <nav className="liquid-glass-dock">
+          {/* Dynamic Glowing Teal/Cyan Active Pill */}
+          {activeIndex >= 0 && (
+            <div
+              className="dock-active-pill"
+              style={{
+                transform: `translateX(${activeIndex * 100}%)`
+              }}
+            />
+          )}
+
+          <div className="dock-items-grid">
+            {DOCK_TABS.map((tab) => {
+              const isActive = activeTab === tab.id
+              const IconComponent = tab.icon
+
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`dock-tab-btn ${isActive ? 'active' : ''}`}
+                  onClick={() => onTabChange(tab.id)}
+                  title={tab.label}
+                  aria-label={tab.label}
+                  aria-selected={isActive}
+                >
+                  <IconComponent size={22} className="dock-tab-icon" />
+                </button>
+              )
+            })}
+          </div>
+        </nav>
+
+        {/* Standalone Circular Liquid Glass Camera Action Button (Right) */}
+        <button
+          type="button"
+          className="liquid-glass-circle-btn"
+          onClick={handleCameraClick}
+          title="Chụp ảnh hoá đơn / chi tiêu"
+          aria-label="Chụp ảnh chi tiêu"
+        >
+          <CameraCaptureIcon />
+        </button>
+      </div>
+    </>
   )
 }

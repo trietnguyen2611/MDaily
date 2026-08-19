@@ -27,64 +27,33 @@
   opacity: 0.4;
 }
 
-/* No-photo card variant */
-.expense-card.no-photo {
-  flex-direction: row;
-  align-items: center;
-}
-
-.expense-icon-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  min-width: 64px;
-  border-radius: var(--radius-md);
-  background: var(--surface-tile-2);
-  color: var(--body-muted);
-  margin: 12px;
-}
-
-.expense-card.no-photo .expense-info {
-  flex: 1;
-  padding: 12px 12px 12px 0;
-}
-
-.expense-card.no-photo .delete-btn {
-  position: relative;
-  bottom: auto;
-  right: auto;
-  margin-right: 12px;
-  opacity: 1;
-}
-
 .expense-grid {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  padding-bottom: 20px; 
+  padding-bottom: 20px;
 }
 
 .expense-card {
   background: var(--canvas);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  transition: transform 0.2s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--divider-soft);
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.expense-card:hover {
-  transform: translateY(-2px);
+.expense-card:active {
+  transform: scale(0.99);
 }
 
 .expense-photo {
-  height: 200px;
+  height: 190px;
   position: relative;
-  background: #000;
+  background: #1c1c1e;
 }
 
 .expense-photo img {
@@ -96,63 +65,112 @@
 .ai-badge {
   position: absolute;
   top: 10px;
-  right: 10px;
-  background: rgba(0, 102, 204, 0.9); /* Primary color */
+  left: 10px;
+  background: rgba(0, 122, 255, 0.88);
   color: white;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
+/* Delete Button — ALWAYS VISIBLE on all cards */
 .delete-btn {
   position: absolute;
   bottom: 12px;
   right: 12px;
-  width: 34px;
-  height: 34px;
-  background: linear-gradient(145deg, rgba(255, 89, 78, 0.9), rgba(220, 39, 28, 0.85));
-  color: #ffffff;
-  border: 1px solid rgba(255, 59, 48, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 
-    0 4px 10px rgba(255, 59, 48, 0.4), 
-    inset 0 2px 0 rgba(255, 255, 255, 0.3), 
-    inset 0 -2px 0 rgba(0, 0, 0, 0.1);
-  opacity: 0;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+  border: 1px solid rgba(255, 59, 48, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(255, 59, 48, 0.15);
+  opacity: 1; /* ALWAYS VISIBLE */
   z-index: 10;
-  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .delete-btn:hover {
-  background: linear-gradient(145deg, rgba(255, 99, 88, 0.95), rgba(240, 49, 38, 0.9));
-  border-color: rgba(255, 69, 58, 0.8);
-  color: white;
-  box-shadow: 
-    0 6px 15px rgba(255, 69, 58, 0.6),
-    inset 0 2px 0 rgba(255, 255, 255, 0.4),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.1);
-  transform: scale(1.12) translateY(-1px);
+  background: #ff3b30;
+  color: #ffffff;
+  border-color: #ff3b30;
+  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.4);
+  transform: scale(1.08);
 }
 
 .delete-btn:active {
-  transform: scale(0.95) translateY(2px);
-  box-shadow: 
-    0 2px 5px rgba(255, 59, 48, 0.4),
-    inset 0 3px 5px rgba(0, 0, 0, 0.2);
+  transform: scale(0.92);
+  background: #e0281b;
+  color: #ffffff;
 }
 
-.expense-card:hover .delete-btn {
-  opacity: 1;
+@media (prefers-color-scheme: dark) {
+  .delete-btn {
+    background: rgba(255, 69, 58, 0.18);
+    color: #ff453a;
+    border-color: rgba(255, 69, 58, 0.35);
+  }
+  .delete-btn:hover {
+    background: #ff453a;
+    color: #ffffff;
+  }
+}
+
+/* No-photo card variant */
+.expense-card.no-photo {
+  flex-direction: row;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.expense-icon-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  min-width: 54px;
+  border-radius: var(--radius-md);
+  background: var(--surface-tile-2);
+  color: var(--primary);
+  margin: 12px 14px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.expense-card.no-photo .expense-info {
+  flex: 1;
+  padding: 10px 10px 10px 0;
+}
+
+.expense-card.no-photo .delete-btn {
+  position: relative;
+  bottom: auto;
+  right: auto;
+  margin-right: 14px;
+  margin-left: 6px;
+  opacity: 1; /* ALWAYS VISIBLE */
 }
 
 .expense-info {
-  padding: var(--spacing-md);
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .expense-meta {
@@ -160,24 +178,38 @@
   justify-content: space-between;
   align-items: center;
   color: var(--body-muted);
-  font-size: 14px;
+  font-size: 13px;
+  padding-right: 44px; /* avoid overlapping delete-btn on card with photo */
+}
+
+.expense-card.no-photo .expense-meta {
+  padding-right: 0;
 }
 
 .category {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   color: var(--ink);
+  font-weight: 500;
 }
 
 .expense-info h3 {
-  font-size: 24px;
+  font-size: 22px;
+  font-weight: 700;
   margin: 0;
   color: var(--ink);
+  letter-spacing: -0.3px;
+  padding-right: 44px;
+}
+
+.expense-card.no-photo .expense-info h3 {
+  padding-right: 0;
 }
 
 .note {
   color: var(--body-muted);
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
+  line-height: 1.3;
 }

@@ -1,10 +1,50 @@
 /* =========================================================
-   Apple Liquid Glass Dock — iOS 26 Design (Capsule + Circle)
+   Apple Default System Liquid Glass Dock — iOS 26 (Xcode 26.3)
    ========================================================= */
 
+/* 1. Ambient Frosted Glass Blur Scrim Under Dock Area */
+.dock-ambient-scrim {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(env(safe-area-inset-bottom, 16px) + 90px);
+  background: linear-gradient(
+    to top,
+    rgba(250, 250, 252, 0.85) 0%,
+    rgba(250, 250, 252, 0.5) 45%,
+    rgba(250, 250, 252, 0.15) 75%,
+    transparent 100%
+  );
+  -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(28px);
+  -webkit-mask-image: linear-gradient(to top, black 40%, transparent 100%);
+  mask-image: linear-gradient(to top, black 40%, transparent 100%);
+  pointer-events: none;
+  z-index: 997;
+  transition: opacity 0.3s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .dock-ambient-scrim {
+    background: linear-gradient(
+      to top,
+      rgba(16, 16, 20, 0.88) 0%,
+      rgba(16, 16, 20, 0.55) 45%,
+      rgba(16, 16, 20, 0.2) 75%,
+      transparent 100%
+    );
+  }
+}
+
+.dock-ambient-scrim.keyboard-hidden {
+  opacity: 0;
+}
+
+/* 2. Floating Dock Wrapper */
 .liquid-dock-wrapper {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 8px) + 2px); /* Lowered ergonomic position */
+  bottom: calc(env(safe-area-inset-bottom, 8px) + 2px);
   left: 50%;
   transform: translateX(-50%) translateY(0);
   width: calc(100% - 24px);
@@ -19,7 +59,7 @@
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
 
-  /* Smooth keyboard hide / reveal spring animation */
+  /* Fluid Apple System Spring Animation */
   transition:
     transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
     opacity 0.28s ease;
@@ -37,7 +77,7 @@
 }
 
 /* =========================================================
-   1. Main Capsule Dock (Left)
+   3. Main Capsule Dock (Left) — Apple System Liquid Glass
    ========================================================= */
 
 .liquid-glass-dock {
@@ -49,43 +89,43 @@
   padding: 4px;
   overflow: hidden;
 
-  /* Liquid Glass: Multi-stage refractive blur & luminous gradient */
+  /* Apple System Liquid Glass Material (iOS 26 default) */
   background:
     linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.82) 0%,
-      rgba(242, 243, 248, 0.62) 50%,
-      rgba(235, 236, 242, 0.72) 100%
+      135deg,
+      rgba(255, 255, 255, 0.58) 0%,
+      rgba(255, 255, 255, 0.32) 50%,
+      rgba(242, 244, 250, 0.45) 100%
     );
-  -webkit-backdrop-filter: blur(40px) saturate(220%) contrast(104%);
-  backdrop-filter: blur(40px) saturate(220%) contrast(104%);
+  -webkit-backdrop-filter: blur(44px) saturate(210%) brightness(1.04);
+  backdrop-filter: blur(44px) saturate(210%) brightness(1.04);
 
-  /* Refraction border with glass bevel edge */
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  /* Hairline refraction rim border */
+  border: 0.5px solid rgba(255, 255, 255, 0.75);
 
-  /* Ambient & specular depth shadows */
+  /* Apple System Specular Depth & Ambient Dispersion */
   box-shadow:
-    0 12px 32px -4px rgba(0, 0, 0, 0.12),
-    0 4px 10px -2px rgba(0, 0, 0, 0.05),
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.98),
-    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04);
+    0 12px 36px -4px rgba(0, 0, 0, 0.12),
+    0 3px 10px -2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
+    inset 0 -0.5px 0.5px 0 rgba(0, 0, 0, 0.04);
 }
 
 @media (prefers-color-scheme: dark) {
   .liquid-glass-dock {
     background:
       linear-gradient(
-        180deg,
-        rgba(50, 50, 56, 0.82) 0%,
-        rgba(34, 34, 38, 0.75) 50%,
-        rgba(24, 24, 28, 0.8) 100%
+        135deg,
+        rgba(48, 48, 54, 0.62) 0%,
+        rgba(30, 30, 36, 0.52) 50%,
+        rgba(20, 20, 24, 0.58) 100%
       );
-    border: 0.8px solid rgba(255, 255, 255, 0.22);
+    border: 0.5px solid rgba(255, 255, 255, 0.18);
     box-shadow:
-      0 16px 40px -4px rgba(0, 0, 0, 0.65),
-      0 6px 16px -2px rgba(0, 0, 0, 0.4),
-      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.25),
-      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.4);
+      0 16px 44px -4px rgba(0, 0, 0, 0.65),
+      0 4px 14px -2px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+      inset 0 -0.5px 0.5px 0 rgba(0, 0, 0, 0.4);
   }
 }
 
@@ -99,7 +139,7 @@
   align-items: center;
 }
 
-/* Active Tab Glowing Pill (Teal/Cyan Organic Fluid Glow from Image) */
+/* Active Tab Glowing Pill (Apple System Fluid Glass Highlight) */
 .dock-active-pill {
   position: absolute;
   top: 4px;
@@ -110,16 +150,21 @@
   z-index: 0;
   pointer-events: none;
 
-  /* Luminous organic teal/cyan gradient with inner shine */
-  background: linear-gradient(135deg, rgba(80, 227, 194, 0.78) 0%, rgba(0, 198, 255, 0.68) 100%);
+  /* System Fluid Teal/Cyan Glass Material */
+  background:
+    linear-gradient(
+      135deg,
+      rgba(80, 227, 194, 0.65) 0%,
+      rgba(0, 198, 255, 0.55) 100%
+    );
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
-  border: 0.5px solid rgba(255, 255, 255, 0.8);
+  border: 0.5px solid rgba(255, 255, 255, 0.85);
   box-shadow:
     0 4px 16px rgba(0, 198, 255, 0.35),
-    0 2px 6px rgba(80, 227, 194, 0.3),
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.85),
-    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.1);
+    0 2px 6px rgba(80, 227, 194, 0.25),
+    inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -0.5px 0.5px 0 rgba(0, 0, 0, 0.08);
 
   transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform;
@@ -127,12 +172,17 @@
 
 @media (prefers-color-scheme: dark) {
   .dock-active-pill {
-    background: linear-gradient(135deg, rgba(48, 209, 88, 0.7) 0%, rgba(10, 132, 255, 0.65) 100%);
+    background:
+      linear-gradient(
+        135deg,
+        rgba(48, 209, 88, 0.65) 0%,
+        rgba(10, 132, 255, 0.6) 100%
+      );
     border: 0.5px solid rgba(255, 255, 255, 0.4);
     box-shadow:
       0 4px 20px rgba(10, 132, 255, 0.45),
-      0 2px 8px rgba(48, 209, 88, 0.35),
-      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.6);
+      0 2px 8px rgba(48, 209, 88, 0.3),
+      inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.55);
   }
 }
 
@@ -147,7 +197,7 @@
   border: none;
   padding: 0;
   cursor: pointer;
-  color: #787880;
+  color: #636366;
   transition: transform 0.18s ease, color 0.22s ease;
   -webkit-tap-highlight-color: transparent;
   outline: none;
@@ -155,7 +205,7 @@
 
 @media (prefers-color-scheme: dark) {
   .dock-tab-btn {
-    color: #98989d;
+    color: #8e8e93;
   }
 }
 
@@ -187,7 +237,7 @@
 }
 
 /* =========================================================
-   2. Standalone Circular Action Button (Right)
+   4. Standalone Circular Camera Button (Right)
    ========================================================= */
 
 .liquid-glass-circle-btn {
@@ -200,26 +250,26 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  border: 0.5px solid rgba(255, 255, 255, 0.75);
   box-sizing: border-box;
   padding: 0;
 
-  /* Liquid Glass Material */
+  /* System Liquid Glass Material */
   background:
     linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.85) 0%,
-      rgba(242, 243, 248, 0.65) 50%,
-      rgba(235, 236, 242, 0.75) 100%
+      135deg,
+      rgba(255, 255, 255, 0.58) 0%,
+      rgba(255, 255, 255, 0.32) 50%,
+      rgba(242, 244, 250, 0.45) 100%
     );
-  -webkit-backdrop-filter: blur(40px) saturate(220%) contrast(104%);
-  backdrop-filter: blur(40px) saturate(220%) contrast(104%);
+  -webkit-backdrop-filter: blur(44px) saturate(210%) brightness(1.04);
+  backdrop-filter: blur(44px) saturate(210%) brightness(1.04);
 
   box-shadow:
-    0 12px 32px -4px rgba(0, 0, 0, 0.12),
-    0 4px 10px -2px rgba(0, 0, 0, 0.05),
-    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.98),
-    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.04);
+    0 12px 36px -4px rgba(0, 0, 0, 0.12),
+    0 3px 10px -2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
+    inset 0 -0.5px 0.5px 0 rgba(0, 0, 0, 0.04);
 
   transition:
     transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
@@ -232,80 +282,65 @@
   .liquid-glass-circle-btn {
     background:
       linear-gradient(
-        180deg,
-        rgba(50, 50, 56, 0.85) 0%,
-        rgba(34, 34, 38, 0.78) 50%,
-        rgba(24, 24, 28, 0.82) 100%
+        135deg,
+        rgba(48, 48, 54, 0.62) 0%,
+        rgba(30, 30, 36, 0.52) 50%,
+        rgba(20, 20, 24, 0.58) 100%
       );
-    border: 0.8px solid rgba(255, 255, 255, 0.22);
+    border: 0.5px solid rgba(255, 255, 255, 0.18);
     box-shadow:
-      0 16px 40px -4px rgba(0, 0, 0, 0.65),
-      0 6px 16px -2px rgba(0, 0, 0, 0.4),
-      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.25),
-      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.4);
+      0 16px 44px -4px rgba(0, 0, 0, 0.65),
+      0 4px 14px -2px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.22),
+      inset 0 -0.5px 0.5px 0 rgba(0, 0, 0, 0.4);
   }
 }
 
 .liquid-glass-circle-btn:active {
-  transform: scale(0.88);
+  transform: scale(0.9);
   box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.1),
-    inset 0 1px 1px rgba(255, 255, 255, 0.5);
+    inset 0 1px 0.5px rgba(255, 255, 255, 0.5);
 }
 
-/* Sparkle Star on Top Left of the circle button */
-.circle-sparkle-dot {
-  position: absolute;
-  top: 7px;
-  left: 9px;
-  color: rgba(255, 255, 255, 0.95);
-  filter: drop-shadow(0 0 3px rgba(0, 198, 255, 0.8));
-  pointer-events: none;
-  animation: sparkleTwinkle 2.5s ease-in-out infinite;
+/* Camera Icon Container */
+.camera-capture-icon-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
 }
 
-@keyframes sparkleTwinkle {
-  0%, 100% { opacity: 0.85; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
-}
-
-/* 4-Tile Vibrant Colorful 3D App Icon Cluster (Matching Photo) */
-.vibrant-tiles-cluster {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 3px;
-  transform: rotate(-3deg);
-  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.liquid-glass-circle-btn:hover .vibrant-tiles-cluster {
-  transform: rotate(0deg) scale(1.06);
-}
-
-.tile {
-  border-radius: 6px;
-  display: block;
+.camera-icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #007aff 0%, #34c759 100%);
+  color: #ffffff;
   box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.16),
-    inset 0 1px 1px rgba(255, 255, 255, 0.6);
-  transition: transform 0.2s ease;
+    0 4px 14px -1px rgba(0, 122, 255, 0.42),
+    0 2px 6px rgba(52, 199, 89, 0.28),
+    inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -1px 1px 0 rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.tile-cyan {
-  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+.liquid-glass-circle-btn:hover .camera-icon-badge {
+  transform: scale(1.06);
 }
 
-.tile-blue {
-  background: linear-gradient(135deg, #007aff 0%, #5856d6 100%);
+.liquid-glass-circle-btn:active .camera-icon-badge {
+  transform: scale(0.92);
 }
 
-.tile-orange {
-  background: linear-gradient(135deg, #ff9500 0%, #ff5e3a 100%);
-}
-
-.tile-green {
-  background: linear-gradient(135deg, #30d158 0%, #34c759 100%);
+.camera-main-icon {
+  color: #ffffff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+  stroke-width: 2.2;
 }

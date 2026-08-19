@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
-import { FileText, ShoppingBag, Utensils, Car, Tag, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
+import { FileText, ShoppingBag, Utensils, Car, Tag, Plus, Pencil, Trash2, Check, X, PieChart as PieIcon } from 'lucide-react'
 import type { Expense } from '../types'
-
 import type { CategoryItem } from '../services/categories'
 import './Reports.css'
 
@@ -13,33 +12,35 @@ interface ReportsProps {
   onUpdateCategory: (oldValue: string, newLabel: string) => void
 }
 
-const CategoryIcon = ({ category }: { category: string }) => {
+const CategoryIcon = ({ category, size = 18 }: { category: string; size?: number }) => {
   switch (category) {
-    case 'bills': return <FileText size={18} />
-    case 'shopping': return <ShoppingBag size={18} />
-    case 'food': return <Utensils size={18} />
-    case 'transport': return <Car size={18} />
-    default: return <Tag size={18} />
+    case 'bills': return <FileText size={size} />
+    case 'shopping': return <ShoppingBag size={size} />
+    case 'food': return <Utensils size={size} />
+    case 'transport': return <Car size={size} />
+    default: return <Tag size={size} />
   }
 }
 
-const COLORS = ['#0a84ff', '#30d158', '#ff9f0a', '#ff453a', '#bf5af2', '#64d2ff', '#ff375f', '#ffd60a', '#ac8e68', '#5e5ce6']
+const COLORS = [
+  '#007aff', '#34c759', '#ff9500', '#ff3b30', '#af52de',
+  '#5ac8fa', '#ff2d55', '#ffcc00', '#a2845e', '#5856d6'
+]
 
-const PieChart: React.FC<{ data: { label: string; value: number; color: string }[] }> = ({ data }) => {
+const DonutChart: React.FC<{ data: { label: string; value: number; color: string }[] }> = ({ data }) => {
   const total = data.reduce((sum, d) => sum + d.value, 0)
   if (total === 0) return null
 
-  const size = 150
+  const size = 160
   const center = size / 2
-  const radius = 65
-  const innerRadius = 42
+  const radius = 68
+  const innerRadius = 46
 
   let currentAngle = -Math.PI / 2
 
   const slices = data.map((d, i) => {
     const angle = (d.value / total) * Math.PI * 2
 
-    // If a single slice takes 100%, render a full donut ring to avoid SVG arc collapse
     if (data.length === 1 || angle >= Math.PI * 1.999) {
       return (
         <path
@@ -51,7 +52,7 @@ const PieChart: React.FC<{ data: { label: string; value: number; color: string }
              A ${innerRadius} ${innerRadius} 0 1 0 ${center} ${center + innerRadius}
              A ${innerRadius} ${innerRadius} 0 1 0 ${center} ${center - innerRadius} Z`}
           fill={d.color}
-          className="pie-slice"
+          className="donut-slice"
         />
       )
     }
@@ -85,31 +86,37 @@ const PieChart: React.FC<{ data: { label: string; value: number; color: string }
         key={i}
         d={path}
         fill={d.color}
-        className="pie-slice"
+        className="donut-slice"
       />
     )
   })
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="pie-svg">
-      {slices}
-      <text x={center} y={center - 4} textAnchor="middle" className="pie-center-amount">
-        {total.toLocaleString('vi-VN')}
-      </text>
-      <text x={center} y={center + 14} textAnchor="middle" className="pie-center-label">
-        VNĐ
-      </text>
-    </svg>
+    <div className="donut-chart-wrapper">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="donut-svg">
+        {slices}
+      </svg>
+      <div className="donut-center-info">
+        <span className="donut-center-amount">{total.toLocaleString('vi-VN')}</span>
+        <span className="donut-center-currency">VNĐ</span>
+      </div>
+    </div>
   )
 }
 
-export const Reports: React.FC<ReportsProps> = ({ expenses, categories, onAddCategory, onDeleteCategory, onUpdateCategory }) => {
+export const Reports: React.FC<ReportsProps> = ({
+  expenses,
+  categories,
+  onAddCategory,
+  onDeleteCategory,
+  onUpdateCategory
+}) => {
   const [isAdding, setIsAdding] = useState(false)
   const [newLabel, setNewLabel] = useState('')
   const [editingValue, setEditingValue] = useState<string | null>(null)
   const [editLabel, setEditLabel] = useState('')
 
-  // Category expense totals
+  // Calculate totals per category
   const categoryTotals = expenses.reduce((acc, ex) => {
     acc[ex.category] = (acc[ex.category] || 0) + ex.amount
     return acc
@@ -117,11 +124,16 @@ export const Reports: React.FC<ReportsProps> = ({ expenses, categories, onAddCat
 
   const total = expenses.reduce((sum, ex) => sum + ex.amount, 0)
 
-  const pieData = categories.map((cat, i) => ({
-    label: cat.label,
-    value: categoryTotals[cat.value] || 0,
-    color: COLORS[i % COLORS.length]
-  })).filter(d => d.value > 0)
+  // Chart data sorted by amount
+  const chartData = categories
+    .map((cat, i) => ({
+      value: cat.value,
+      label: cat.label,
+      amount: categoryTotals[cat.value] || 0,
+      color: COLORS[i % COLORS.length]
+    }))
+    .filter(d => d.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
 
   const handleAdd = () => {
     if (newLabel.trim()) {
@@ -140,136 +152,150 @@ export const Reports: React.FC<ReportsProps> = ({ expenses, categories, onAddCat
   }
 
   return (
-    <div className="categories-page">
-      {/* Pie Chart Section */}
-      <div className="categories-chart-section">
-        <div className="chart-card">
-          {pieData.length > 0 ? (
-            <>
-              <PieChart data={pieData} />
-              <div className="chart-legend">
-                {pieData.map((d, i) => {
-                  const percent = total > 0 ? ((d.value / total) * 100).toFixed(1) : '0'
-                  return (
-                    <div key={i} className="legend-item">
-                      <span className="legend-dot" style={{ backgroundColor: d.color }} />
-                      <span className="legend-label">{d.label}</span>
-                      <span className="legend-value">{d.value.toLocaleString('vi-VN')} đ</span>
-                      <span className="legend-percent">{percent}%</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </>
-          ) : (
-            <div className="chart-empty">
-              <Tag size={36} />
-              <p>Chưa có dữ liệu chi tiêu</p>
+    <div className="reports-container">
+      {/* 1. Overview Donut Chart Card */}
+      <div className="reports-card chart-overview-card">
+        {chartData.length > 0 ? (
+          <div className="chart-content-row">
+            <DonutChart data={chartData.map(d => ({ label: d.label, value: d.amount, color: d.color }))} />
+            <div className="chart-quick-stats">
+              <span className="quick-stats-title">Tổng phân bổ</span>
+              <span className="quick-stats-total">{total.toLocaleString('vi-VN')} đ</span>
+              <span className="quick-stats-count">{expenses.length} khoản chi · {chartData.length} danh mục</span>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Category Management Section */}
-      <div className="categories-manage-section">
-        <div className="manage-header">
-          <h3>Quản lý danh mục</h3>
-          <button className="btn-add-cat" onClick={() => setIsAdding(true)}>
-            <Plus size={16} /> Thêm
-          </button>
-        </div>
-
-        {isAdding && (
-          <div className="category-add-row">
-            <input
-              type="text"
-              value={newLabel}
-              onChange={e => setNewLabel(e.target.value)}
-              placeholder="Tên danh mục mới..."
-              autoFocus
-              onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
-            />
-            <button className="btn-save-cat" onClick={handleAdd}>
-              <Check size={14} />
-            </button>
-            <button className="btn-cancel-cat" onClick={() => { setIsAdding(false); setNewLabel('') }}>
-              <X size={14} />
-            </button>
+          </div>
+        ) : (
+          <div className="chart-empty-state">
+            <PieIcon size={42} className="chart-empty-icon" />
+            <p>Chưa có dữ liệu chi tiêu trong khoảng thời gian này</p>
           </div>
         )}
+      </div>
 
-        <div className="category-list-wrapper">
-          <div className="category-list">
-            {categories.map((cat, index) => {
-            const amount = categoryTotals[cat.value] || 0
-            const count = expenses.filter(e => e.category === cat.value).length
-            const isEditing = editingValue === cat.value
+      {/* 2. Vertical Category Breakdown List with Progress Bars */}
+      <div className="reports-section-header">
+        <h3>Chi tiết theo danh mục</h3>
+        <button
+          className="btn-add-category-pill"
+          onClick={() => setIsAdding(true)}
+        >
+          <Plus size={14} /> Thêm danh mục
+        </button>
+      </div>
 
-            return (
-              <div key={cat.value} className="category-item">
-                <div className="category-item-left">
-                  <span className="category-icon-circle" style={{ backgroundColor: COLORS[index % COLORS.length] + '22', color: COLORS[index % COLORS.length] }}>
-                    <CategoryIcon category={cat.value} />
-                  </span>
+      {isAdding && (
+        <div className="add-category-inline-card">
+          <input
+            type="text"
+            value={newLabel}
+            onChange={e => setNewLabel(e.target.value)}
+            placeholder="Nhập tên danh mục mới..."
+            autoFocus
+            onKeyDown={e => { if (e.key === 'Enter') handleAdd() }}
+          />
+          <div className="add-cat-actions">
+            <button className="btn-cat-save" onClick={handleAdd} title="Lưu danh mục">
+              <Check size={16} />
+            </button>
+            <button className="btn-cat-cancel" onClick={() => { setIsAdding(false); setNewLabel('') }} title="Huỷ">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Vertical list of category cards — no horizontal scroll needed! */}
+      <div className="category-breakdown-list">
+        {categories.map((cat, index) => {
+          const amount = categoryTotals[cat.value] || 0
+          const count = expenses.filter(e => e.category === cat.value).length
+          const percent = total > 0 ? (amount / total) * 100 : 0
+          const isEditing = editingValue === cat.value
+          const color = COLORS[index % COLORS.length]
+
+          return (
+            <div key={cat.value} className="category-breakdown-card">
+              <div className="cat-card-top-row">
+                <div className="cat-card-left">
+                  <div className="cat-icon-badge" style={{ backgroundColor: `${color}18`, color: color }}>
+                    <CategoryIcon category={cat.value} size={18} />
+                  </div>
+
                   {isEditing ? (
                     <input
-                      className="category-edit-input"
+                      className="cat-inline-edit-input"
                       value={editLabel}
                       onChange={e => setEditLabel(e.target.value)}
                       autoFocus
                       onKeyDown={e => { if (e.key === 'Enter') handleUpdate(cat.value) }}
                     />
                   ) : (
-                    <div className="category-item-info">
-                      <span className="category-item-name">{cat.label}</span>
-                      <span className="category-item-stats">
-                        {count > 0 ? `${count} chi tiêu · ${amount.toLocaleString('vi-VN')} đ` : 'Chưa có chi tiêu'}
-                      </span>
+                    <div className="cat-meta-info">
+                      <span className="cat-title">{cat.label}</span>
+                      <span className="cat-sub-stats">{count} giao dịch</span>
                     </div>
                   )}
                 </div>
-                <div className="category-item-actions">
+
+                <div className="cat-card-right">
                   {isEditing ? (
-                    <>
-                      <button className="btn-cat-action save" onClick={() => handleUpdate(cat.value)} title="Lưu">
+                    <div className="cat-edit-btn-group">
+                      <button className="btn-cat-save" onClick={() => handleUpdate(cat.value)}>
                         <Check size={14} />
                       </button>
-                      <button className="btn-cat-action cancel" onClick={() => { setEditingValue(null); setEditLabel('') }} title="Hủy">
+                      <button className="btn-cat-cancel" onClick={() => { setEditingValue(null); setEditLabel('') }}>
                         <X size={14} />
                       </button>
-                    </>
+                    </div>
                   ) : (
-                    <>
-                      <button
-                        className="btn-cat-action edit"
-                        onClick={() => { setEditingValue(cat.value); setEditLabel(cat.label) }}
-                        title="Sửa"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        className="btn-cat-action delete"
-                        onClick={() => {
-                          if (count > 0) {
-                            if (confirm(`Danh mục "${cat.label}" đang có ${count} chi tiêu. Bạn vẫn muốn xoá?`)) {
+                    <div className="cat-amount-badge-group">
+                      <div className="cat-amount-col">
+                        <span className="cat-amount-val">{amount.toLocaleString('vi-VN')} đ</span>
+                        <span className="cat-percent-val">{percent.toFixed(1)}%</span>
+                      </div>
+
+                      <div className="cat-actions-trigger">
+                        <button
+                          className="btn-cat-mini edit"
+                          onClick={() => { setEditingValue(cat.value); setEditLabel(cat.label) }}
+                          title="Sửa tên"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                        <button
+                          className="btn-cat-mini delete"
+                          onClick={() => {
+                            if (count > 0) {
+                              if (confirm(`Danh mục "${cat.label}" có ${count} chi tiêu. Bạn chắc chắn muốn xoá?`)) {
+                                onDeleteCategory(cat.value)
+                              }
+                            } else {
                               onDeleteCategory(cat.value)
                             }
-                          } else {
-                            onDeleteCategory(cat.value)
-                          }
-                        }}
-                        title="Xoá"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </>
+                          }}
+                          title="Xoá danh mục"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
-            )
-          })}
-          </div>
-        </div>
+
+              {/* Smooth Progress Bar */}
+              <div className="cat-progress-track">
+                <div
+                  className="cat-progress-bar"
+                  style={{
+                    width: `${Math.min(100, Math.max(percent, amount > 0 ? 3 : 0))}%`,
+                    backgroundColor: color
+                  }}
+                />
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

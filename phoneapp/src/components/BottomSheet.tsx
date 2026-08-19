@@ -8,8 +8,8 @@ interface BottomSheetProps {
   children: React.ReactNode
 }
 
-const VELOCITY_THRESHOLD = 0.35 // px/ms for swipe/flick dismiss
-const DISMISS_DISTANCE = 90 // px drag down threshold
+const VELOCITY_THRESHOLD = 0.3 // px/ms for swipe/flick dismiss
+const DISMISS_DISTANCE = 80 // px drag down threshold
 
 export const BottomSheet: React.FC<BottomSheetProps> = ({
   isOpen,
@@ -36,11 +36,10 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       setShouldRender(true)
       setDragOffset(0)
       setIsDragging(false)
-      // Start in entering state immediately
       setPhase('entering')
       timer = setTimeout(() => {
         setPhase('open')
-      }, 380)
+      }, 360)
     } else if (shouldRender) {
       setPhase('closing')
       timer = setTimeout(() => {
@@ -48,7 +47,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         setShouldRender(false)
         setDragOffset(0)
         setIsDragging(false)
-      }, 300)
+      }, 280)
     }
 
     return () => {
@@ -71,7 +70,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     return false
   }
 
-  // --- Touch Gesture Handling for whole Sheet ---
+  // Touch Gesture Handling
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0]
     touchStartY.current = touch.clientY
@@ -91,10 +90,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
     // Determine if vertical drag
     if (!isDraggingSheet.current) {
-      if (Math.abs(deltaY) > 8 && Math.abs(deltaY) > Math.abs(deltaX)) {
-        // If pulling down
+      if (Math.abs(deltaY) > 6 && Math.abs(deltaY) > Math.abs(deltaX)) {
         if (deltaY > 0) {
-          // Check if inner content is scrolled
           if (!isTargetScrolled(e.target)) {
             isDraggingSheet.current = true
             setIsDragging(true)
@@ -104,12 +101,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     }
 
     if (isDraggingSheet.current) {
-      // Pulling down sheet
       if (deltaY > 0) {
         setDragOffset(deltaY)
       } else {
-        // Pulling up: slight resistance
-        setDragOffset(deltaY * 0.15)
+        // Pulling up: rubber banding
+        setDragOffset(deltaY * 0.12)
       }
     }
   }, [])
@@ -130,10 +126,9 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       const isDraggedDownEnough = deltaY > DISMISS_DISTANCE
 
       if (deltaY > 0 && (isFlickDown || isDraggedDownEnough)) {
-        // Dismiss sheet
         onClose()
       } else {
-        // Spring back
+        // Spring back smoothly
         setDragOffset(0)
       }
     }
@@ -150,7 +145,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
 
   // Dynamic overlay opacity based on drag distance
   const overlayOpacity = isDragging
-    ? Math.max(0, 1 - dragOffset / 350)
+    ? Math.max(0, 1 - dragOffset / (window.innerHeight * 0.65))
     : 1
 
   const panelClasses = [
@@ -161,8 +156,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   ].filter(Boolean).join(' ')
 
   const panelStyle: React.CSSProperties = {
-    transform: isDragging 
-      ? `translateY(${Math.max(0, dragOffset)}px)` 
+    transform: isDragging
+      ? `translate3d(0, ${Math.max(0, dragOffset)}px, 0)`
       : undefined
   }
 
@@ -183,7 +178,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
         >
-          {/* Top Grab Handle Area */}
+          {/* Grab Handle Zone */}
           <div className="bottom-sheet-handle-zone">
             <div className="bottom-sheet-handle-indicator" />
           </div>
