@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { Globe, Trash2, Info, Sparkles, Check, XCircle, RefreshCw, Save } from 'lucide-react'
+import { Globe, Trash2, Info, Sparkles, Check, XCircle, RefreshCw, Save, ScanLine, MessageCircle } from 'lucide-react'
 import { clearExpenses } from '../services/db'
-import { getCustomAiUrl, setCustomAiUrl, checkAiConnection } from '../services/ai'
+import { getCustomAiUrl, setCustomAiUrl, checkAiConnection, checkAiAvailability, getAutoExtractEnabled, setAutoExtractEnabled, getAiChatEnabled, setAiChatEnabled } from '../services/ai'
 import { CustomSelect } from './CustomSelect'
 import type { SelectOption } from './CustomSelect'
+import { APP_NAME, APP_VERSION_LABEL } from '../constants'
 import './SettingsPage.css'
 
 const CURRENCY_OPTIONS: SelectOption[] = [
@@ -14,15 +15,19 @@ const CURRENCY_OPTIONS: SelectOption[] = [
 
 interface SettingsPageProps {
   onDataCleared?: () => void
+  onAiSettingsChanged?: () => void
 }
 
-export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared }) => {
+export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiSettingsChanged }) => {
   const [currency, setCurrency] = useState('vnd')
   const [isClearing, setIsClearing] = useState(false)
   const [aiUrl, setAiUrl] = useState('')
   const [aiStatus, setAiStatus] = useState<'checking' | 'ok' | 'error' | 'idle'>('idle')
   const [aiModel, setAiModel] = useState('')
   const [isAiUrlDirty, setIsAiUrlDirty] = useState(false)
+  const [aiAvailable, setAiAvailable] = useState(false)
+  const [autoExtract, setAutoExtract] = useState(getAutoExtractEnabled())
+  const [aiChatOn, setAiChatOn] = useState(getAiChatEnabled())
 
   useEffect(() => {
     const saved = getCustomAiUrl()
@@ -35,7 +40,19 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared }) => 
     if (aiUrl && !isAiUrlDirty) {
       handleCheckConnection(aiUrl)
     }
-  }, [isAiUrlDirty])
+  }, [aiUrl, isAiUrlDirty])
+
+  useEffect(() => {
+    checkAiAvailability().then(result => {
+      setAiAvailable(result.available)
+      if (result.available) setAiModel(result.model)
+    })
+  }, [aiUrl])
+
+  const notifyAiSettingsChanged = () => {
+    onAiSettingsChanged?.()
+    window.dispatchEvent(new CustomEvent('mdaily_settings_change'))
+  }
 
   const handleCheckConnection = async (urlToCheck: string) => {
     setAiStatus('checking')
@@ -54,6 +71,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared }) => 
     handleCheckConnection(aiUrl)
   }
 
+  const toggleAutoExtract = () => {
+    const next = !autoExtract
+    setAutoExtract(next)
+    setAutoExtractEnabled(next)
+    notifyAiSettingsChanged()
+  }
+
+  const toggleAiChat = () => {
+    const next = !aiChatOn
+    setAiChatOn(next)
+    setAiChatEnabled(next)
+    notifyAiSettingsChanged()
+  }
+
   const handleClearData = async () => {
     if (confirm('Bạn chắc chắn muốn xoá toàn bộ dữ liệu chi tiêu?')) {
       setIsClearing(true)
@@ -67,32 +98,47 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared }) => 
   return (
     <div className="settings-container">
       <div className="settings-section">
-        <h3>Giao diện & Tùy chọn</h3>
+        <h3>MDaily AI</h3>
         <div className="settings-group">
           <div className="settings-item">
             <div className="settings-item-left">
-              <div className="settings-icon-wrapper theme-icon">
-                <Globe size={18} />
-              </div>
+              <div className="settings-icon-wrapper ai-icon"><Sparkles size={18} /></div>
               <div className="settings-item-info">
-                <span className="settings-item-label">Đơn vị tiền tệ</span>
-                <span className="settings-item-desc">Đơn vị tiền tệ hiển thị trong ứng dụng</span>
+                <span className="settings-item-label">Trạng thái AI local</span>
+                <span className="settings-item-desc">{aiAvailable ? 'Đã kết nối máy chủ AI' : 'Cần kết nối Jan, LM Studio hoặc Ollama'}</span>
               </div>
             </div>
-            <div style={{ width: 140 }}>
-              <CustomSelect
-                options={CURRENCY_OPTIONS}
-                value={currency}
-                onChange={setCurrency}
-              />
-            </div>
+            <span className={`settings-badge ${aiAvailable ? 'success-badge' : 'error-badge'}`}>
+              {aiAvailable ? <Check size={14} /> : <XCircle size={14} />}
+              {aiAvailable ? 'Sẵn sàng' : 'Chưa sẵn sàng'}
+            </span>
           </div>
-        </div>
-      </div>
-
-      <div className="settings-section">
-        <h3>Cấu hình MDaily AI Engine</h3>
-        <div className="settings-group">
+          <div className="settings-item">
+            <div className="settings-item-left">
+              <div className="settings-icon-wrapper scan-icon"><ScanLine size={18} /></div>
+              <div className="settings-item-info">
+                <span className="settings-item-label">Tự động trích xuất ảnh</span>
+                <span className="settings-item-desc">Tự điền số tiền và danh mục từ ảnh hoá đơn</span>
+              </div>
+            </div>
+            <label className={`toggle-switch ${!aiAvailable ? 'disabled' : ''}`}>
+              <input type="checkbox" checked={autoExtract && aiAvailable} onChange={toggleAutoExtract} disabled={!aiAvailable} />
+              <span className="toggle-slider" />
+            </label>
+          </div>
+          <div className="settings-item">
+            <div className="settings-item-left">
+              <div className="settings-icon-wrapper chat-icon"><MessageCircle size={18} /></div>
+              <div className="settings-item-info">
+                <span className="settings-item-label">MDaily AI Chat</span>
+                <span className="settings-item-desc">Mở trợ lý AI từ thanh công cụ</span>
+              </div>
+            </div>
+            <label className={`toggle-switch ${!aiAvailable ? 'disabled' : ''}`}>
+              <input type="checkbox" checked={aiChatOn && aiAvailable} onChange={toggleAiChat} disabled={!aiAvailable} />
+              <span className="toggle-slider" />
+            </label>
+          </div>
           <div className="settings-item-column">
             <div className="settings-item-header">
               <div className="settings-item-left">
@@ -157,6 +203,30 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared }) => 
       </div>
 
       <div className="settings-section">
+        <h3>Giao diện & Tùy chọn</h3>
+        <div className="settings-group">
+          <div className="settings-item">
+            <div className="settings-item-left">
+              <div className="settings-icon-wrapper theme-icon">
+                <Globe size={18} />
+              </div>
+              <div className="settings-item-info">
+                <span className="settings-item-label">Đơn vị tiền tệ</span>
+                <span className="settings-item-desc">Đơn vị tiền tệ hiển thị trong ứng dụng</span>
+              </div>
+            </div>
+            <div style={{ width: 140 }}>
+              <CustomSelect
+                options={CURRENCY_OPTIONS}
+                value={currency}
+                onChange={setCurrency}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
         <h3>Quản lý dữ liệu</h3>
         <div className="settings-group">
           <div className="settings-item">
@@ -189,11 +259,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared }) => 
                 <Info size={18} />
               </div>
               <div className="settings-item-info">
-                <span className="settings-item-label">MDaily Desktop</span>
-                <span className="settings-item-desc">Phiên bản 1.0</span>
+                <span className="settings-item-label">{APP_NAME}</span>
+                <span className="settings-item-desc">Phiên bản {APP_VERSION_LABEL}</span>
               </div>
             </div>
-            <span className="settings-badge">macOS - v1.0</span>
+            <span className="settings-badge">macOS - {APP_VERSION_LABEL}</span>
           </div>
         </div>
       </div>

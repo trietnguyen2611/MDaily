@@ -82,6 +82,15 @@ public enum Currency: String, Codable, CaseIterable, Identifiable, Sendable {
     }
 }
 
+/// Appearance mode for the app (light, dark, or system default)
+public enum AppearanceMode: String, Codable, CaseIterable, Identifiable, Sendable {
+    case light = "light"
+    case dark = "dark"
+    case system = "system"
+
+    public var id: String { rawValue }
+}
+
 public struct LocalizationService {
     public static func t(_ key: String, lang: Language) -> String {
         let dict: [String: [Language: String]] = [
@@ -127,6 +136,7 @@ public struct LocalizationService {
             "edit_expense": [.vi: "Chỉnh sửa chi tiêu", .en: "Edit Expense"],
             "expense_amount": [.vi: "Số tiền chi tiêu", .en: "Expense Amount"],
             "time": [.vi: "Thời gian", .en: "Time"],
+            "date": [.vi: "Thời gian", .en: "Time"],
             "no_note": [.vi: "Không có ghi chú", .en: "No note"],
             "delete_this_expense": [.vi: "Xoá chi tiêu này", .en: "Delete this expense"],
             "view_full": [.vi: "Xem đầy đủ", .en: "View Full"],
@@ -148,7 +158,7 @@ public struct LocalizationService {
             "available": [.vi: "Khả dụng", .en: "Available"],
             "unavailable": [.vi: "Không khả dụng", .en: "Unavailable"],
             "auto_extract": [.vi: "Tự động nhận diện ảnh", .en: "Auto Image Recognition"],
-            "auto_extract_desc": [.vi: "Trích xuất hoá đơn & tên đồ vật khi chụp ảnh", .en: "Extract receipts & items when taking photos"],
+            "auto_extract_desc": [.vi: "Trích xuất hoá đơn khi chụp ảnh", .en: "Extract receipts when taking photos"],
             "ai_chat": [.vi: "AI Chat", .en: "AI Chat"],
             "ai_chat_desc": [.vi: "Trò chuyện với MDaily AI trợ lý tài chính", .en: "Chat with MDaily AI financial assistant"],
             "ui_options": [.vi: "Giao diện & Tuỳ chọn", .en: "Appearance & Options"],
@@ -169,7 +179,25 @@ public struct LocalizationService {
             "clear_chat": [.vi: "Xoá đoạn chat", .en: "Clear Chat"],
             "type_message": [.vi: "Hỏi AI về chi tiêu của bạn...", .en: "Ask AI about your spending..."],
             "send": [.vi: "Gửi", .en: "Send"],
-            "ai_thinking": [.vi: "MDaily AI đang suy nghĩ...", .en: "MDaily AI is thinking..."]
+            "ai_thinking": [.vi: "MDaily AI đang suy nghĩ...", .en: "MDaily AI is thinking..."],
+
+            // New keys for language fixes
+            "data_cleared": [.vi: "Đã xoá dữ liệu", .en: "Data Cleared"],
+            "delete_all_confirm_message": [.vi: "Toàn bộ chi tiêu và dữ liệu của bạn sẽ bị xoá hoàn toàn.", .en: "All your expenses and data will be permanently deleted."],
+            "ai_recognizing": [.vi: "AI đang nhận diện...", .en: "AI recognizing..."],
+            "add_expense_photo": [.vi: "Thêm ảnh chi tiêu", .en: "Add expense photo"],
+            "take_photo_camera": [.vi: "Chụp ảnh từ Máy ảnh", .en: "Take Photo"],
+            "choose_from_library": [.vi: "Chọn từ Thư viện ảnh", .en: "Choose from Library"],
+            "chat_button": [.vi: "Trò chuyện", .en: "Chat"],
+            "ai_recognized_by": [.vi: "Nhận diện bởi AI", .en: "Recognized by AI"],
+            "app_title": [.vi: "MDaily — Quản Lý Chi Tiêu", .en: "MDaily — Expense Manager"],
+
+            // Appearance mode
+            "appearance": [.vi: "Giao diện", .en: "Appearance"],
+            "appearance_desc": [.vi: "Chế độ giao diện sáng, tối hoặc theo hệ thống", .en: "Light, dark, or system appearance mode"],
+            "appearance_light": [.vi: "Sáng", .en: "Light"],
+            "appearance_dark": [.vi: "Tối", .en: "Dark"],
+            "appearance_system": [.vi: "Theo hệ thống", .en: "System"]
         ]
 
         return dict[key]?[lang] ?? dict[key]?[.vi] ?? key

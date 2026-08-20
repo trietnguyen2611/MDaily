@@ -20,6 +20,8 @@ public struct ReportsView: View {
 
     public var body: some View {
         ScrollView(showsIndicators: false) {
+            ScrollOffsetTracker()
+
             VStack(spacing: 18) {
                 segmentedHeader
 
@@ -30,23 +32,53 @@ public struct ReportsView: View {
                 }
             }
             .padding(.horizontal, 16)
+            .padding(.top, 12)
             .padding(.bottom, 110)
+        }
+        .coordinateSpace(name: "mdaily_scroll")
+        .mask {
+            VStack(spacing: 0) {
+                // Top Scroll Soft Fade Mask
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.0),
+                        .init(color: .black, location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 14)
+
+                Rectangle()
+                    .fill(Color.black)
+
+                // Bottom Scroll Soft Fade Mask
+                LinearGradient(
+                    stops: [
+                        .init(color: .black, location: 0.0),
+                        .init(color: .clear, location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 36)
+            }
         }
         .scrollDismissesKeyboard(.interactively)
         .hideKeyboardOnTap()
-        .alert("Xoá phân loại?", isPresented: $showDeleteCategoryAlert) {
-            Button("Xoá", role: .destructive) {
+        .alert(store.t("delete_cat_confirm"), isPresented: $showDeleteCategoryAlert) {
+            Button(store.t("delete"), role: .destructive) {
                 if let cat = categoryToDelete {
                     store.deleteCategory(id: cat.id)
                     categoryToDelete = nil
                 }
             }
-            Button("Huỷ", role: .cancel) {
+            Button(store.t("cancel"), role: .cancel) {
                 categoryToDelete = nil
             }
         } message: {
             if let cat = categoryToDelete {
-                Text("Bạn có chắc muốn xoá phân loại '\(cat.label)' không?")
+                Text(cat.localizedLabel(lang: store.language))
             }
         }
     }
@@ -356,11 +388,11 @@ public struct ReportsView: View {
                     .background(Circle().fill(Color.blue.opacity(0.12)))
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(cat.label)
+                    Text(cat.localizedLabel(lang: store.language))
                         .font(.appFont(size: 16, weight: .bold))
                         .foregroundColor(.primary)
 
-                    Text("\(count) giao dịch • \(store.formatCurrency(total))")
+                    Text("\(count) \(store.t("transactions")) • \(store.formatCurrency(total))")
                         .font(.appFont(size: 12, weight: .regular))
                         .foregroundColor(.secondary)
                 }

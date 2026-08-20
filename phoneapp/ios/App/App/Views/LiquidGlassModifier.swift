@@ -107,43 +107,13 @@ public struct AmbientBackgroundView: View {
     public var body: some View {
         ZStack {
             if colorScheme == .dark {
-                // Dark Mode: Deep spatial midnight ambient glow
-                Color(red: 0.06, green: 0.07, blue: 0.10)
+                // Dark Mode: Pure pitch black OLED canvas
+                Color.black
                     .ignoresSafeArea()
-
-                Circle()
-                    .fill(Color.blue.opacity(0.18))
-                    .blur(radius: 90)
-                    .offset(x: -120, y: -200)
-
-                Circle()
-                    .fill(Color.purple.opacity(0.14))
-                    .blur(radius: 100)
-                    .offset(x: 140, y: 150)
-
-                Circle()
-                    .fill(Color.cyan.opacity(0.10))
-                    .blur(radius: 80)
-                    .offset(x: -80, y: 350)
             } else {
-                // Light Mode: Soft airy luminescence
-                Color(red: 0.96, green: 0.97, blue: 0.99)
+                // Light Mode: Clean iOS System Grouped Background Canvas
+                Color(UIColor.systemGroupedBackground)
                     .ignoresSafeArea()
-
-                Circle()
-                    .fill(Color(red: 0.85, green: 0.92, blue: 1.0).opacity(0.70))
-                    .blur(radius: 80)
-                    .offset(x: -100, y: -180)
-
-                Circle()
-                    .fill(Color(red: 0.93, green: 0.88, blue: 1.0).opacity(0.60))
-                    .blur(radius: 90)
-                    .offset(x: 130, y: 120)
-
-                Circle()
-                    .fill(Color(red: 0.88, green: 0.96, blue: 0.95).opacity(0.60))
-                    .blur(radius: 80)
-                    .offset(x: -90, y: 320)
             }
         }
         .ignoresSafeArea()
@@ -324,4 +294,119 @@ public extension Font {
     static var appBody: Font { .system(size: 14, weight: .medium, design: .rounded) }
     static var appFootnote: Font { .system(size: 12, weight: .regular, design: .rounded) }
     static var appCaption: Font { .system(size: 11, weight: .regular, design: .rounded) }
+}
+
+// MARK: - Scroll Offset Tracking System
+public struct ScrollOffsetPreferenceKey: PreferenceKey {
+    public static var defaultValue: CGFloat = 0
+    public static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+public struct ScrollOffsetTracker: View {
+    public init() {}
+
+    public var body: some View {
+        GeometryReader { proxy in
+            Color.clear
+                .preference(
+                    key: ScrollOffsetPreferenceKey.self,
+                    value: -proxy.frame(in: .named("mdaily_scroll")).origin.y
+                )
+        }
+        .frame(height: 0)
+    }
+}
+
+// MARK: - Auto-Scrolling / Edge-Fading Horizontal Text (Marquee)
+public struct FadingHorizontalText: View {
+    let text: String
+    let font: Font
+    let color: Color
+    let textShadow: Bool
+
+    @State private var textWidth: CGFloat = 0
+    @State private var containerWidth: CGFloat = 0
+    @State private var scrollOffset: CGFloat = 0
+    @State private var isAnimating: Bool = false
+
+    public init(
+        _ text: String,
+        font: Font = .system(size: 13, weight: .regular, design: .rounded),
+        color: Color = .white,
+        textShadow: Bool = false
+    ) {
+        self.text = text
+        self.font = font
+        self.color = color
+        self.textShadow = textShadow
+    }
+
+    public var body: some View {
+        GeometryReader { geo in
+            let overflow = textWidth > (geo.size.width + 1)
+
+            ZStack(alignment: .leading) {
+                Text(text)
+                    .font(font)
+                    .foregroundColor(color)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .shadow(color: textShadow ? Color.black.opacity(0.5) : Color.clear, radius: 3, x: 0, y: 1)
+                    .background(
+                        GeometryReader { textGeo in
+                            Color.clear.preference(key: TextWidthPreferenceKey.self, value: textGeo.size.width)
+                        }
+                    )
+                    .offset(x: scrollOffset)
+            }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .leading)
+            .clipped()
+            .mask {
+                if overflow {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black.opacity(scrollOffset < -4 ? 0.15 : 1.0), location: 0.0),
+                            .init(color: .black, location: 0.08),
+                            .init(color: .black, location: 0.88),
+                            .init(color: .clear, location: 1.0)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                } else {
+                    Rectangle().fill(Color.black)
+                }
+            }
+            .onPreferenceChange(TextWidthPreferenceKey.self) { width in
+                textWidth = width
+                containerWidth = geo.size.width
+                startMarqueeAnimationIfNeeded()
+            }
+        }
+        .frame(height: 18)
+    }
+
+    private func startMarqueeAnimationIfNeeded() {
+        guard textWidth > containerWidth, containerWidth > 0, !isAnimating else { return }
+        isAnimating = true
+        let diff = textWidth - containerWidth + 24
+        let duration = Double(diff) / 16.0
+
+        withAnimation(
+            Animation.easeInOut(duration: max(2.5, duration))
+                .delay(1.5)
+                .repeatForever(autoreverses: true)
+        ) {
+            scrollOffset = -diff
+        }
+    }
+}
+
+public struct TextWidthPreferenceKey: PreferenceKey {
+    public static var defaultValue: CGFloat = 0
+    public static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
 }

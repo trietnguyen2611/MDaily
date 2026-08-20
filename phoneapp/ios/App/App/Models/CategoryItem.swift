@@ -21,6 +21,19 @@ public struct CategoryItem: Identifiable, Codable, Sendable, Hashable {
         default: return "tag.fill"
         }
     }
+
+    /// Returns the localized label for default categories based on language.
+    /// User-created categories always return their original label.
+    public func localizedLabel(lang: Language) -> String {
+        guard isDefault else { return label }
+        switch id {
+        case "shopping": return lang == .en ? "Shopping" : "Mua sắm"
+        case "food": return lang == .en ? "Food & Dining" : "Ăn uống"
+        case "bills": return lang == .en ? "Bills" : "Hoá đơn"
+        case "transport": return lang == .en ? "Transport" : "Di chuyển"
+        default: return label
+        }
+    }
 }
 
 public extension CategoryItem {

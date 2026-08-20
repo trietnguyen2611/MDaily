@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Home, Settings, Tag, Plus, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { APP_VERSION_LABEL } from '../constants'
 import './Sidebar.css'
 
 interface SidebarProps {
@@ -16,7 +17,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
         {!isCollapsed && (
           <div className="sidebar-logo">
             <h1>MDaily</h1>
-            <p>Quản lý tư bản</p>
+            <p>Quản lý tài chính · {APP_VERSION_LABEL}</p>
           </div>
         )}
         <button 

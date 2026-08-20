@@ -1,6 +1,8 @@
 import Tesseract from 'tesseract.js'
 
 const SETTINGS_AI_URL_KEY = 'mdaily_ai_url'
+const SETTINGS_AUTO_EXTRACT_KEY = 'mdaily_auto_extract'
+const SETTINGS_AI_CHAT_KEY = 'mdaily_ai_chat_enabled'
 
 export const getCustomAiUrl = () => {
   return localStorage.getItem(SETTINGS_AI_URL_KEY) || ''
@@ -13,6 +15,12 @@ export const setCustomAiUrl = (url: string) => {
     localStorage.removeItem(SETTINGS_AI_URL_KEY)
   }
 }
+
+export const getAutoExtractEnabled = () => localStorage.getItem(SETTINGS_AUTO_EXTRACT_KEY) !== 'false'
+export const setAutoExtractEnabled = (enabled: boolean) => localStorage.setItem(SETTINGS_AUTO_EXTRACT_KEY, enabled ? 'true' : 'false')
+
+export const getAiChatEnabled = () => localStorage.getItem(SETTINGS_AI_CHAT_KEY) !== 'false'
+export const setAiChatEnabled = (enabled: boolean) => localStorage.setItem(SETTINGS_AI_CHAT_KEY, enabled ? 'true' : 'false')
 
 // Jan AI server endpoint (127.0.0.1:1337)
 const LOCAL_AI_ENDPOINTS = [
@@ -54,6 +62,16 @@ export const checkAiConnection = async (baseUrl: string) => {
     console.warn('AI connection check failed', e)
   }
   return { status: 'error', model: '' }
+}
+
+export const checkAiAvailability = async (): Promise<{ available: boolean; model: string; message: string }> => {
+  for (const endpoint of getAiEndpointsToTry()) {
+    const result = await checkAiConnection(endpoint)
+    if (result.status === 'ok') {
+      return { available: true, model: result.model, message: `Đã kết nối AI: ${result.model}` }
+    }
+  }
+  return { available: false, model: '', message: 'Chưa kết nối máy chủ AI cục bộ' }
 }
 
 const DEFAULT_MODEL = 'gemma-2-2b-it-Q4_K_M.gguf'
@@ -303,7 +321,7 @@ ${expenseHistoryContext}`
                     fullText += content
                     onToken(fullText)
                   }
-                } catch (e) {
+                } catch {
                   // Ignore JSON parse errors for incomplete chunks
                 }
               }

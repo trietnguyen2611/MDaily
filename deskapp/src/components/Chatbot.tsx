@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { MessageCircle, X, Send, Loader2, Trash2 } from 'lucide-react'
+import { X, Send, Loader2, Trash2 } from 'lucide-react'
 import { chatWithAI } from '../services/ai'
 import type { Expense, ChatMessage } from '../types'
 import { getCategoryLabel } from '../services/categories'

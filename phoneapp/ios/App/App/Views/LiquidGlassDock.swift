@@ -11,10 +11,10 @@ public enum AppTab: String, CaseIterable, Identifiable, Sendable {
 
     public var iconName: String {
         switch self {
-        case .dashboard: return "house.fill"
+        case .dashboard: return "house"
         case .addExpense: return "plus"
-        case .reports: return "chart.pie.fill"
-        case .settings: return "gearshape.fill"
+        case .reports: return "chart.pie"
+        case .settings: return "gearshape"
         }
     }
 }
@@ -49,7 +49,7 @@ public struct LiquidGlassDock: View {
                     cameraButton
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 12)
+                .padding(.bottom, 28) // Moved dock further down for easier thumb access
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -73,49 +73,71 @@ public struct LiquidGlassDock: View {
         }
     }
 
-    // MARK: - 4-Tab Main Capsule
+    // MARK: - 4-Tab Main Capsule with Liquid Glass
     private var capsuleTabs: some View {
         HStack(spacing: 0) {
             ForEach(AppTab.allCases) { tab in
                 tabButton(for: tab)
             }
         }
-        .frame(width: 276, height: 62)
+        .frame(width: 276, height: 60)
         .background {
-            Capsule(style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay {
-                    Capsule(style: .continuous)
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.35))
-                }
-                .overlay {
-                    Capsule(style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(
-                                stops: [
-                                    .init(color: Color.white.opacity(colorScheme == .dark ? 0.45 : 0.85), location: 0.0),
-                                    .init(color: Color.white.opacity(colorScheme == .dark ? 0.12 : 0.35), location: 0.5),
-                                    .init(color: Color.white.opacity(colorScheme == .dark ? 0.04 : 0.10), location: 1.0)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.75
-                        )
-                }
+            capsuleGlassBackground
+        }
+    }
+
+    /// Glass background for the dock capsule — uses native .glassEffect on iOS 26+, falls back to custom material
+    @ViewBuilder
+    private var capsuleGlassBackground: some View {
+        let capsuleShape = Capsule(style: .continuous)
+
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            // iOS 26+: Use native Apple Liquid Glass
+            capsuleShape
+                .fill(.clear)
+                .glassEffect(.regular.interactive, in: .capsule)
                 .shadow(
-                    color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.10),
+                    color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.10),
                     radius: 20,
                     x: 0,
                     y: 8
                 )
-                .shadow(
-                    color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.04),
-                    radius: 6,
-                    x: 0,
-                    y: 2
+        } else {
+            fallbackGlassBackground
+        }
+        #else
+        fallbackGlassBackground
+        #endif
+    }
+
+    /// Fallback glass background for pre-iOS 26
+    private var fallbackGlassBackground: some View {
+        ZStack {
+            Capsule(style: .continuous)
+                .fill(.ultraThinMaterial)
+            Capsule(style: .continuous)
+                .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.35))
+            Capsule(style: .continuous)
+                .strokeBorder(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color.white.opacity(colorScheme == .dark ? 0.35 : 0.85), location: 0.0),
+                            .init(color: Color.white.opacity(colorScheme == .dark ? 0.10 : 0.35), location: 0.5),
+                            .init(color: Color.white.opacity(colorScheme == .dark ? 0.04 : 0.10), location: 1.0)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.75
                 )
         }
+        .shadow(
+            color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.10),
+            radius: 20,
+            x: 0,
+            y: 8
+        )
     }
 
     @ViewBuilder
@@ -123,7 +145,7 @@ public struct LiquidGlassDock: View {
         let isSelected: Bool = activeTab == tab
         let iconColor: Color = isSelected
             ? Color.white
-            : (colorScheme == .dark ? Color.white.opacity(0.55) : Color.black.opacity(0.50))
+            : (colorScheme == .dark ? Color.white.opacity(0.60) : Color.black.opacity(0.50))
 
         Button {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
@@ -131,7 +153,7 @@ public struct LiquidGlassDock: View {
             }
         } label: {
             Image(systemName: tab.iconName)
-                .font(.system(size: 21, weight: isSelected ? .bold : .regular))
+                .font(.system(size: 20, weight: isSelected ? .bold : .regular))
                 .foregroundColor(iconColor)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background {
@@ -139,7 +161,7 @@ public struct LiquidGlassDock: View {
                         Capsule(style: .continuous)
                             .fill(
                                 LinearGradient(
-                                    colors: [Color.blue, Color(red: 0, green: 0.68, blue: 0.96)],
+                                    colors: [Color(red: 0.16, green: 0.72, blue: 0.54), Color(red: 0.08, green: 0.48, blue: 0.68)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -149,13 +171,13 @@ public struct LiquidGlassDock: View {
                                     .strokeBorder(Color.white.opacity(0.40), lineWidth: 0.65)
                             }
                             .matchedGeometryEffect(id: "activeTabPill", in: dockNamespace)
-                            .shadow(color: Color.blue.opacity(0.40), radius: 8, x: 0, y: 3)
+                            .shadow(color: Color(red: 0.16, green: 0.72, blue: 0.54).opacity(0.40), radius: 8, x: 0, y: 3)
                             .padding(4)
                     }
                 }
         }
         .buttonStyle(.plain)
-        .frame(height: 54)
+        .frame(height: 52)
     }
 
     // MARK: - Standalone Camera Button (Direct Camera Trigger)
@@ -169,44 +191,29 @@ public struct LiquidGlassDock: View {
         } label: {
             ZStack {
                 Circle()
-                    .fill(.ultraThinMaterial)
-                    .overlay {
-                        Circle()
-                            .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.35))
-                    }
-                    .overlay {
-                        Circle()
-                            .strokeBorder(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: Color.white.opacity(colorScheme == .dark ? 0.45 : 0.85), location: 0.0),
-                                        .init(color: Color.white.opacity(colorScheme == .dark ? 0.12 : 0.35), location: 0.5),
-                                        .init(color: Color.white.opacity(colorScheme == .dark ? 0.04 : 0.10), location: 1.0)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.75
-                            )
-                    }
-                    .shadow(
-                        color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.10),
-                        radius: 20,
-                        x: 0,
-                        y: 8
+                    .fill(
+                        LinearGradient(
+                            colors: [Color(red: 0.16, green: 0.72, blue: 0.54), Color(red: 0.08, green: 0.48, blue: 0.68)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
+                    .overlay {
+                        Circle()
+                            .strokeBorder(Color.white.opacity(0.40), lineWidth: 0.75)
+                    }
                     .shadow(
-                        color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.04),
-                        radius: 6,
+                        color: Color(red: 0.16, green: 0.72, blue: 0.54).opacity(0.40),
+                        radius: 12,
                         x: 0,
-                        y: 2
+                        y: 5
                     )
 
-                Image(systemName: "camera.fill")
-                    .font(.system(size: 23, weight: .semibold))
-                    .foregroundColor(Color.blue)
+                Image(systemName: "camera")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(.white)
             }
-            .frame(width: 62, height: 62)
+            .frame(width: 60, height: 60)
         }
         .liquidGlassButton()
     }

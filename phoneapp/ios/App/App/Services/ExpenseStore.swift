@@ -10,6 +10,7 @@ public final class ExpenseStore: ObservableObject {
     @Published public var currency: Currency = .vnd
     @Published public var autoExtractEnabled: Bool = true
     @Published public var aiChatEnabled: Bool = true
+    @Published public var appearanceMode: AppearanceMode = .system
 
     private let expensesKey = "mdaily_expenses_json"
     private let categoriesKey = "mdaily_categories_json"
@@ -17,6 +18,7 @@ public final class ExpenseStore: ObservableObject {
     private let currKey = "mdaily_curr_str"
     private let autoExtractKey = "mdaily_auto_extract_bool"
     private let aiChatKey = "mdaily_ai_chat_bool"
+    private let appearanceKey = "mdaily_appearance_str"
 
     public init() {
         loadSettings()
@@ -37,8 +39,10 @@ public final class ExpenseStore: ObservableObject {
         currency.symbol
     }
 
+    /// Returns the localized label for a category, using language-aware names for default categories.
     public func categoryLabel(for id: String) -> String {
-        categories.first(where: { $0.id == id })?.label ?? id
+        guard let cat = categories.first(where: { $0.id == id }) else { return id }
+        return cat.localizedLabel(lang: language)
     }
 
     // MARK: - Expense CRUD
@@ -114,6 +118,31 @@ public final class ExpenseStore: ObservableObject {
         UserDefaults.standard.set(enabled, forKey: aiChatKey)
     }
 
+    public func setAppearanceMode(_ mode: AppearanceMode) {
+        self.appearanceMode = mode
+        UserDefaults.standard.set(mode.rawValue, forKey: appearanceKey)
+        // Apply appearance immediately to all windows
+        applyAppearance(mode)
+    }
+
+    // MARK: - Appearance Application
+    private func applyAppearance(_ mode: AppearanceMode) {
+        let style: UIUserInterfaceStyle
+        switch mode {
+        case .light: style = .light
+        case .dark: style = .dark
+        case .system: style = .unspecified
+        }
+        // Apply to all scenes/windows
+        for scene in UIApplication.shared.connectedScenes {
+            if let windowScene = scene as? UIWindowScene {
+                for window in windowScene.windows {
+                    window.overrideUserInterfaceStyle = style
+                }
+            }
+        }
+    }
+
     // MARK: - Persistence
     private func loadSettings() {
         if let langStr = UserDefaults.standard.string(forKey: langKey),
@@ -129,6 +158,11 @@ public final class ExpenseStore: ObservableObject {
         }
         if UserDefaults.standard.object(forKey: aiChatKey) != nil {
             self.aiChatEnabled = UserDefaults.standard.bool(forKey: aiChatKey)
+        }
+        if let appearanceStr = UserDefaults.standard.string(forKey: appearanceKey),
+           let savedAppearance = AppearanceMode(rawValue: appearanceStr) {
+            self.appearanceMode = savedAppearance
+            applyAppearance(savedAppearance)
         }
     }
 

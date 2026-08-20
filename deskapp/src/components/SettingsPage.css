@@ -88,6 +88,63 @@
   background: linear-gradient(135deg, #af52de, #5856d6);
 }
 
+.scan-icon {
+  background: linear-gradient(135deg, #ff9500, #ff6b00);
+}
+
+.chat-icon {
+  background: linear-gradient(135deg, #007aff, #5ac8fa);
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 51px;
+  height: 31px;
+  flex-shrink: 0;
+}
+
+.toggle-switch.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  background: rgba(120, 120, 128, 0.3);
+  border-radius: 31px;
+  transition: background 0.2s ease;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 27px;
+  height: 27px;
+  left: 2px;
+  bottom: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: #34c759;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+}
+
 .settings-item-info {
   display: flex;
   flex-direction: column;

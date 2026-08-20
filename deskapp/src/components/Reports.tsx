@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { FileText, ShoppingBag, Utensils, Car, Tag, Plus, Pencil, Trash2, Check, X } from 'lucide-react'
 import type { Expense } from '../types'
-import { getCategoryLabel } from '../services/categories'
 import type { CategoryItem } from '../services/categories'
 import './Reports.css'
 

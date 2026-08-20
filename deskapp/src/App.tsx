@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Plus, MessageCircle } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { MessageCircle } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { AddExpense } from './components/AddExpense'
 import { Reports } from './components/Reports'
@@ -8,6 +8,7 @@ import { Chatbot } from './components/Chatbot'
 import { Sidebar } from './components/Sidebar'
 import { SearchBar } from './components/SearchBar'
 import { CustomSelect } from './components/CustomSelect'
+import { checkAiAvailability, getAiChatEnabled, getAutoExtractEnabled } from './services/ai'
 import { getExpenses, saveExpense, deleteExpense, updateExpense } from './services/db'
 import { getCategories, addCategory, deleteCategory, updateCategory, categoriesToSelectOptions } from './services/categories'
 import type { CategoryItem } from './services/categories'
@@ -22,12 +23,31 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [timeFilter, setTimeFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [quickPhoto, setQuickPhoto] = useState<string | null>(null)
+  const [isAiAvailable, setIsAiAvailable] = useState(false)
+  const [autoExtractEnabled, setAutoExtractEnabledState] = useState(getAutoExtractEnabled())
+  const [aiChatEnabled, setAiChatEnabledState] = useState(getAiChatEnabled())
   
   const [customDate, setCustomDate] = useState('')
   const [customMonth, setCustomMonth] = useState('')
   const [customYear, setCustomYear] = useState(new Date().getFullYear().toString())
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
+
+  const refreshAiSettings = useCallback(() => {
+    setAutoExtractEnabledState(getAutoExtractEnabled())
+    setAiChatEnabledState(getAiChatEnabled())
+  }, [])
+
+  useEffect(() => {
+    checkAiAvailability().then(status => setIsAiAvailable(status.available))
+    const handleSettingsChange = () => {
+      refreshAiSettings()
+      checkAiAvailability().then(status => setIsAiAvailable(status.available))
+    }
+    window.addEventListener('mdaily_settings_change', handleSettingsChange)
+    return () => window.removeEventListener('mdaily_settings_change', handleSettingsChange)
+  }, [refreshAiSettings])
 
   useEffect(() => {
     const loadData = async () => {
@@ -46,6 +66,7 @@ function App() {
     }
     const updated = await saveExpense(expense)
     setExpenses([...updated])
+    setQuickPhoto(null)
     setActiveTab('dashboard')
   }
 
@@ -102,7 +123,7 @@ function App() {
   }
 
   // Filter expenses based on search query, time, and category
-  const filteredExpenses = expenses.filter(ex => {
+  const filteredExpenses = useMemo(() => expenses.filter(ex => {
     // 1. Search
     const matchesSearch = ex.category.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           (ex.note && ex.note.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -141,7 +162,7 @@ function App() {
     }
 
     return true
-  })
+  }), [expenses, searchQuery, categoryFilter, timeFilter, customDate, customMonth, customYear, customStartDate, customEndDate])
 
   const getPageTitle = (tab: string) => {
     switch (tab) {
@@ -165,9 +186,9 @@ function App() {
           <div className="top-bar-right">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             <div className="top-actions">
-              <button className="circular-btn" onClick={() => setIsChatOpen(!isChatOpen)} title="Mở MDaily AI">
+              {isAiAvailable && aiChatEnabled && <button className="circular-btn" onClick={() => setIsChatOpen(!isChatOpen)} title="Mở MDaily AI">
                 <MessageCircle size={20} />
-              </button>
+              </button>}
             </div>
           </div>
         </div>
@@ -223,9 +244,11 @@ function App() {
           <div className="non-scroll-container">
             <AddExpense
               onSave={handleSaveExpense}
-              onCancel={() => setActiveTab('dashboard')}
+              onCancel={() => { setQuickPhoto(null); setActiveTab('dashboard') }}
               categoryOptions={categoryOptions}
               onAddCategory={handleAddCategory}
+              initialPhoto={quickPhoto}
+              autoExtractEnabled={isAiAvailable && autoExtractEnabled}
             />
           </div>
         )}
@@ -244,17 +267,17 @@ function App() {
 
         {activeTab === 'settings' && (
           <div className="scroll-container">
-            <SettingsPage onDataCleared={() => setExpenses([])} />
+            <SettingsPage onDataCleared={() => setExpenses([])} onAiSettingsChanged={refreshAiSettings} />
           </div>
         )}
       </main>
 
-      <Chatbot
+      {isAiAvailable && aiChatEnabled && <Chatbot
         expenses={expenses}
         categories={categories}
         isOpen={isChatOpen}
         onClose={() => setIsChatOpen(false)}
-      />
+      />}
     </div>
   )
 }

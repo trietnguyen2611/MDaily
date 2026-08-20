@@ -33,7 +33,7 @@ public final class AFMService: Sendable {
             return AFMStatus(
                 available: true,
                 model: "Apple Intelligence (On-Device AFM)",
-                message: "Sẵn sàng — Mô hình AI cục bộ Apple Foundation Model"
+                message: "Apple Foundation Model"
             )
         }
         #endif
@@ -44,7 +44,7 @@ public final class AFMService: Sendable {
         )
     }
 
-    // MARK: - Image & Receipt Extraction
+    // MARK: - Image & Receipt Extraction (Receipt-only — no object classification)
     public func extractExpense(from image: UIImage) async -> ExtractionResult {
         guard let cgImage = image.cgImage else {
             return ExtractionResult(success: false)
@@ -53,26 +53,25 @@ public final class AFMService: Sendable {
         // 1. Run Vision OCR Text Recognition
         let textResult = await recognizeText(from: cgImage)
 
-        // 2. If OCR found text, parse receipt
+        // 2. If OCR found text, parse receipt (total amount, receipt name, auto bills category)
         if !textResult.isEmpty {
-            let parsed = parseReceiptText(lines: textResult)
+            var parsed = parseReceiptText(lines: textResult)
             if parsed.success {
+                // If invoice detected, always set category to bills
+                if parsed.isInvoice {
+                    parsed = ExtractionResult(
+                        success: parsed.success,
+                        itemName: parsed.itemName,
+                        amount: parsed.amount,
+                        category: "bills",
+                        isInvoice: true
+                    )
+                }
                 return parsed
             }
         }
 
-        // 3. Vision Image Classification
-        let classification = await classifyImage(from: cgImage)
-        if let cat = classification.category {
-            return ExtractionResult(
-                success: true,
-                itemName: classification.label,
-                amount: nil,
-                category: cat,
-                isInvoice: false
-            )
-        }
-
+        // No object classification — only receipt recognition
         return ExtractionResult(success: false)
     }
 
@@ -487,6 +486,46 @@ public final class AFMService: Sendable {
             }
         }
 
+        // Query for This Week
+        if isAskingThisWeek {
+            if isEnglish {
+                if thisWeekExpenses.isEmpty {
+                    return "No expenses recorded for **This Week** yet."
+                }
+                var lines = ["📅 **This Week's Spending**: \(formatMoney(thisWeekSpend)) (\(thisWeekExpenses.count) transactions)"]
+                for exp in thisWeekExpenses.prefix(6) {
+                    let cat = categories.first(where: { $0.id == exp.category })?.label ?? exp.category
+                    lines.append("• \(exp.note ?? cat): \(formatMoney(exp.amount))")
+                }
+                return lines.joined(separator: "\n")
+            } else {
+                if thisWeekExpenses.isEmpty {
+                    return "Bạn chưa có khoản chi tiêu nào trong **Tuần này**."
+                }
+                var lines = ["📅 **Chi tiêu tuần này**: \(formatMoney(thisWeekSpend)) (\(thisWeekExpenses.count) giao dịch)"]
+                for exp in thisWeekExpenses.prefix(6) {
+                    let cat = categories.first(where: { $0.id == exp.category })?.label ?? exp.category
+                    lines.append("• \(exp.note ?? cat): \(formatMoney(exp.amount))")
+                }
+                return lines.joined(separator: "\n")
+            }
+        }
+
+        // Query for This Month
+        if isAskingThisMonth {
+            if isEnglish {
+                if thisMonthExpenses.isEmpty {
+                    return "No expenses recorded for **This Month** yet."
+                }
+                return "📅 **This Month's Spending**: **\(formatMoney(thisMonthSpend))** across \(thisMonthExpenses.count) transactions."
+            } else {
+                if thisMonthExpenses.isEmpty {
+                    return "Bạn chưa có khoản chi tiêu nào trong **Tháng này**."
+                }
+                return "📅 **Tổng chi tiêu tháng này**: **\(formatMoney(thisMonthSpend))** (\(thisMonthExpenses.count) giao dịch)."
+            }
+        }
+
         // Query for Highest / Top Expense
         if isAskingHighest, let highest = highestExpense {
             let cat = categories.first(where: { $0.id == highest.category })?.label ?? highest.category
@@ -495,6 +534,17 @@ public final class AFMService: Sendable {
                 return "⚡ **Highest Single Expense**: **\(formatMoney(highest.amount))** for **\(note)** in category *\(cat)*."
             } else {
                 return "⚡ **Khoản chi lớn nhất của bạn**: **\(formatMoney(highest.amount))** cho **\(note)** (Danh mục: *\(cat)*)."
+            }
+        }
+
+        // Query for Lowest Expense
+        if isAskingLowest, let lowest = expenses.min(by: { $0.amount < $1.amount }) {
+            let cat = categories.first(where: { $0.id == lowest.category })?.label ?? lowest.category
+            let note = lowest.note ?? cat
+            if isEnglish {
+                return "⚡ **Lowest Single Expense**: **\(formatMoney(lowest.amount))** for **\(note)** (Category: *\(cat)*)."
+            } else {
+                return "⚡ **Khoản chi nhỏ nhất của bạn**: **\(formatMoney(lowest.amount))** cho **\(note)** (Danh mục: *\(cat)*)."
             }
         }
 

@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react'
-import { Camera, Upload, Loader2, Wand2, X, Plus } from 'lucide-react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { Upload, Loader2, Wand2, X, Plus } from 'lucide-react'
 import type { Expense } from '../types'
 import { extractTextFromImage, processReceiptWithAI } from '../services/ai'
 import { CustomSelect } from './CustomSelect'
@@ -11,20 +11,42 @@ interface AddExpenseProps {
   onSave: (expense: Omit<Expense, 'id' | 'date'>) => void
   categoryOptions: SelectOption[]
   onAddCategory: (label: string) => void
+  initialPhoto?: string | null
+  autoExtractEnabled?: boolean
 }
 
-export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, categoryOptions, onAddCategory }) => {
+export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, categoryOptions, onAddCategory, initialPhoto, autoExtractEnabled = false }) => {
   const [isAddingCategory, setIsAddingCategory] = useState(false)
   const [newCategoryLabel, setNewCategoryLabel] = useState('')
   const [amount, setAmount] = useState<string>('')
   const [category, setCategory] = useState<string>('shopping')
   const [note, setNote] = useState<string>('')
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initialPhoto || null)
 
   const [isAiProcessed, setIsAiProcessed] = useState(false)
   const [isAiProcessing, setIsAiProcessing] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const runExtraction = useCallback(async (base64: string) => {
+    setIsAiProcessing(true)
+    try {
+      const text = await extractTextFromImage(base64)
+      const aiData = await processReceiptWithAI(text, categoryOptions)
+      if (aiData.amount > 0) setAmount(aiData.amount.toLocaleString('en-US'))
+      if (aiData.category) setCategory(aiData.category)
+      if (aiData.note) setNote(aiData.note)
+      setIsAiProcessed(true)
+    } catch (error) {
+      console.error('AI Processing Error:', error)
+    } finally {
+      setIsAiProcessing(false)
+    }
+  }, [categoryOptions])
+
+  useEffect(() => {
+    if (initialPhoto && autoExtractEnabled) void runExtraction(initialPhoto)
+  }, [initialPhoto, autoExtractEnabled, runExtraction])
 
   const decodeHeicWithHeicDecode = async (fileToConvert: File): Promise<Blob> => {
     const decodeModule = await import('heic-decode')
@@ -154,6 +176,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
       const base64 = event.target?.result as string
       setPhotoPreview(base64)
       setIsConverting(false)
+      if (autoExtractEnabled) void runExtraction(base64)
     }
     reader.onerror = () => setIsConverting(false)
     reader.readAsDataURL(file)
@@ -188,14 +211,14 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
 
   const handleSave = () => {
     const rawNumeric = parseFloat(amount.replace(/,/g, ''))
-    if (!photoPreview || isNaN(rawNumeric) || rawNumeric <= 0) {
-      alert('Chọn ảnh và nhập số tiền hợp lệ')
+    if (isNaN(rawNumeric) || rawNumeric <= 0) {
+      alert('Vui lòng nhập số tiền hợp lệ')
       return
     }
     onSave({
       amount: rawNumeric,
       category: category as any,
-      photo: photoPreview,
+      photo: photoPreview || '',
       note,
       isAiProcessed
     })

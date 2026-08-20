@@ -6,6 +6,7 @@ import renderer from 'vite-plugin-electron-renderer'
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
+    host: '127.0.0.1',
     proxy: {
       '/jan-api': {
         target: 'http://127.0.0.1:1337',

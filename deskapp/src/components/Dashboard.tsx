@@ -34,8 +34,18 @@ const formatDate = (dateStr: string) => {
   return `${day}/${month}/${year}`
 }
 
+const DELETE_ANIMATION_DURATION = 240
+
 export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpdate, categories, categoryOptions }) => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
+  const [deletingExpenseIds, setDeletingExpenseIds] = useState<Set<string>>(new Set())
+
+  const handleDelete = (id: string) => {
+    if (deletingExpenseIds.has(id)) return
+
+    setDeletingExpenseIds(previous => new Set(previous).add(id))
+    window.setTimeout(() => onDelete(id), DELETE_ANIMATION_DURATION)
+  }
 
   return (
     <div className="dashboard">
@@ -48,11 +58,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpda
           {expenses.map(expense => (
             <div
               key={expense.id}
-              className="expense-card"
+              className={`expense-card ${deletingExpenseIds.has(expense.id) ? 'deleting' : ''}`}
               onClick={() => setSelectedExpense(expense)}
             >
               <div className="expense-photo">
-                <img src={expense.photo} alt="Chi tiêu" />
+                {expense.photo ? (
+                  <img src={expense.photo} alt="Chi tiêu" />
+                ) : (
+                  <div className="expense-photo-placeholder">
+                    <FileText size={32} />
+                    <span>Không có hình ảnh</span>
+                  </div>
+                )}
                 {expense.isAiProcessed && (
                   <div className="ai-badge">MDaily AI</div>
                 )}
@@ -73,10 +90,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpda
                 onClick={(e) => {
                   e.stopPropagation()
                   if (confirm('Xoá chi tiêu này?')) {
-                    onDelete(expense.id)
+                    handleDelete(expense.id)
                   }
                 }}
                 title="Xoá chi tiêu"
+                disabled={deletingExpenseIds.has(expense.id)}
               >
                 <Trash2 size={16} />
               </button>
@@ -88,7 +106,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpda
       <ExpenseDetailModal
         expense={selectedExpense}
         onClose={() => setSelectedExpense(null)}
-        onDelete={onDelete}
+        onDelete={handleDelete}
         onUpdate={(updated) => {
           onUpdate(updated)
           setSelectedExpense(updated)

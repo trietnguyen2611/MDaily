@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import type { Expense } from '../types'
-import { FileText, ShoppingBag, Utensils, Car, X, Trash2, Calendar, Tag, Pencil, Check, RotateCcw } from 'lucide-react'
+import { FileText, ShoppingBag, Utensils, Car, X, Trash2, Calendar, Tag, Pencil, Check, RotateCcw, Maximize2 } from 'lucide-react'
 import { CustomSelect } from './CustomSelect'
 import type { SelectOption } from './CustomSelect'
 import { getCategoryLabel } from '../services/categories'
@@ -45,23 +45,35 @@ const formatAmountInput = (val: string) => {
 }
 
 export const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ expense, onClose, onDelete, onUpdate, categories, categoryOptions }) => {
-  if (!expense) return null
-
   const [isEditing, setIsEditing] = useState(false)
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
   const [note, setNote] = useState('')
   const [isClosing, setIsClosing] = useState(false)
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false)
 
   useEffect(() => {
-    if (expense) {
-      setAmount(expense.amount.toLocaleString('en-US'))
-      setCategory(expense.category)
-      setNote(expense.note || '')
-      setIsEditing(false)
-      setIsClosing(false)
-    }
+    if (!expense) return
+    setAmount(expense.amount.toLocaleString('en-US'))
+    setCategory(expense.category)
+    setNote(expense.note || '')
+    setIsEditing(false)
+    setIsClosing(false)
+    setIsImageViewerOpen(false)
   }, [expense])
+
+  useEffect(() => {
+    if (!isImageViewerOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsImageViewerOpen(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isImageViewerOpen])
+
+  if (!expense) return null
 
   const handleClose = () => {
     setIsClosing(true)
@@ -90,7 +102,9 @@ export const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ expense,
 
   const formattedDate = formatDateWithTime(expense.date)
 
-  return createPortal(
+  return (
+    <>
+      {createPortal(
     <div className={`expense-modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
       <div className={`expense-modal-content ${isClosing ? 'closing' : ''}`} onClick={e => e.stopPropagation()}>
         <button className="modal-close-btn" onClick={handleClose} title="Đóng">
@@ -98,8 +112,28 @@ export const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ expense,
         </button>
 
         <div className="modal-body">
-          <div className="modal-image-container">
-            <img src={expense.photo} alt="Hoá đơn / Ảnh chi tiêu" />
+          <div
+            className={`modal-image-container ${expense.photo ? 'has-image' : ''}`}
+            onClick={() => expense.photo && setIsImageViewerOpen(true)}
+          >
+            {expense.photo ? (
+              <>
+                <img src={expense.photo} alt="Hoá đơn / Ảnh chi tiêu" />
+                <button
+                  className="image-expand-btn"
+                  onClick={() => setIsImageViewerOpen(true)}
+                  title="Xem đầy đủ hình ảnh"
+                  aria-label="Xem đầy đủ hình ảnh"
+                >
+                  <Maximize2 size={18} />
+                </button>
+              </>
+            ) : (
+              <div className="modal-image-placeholder">
+                <FileText size={42} />
+                <span>Không có hình ảnh</span>
+              </div>
+            )}
           </div>
 
           <div className="modal-details">
@@ -212,5 +246,26 @@ export const ExpenseDetailModal: React.FC<ExpenseDetailModalProps> = ({ expense,
       </div>
     </div>,
     document.body
+      )}
+      {isImageViewerOpen && expense.photo && createPortal(
+    <div className="image-viewer-overlay" onClick={() => setIsImageViewerOpen(false)}>
+      <button
+        className="image-viewer-close-btn"
+        onClick={() => setIsImageViewerOpen(false)}
+        title="Đóng ảnh"
+        aria-label="Đóng ảnh"
+      >
+        <X size={22} />
+      </button>
+      <img
+        className="image-viewer-image"
+        src={expense.photo}
+        alt="Hoá đơn / Ảnh chi tiêu - toàn màn hình"
+        onClick={event => event.stopPropagation()}
+      />
+    </div>,
+    document.body
+      )}
+    </>
   )
 }

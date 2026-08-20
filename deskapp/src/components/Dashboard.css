@@ -35,6 +35,26 @@
   flex-direction: column;
   border: 1px solid var(--divider-soft);
   position: relative;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.expense-card.deleting {
+  pointer-events: none;
+  animation: expenseCardDisappear 240ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  transition: none;
+  will-change: transform, opacity;
+}
+
+@keyframes expenseCardDisappear {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
 }
 
 .expense-card:hover {
@@ -51,6 +71,19 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.expense-photo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  background: linear-gradient(145deg, #30343b, #17191d);
+  font-size: 13px;
 }
 
 .ai-badge {

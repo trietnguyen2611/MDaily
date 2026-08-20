@@ -11,6 +11,8 @@ public struct SettingsView: View {
 
     public var body: some View {
         ScrollView(showsIndicators: false) {
+            ScrollOffsetTracker()
+
             VStack(spacing: 24) {
                 // 1. Apple Intelligence / Smart Financial AI Section
                 VStack(alignment: .leading, spacing: 10) {
@@ -98,7 +100,7 @@ public struct SettingsView: View {
                                 showAiChatSheet = true
                             } label: {
                                 HStack(spacing: 4) {
-                                    Text("Trò chuyện")
+                                    Text(store.t("chat_button"))
                                         .font(.appFont(size: 13, weight: .semibold))
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 11, weight: .semibold))
@@ -114,7 +116,7 @@ public struct SettingsView: View {
                     .liquidGlass(cornerRadius: 24)
                 }
 
-                // 2. Language & Currency Options
+                // 2. Language, Appearance & Currency Options
                 VStack(alignment: .leading, spacing: 10) {
                     Text(store.t("ui_options"))
                         .font(.appFont(size: 14, weight: .bold))
@@ -143,6 +145,36 @@ public struct SettingsView: View {
                             )) {
                                 Text(Language.vi.displayName).tag(Language.vi)
                                 Text(Language.en.displayName).tag(Language.en)
+                            }
+                            .font(.appFont(size: 15, weight: .medium))
+                            .pickerStyle(.menu)
+                        }
+                        .padding(16)
+
+                        Divider().padding(.leading, 56)
+
+                        // Appearance Mode Picker
+                        HStack {
+                            settingsIcon(name: "circle.lefthalf.filled", color: .indigo)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(store.t("appearance"))
+                                    .font(.appFont(size: 16, weight: .medium))
+                                Text(store.t("appearance_desc"))
+                                    .font(.appFont(size: 12, weight: .regular))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.leading, 6)
+
+                            Spacer()
+
+                            Picker("", selection: Binding(
+                                get: { store.appearanceMode },
+                                set: { store.setAppearanceMode($0) }
+                            )) {
+                                Text(store.t("appearance_system")).tag(AppearanceMode.system)
+                                Text(store.t("appearance_light")).tag(AppearanceMode.light)
+                                Text(store.t("appearance_dark")).tag(AppearanceMode.dark)
                             }
                             .font(.appFont(size: 15, weight: .medium))
                             .pickerStyle(.menu)
@@ -216,7 +248,7 @@ public struct SettingsView: View {
 
                 // 4. App Info Card
                 VStack(spacing: 6) {
-                    Text("MDaily — Quản Lý Chi Tiêu")
+                    Text(store.t("app_title"))
                         .font(.appFont(size: 14, weight: .bold))
                         .foregroundColor(.primary)
                     Text("v2.2")
@@ -226,18 +258,48 @@ public struct SettingsView: View {
                 .padding(.top, 8)
             }
             .padding(16)
+            .padding(.top, 12)
             .padding(.bottom, 110)
+        }
+        .coordinateSpace(name: "mdaily_scroll")
+        .mask {
+            VStack(spacing: 0) {
+                // Top Scroll Soft Fade Mask
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.0),
+                        .init(color: .black, location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 14)
+
+                Rectangle()
+                    .fill(Color.black)
+
+                // Bottom Scroll Soft Fade Mask
+                LinearGradient(
+                    stops: [
+                        .init(color: .black, location: 0.0),
+                        .init(color: .clear, location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 36)
+            }
         }
         .scrollDismissesKeyboard(.interactively)
         .hideKeyboardOnTap()
-        .alert(store.t("delete_all_confirm"), isPresented: $showDeleteAllAlert) {
+        .alert(store.t("delete_confirm_all"), isPresented: $showDeleteAllAlert) {
             Button(store.t("delete_all_data"), role: .destructive) {
                 store.clearAllData()
                 showDeletedNotice = true
             }
             Button(store.t("cancel"), role: .cancel) {}
         } message: {
-            Text("Toàn bộ chi tiêu và dữ liệu của bạn sẽ bị xoá hoàn toàn.")
+            Text(store.t("delete_all_confirm_message"))
         }
         .alert(store.t("data_cleared"), isPresented: $showDeletedNotice) {
             Button(store.t("done"), role: .cancel) {}

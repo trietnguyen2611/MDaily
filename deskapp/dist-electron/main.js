@@ -10,6 +10,7 @@ var VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 function createWindow() {
 	win = new BrowserWindow({
 		icon: path.join(process.env.VITE_PUBLIC, "icon.png"),
+		title: "MDaily Desktop v2.1",
 		width: 1e3,
 		height: 700,
 		minWidth: 850,

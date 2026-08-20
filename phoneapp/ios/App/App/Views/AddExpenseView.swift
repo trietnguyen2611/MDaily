@@ -73,7 +73,10 @@ public struct AddExpenseView: View {
                         if let amount = result.amount, amount > 0 {
                             self.amountText = formatAmountString("\(Int(amount))")
                         }
-                        if let cat = result.category {
+                        // Auto-switch to bills category if invoice detected
+                        if result.isInvoice {
+                            self.selectedCategory = "bills"
+                        } else if let cat = result.category {
                             if store.categories.contains(where: { $0.id == cat }) {
                                 self.selectedCategory = cat
                             }
@@ -115,178 +118,226 @@ public struct AddExpenseView: View {
     }
 
     public var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 20) {
-                // Photo Upload / Preview Hero Card (Optimized for Portrait & Receipts)
-                if let photoData, let uiImage = UIImage(data: photoData) {
-                    photoPreviewCard(uiImage: uiImage)
-                } else {
-                    photoPlaceholderCard
-                }
+        ScrollViewReader { scrollProxy in
+            ScrollView(showsIndicators: false) {
+                ScrollOffsetTracker()
 
-                // Inset Grouped Form
-                VStack(spacing: 16) {
-                    // Amount Field
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("\(store.t("amount")) (\(store.currencySymbol))")
-                                .font(.appFont(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
-
-                            Spacer()
-
-                            if showAmountError {
-                                Text("Vui lòng nhập số tiền hợp lệ")
-                                    .font(.appFont(size: 12, weight: .medium))
-                                    .foregroundColor(.red)
-                            }
-                        }
-
-                        HStack {
-                            TextField("0", text: $amountText)
-                                .keyboardType(.numberPad)
-                                .font(.appFont(size: 24, weight: .bold))
-                                .onChange(of: amountText) { _, newValue in
-                                    showAmountError = false
-                                    let formatted = formatAmountString(newValue)
-                                    if formatted != newValue {
-                                        amountText = formatted
-                                    }
-                                }
-
-                            Text(store.currencySymbol)
-                                .font(.appFont(size: 20, weight: .bold))
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(14)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                VStack(spacing: 20) {
+                    // Photo Upload / Preview Hero Card (Optimized for Portrait & Receipts)
+                    if let photoData, let uiImage = UIImage(data: photoData) {
+                        photoPreviewCard(uiImage: uiImage)
+                    } else {
+                        photoPlaceholderCard
                     }
 
-                    // Category Field
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(store.t("category"))
-                            .font(.appFont(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
-
-                        Picker("Category", selection: $selectedCategory) {
-                            ForEach(store.categories) { cat in
-                                Text(cat.label).tag(cat.id)
-                            }
-                        }
-                        .font(.appFont(size: 15, weight: .medium))
-                        .pickerStyle(.menu)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                        if !isAddingCategory {
-                            Button {
-                                isAddingCategory = true
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "plus.circle.fill")
-                                    Text(store.t("add_new_category"))
-                                }
-                                .font(.appFont(size: 13, weight: .semibold))
-                                .foregroundColor(.blue)
-                            }
-                            .padding(.top, 2)
-                        } else {
+                    // Inset Grouped Form
+                    VStack(spacing: 16) {
+                        // Amount Field
+                        VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                TextField(store.t("new_cat_placeholder"), text: $newCategoryName)
-                                    .font(.appFont(size: 14, weight: .regular))
-                                    .padding(10)
-                                    .background(Color(.tertiarySystemBackground))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                Text("\(store.t("amount")) (\(store.currencySymbol))")
+                                    .font(.appFont(size: 14, weight: .medium))
+                                    .foregroundColor(.secondary)
 
-                                Button(store.t("save")) {
-                                    let trimmed = newCategoryName.trimmingCharacters(in: .whitespaces)
-                                    if !trimmed.isEmpty {
-                                        store.addCategory(label: trimmed)
-                                        if let last = store.categories.last {
-                                            selectedCategory = last.id
-                                        }
-                                        newCategoryName = ""
-                                        isAddingCategory = false
-                                    }
-                                }
-                                .font(.appFont(size: 14, weight: .semibold))
-                                .buttonStyle(.borderedProminent)
+                                Spacer()
 
-                                LiquidGlassCloseButton(size: 28) {
-                                    isAddingCategory = false
-                                    newCategoryName = ""
+                                if showAmountError {
+                                    Text(store.t("invalid_amount"))
+                                        .font(.appFont(size: 12, weight: .medium))
+                                        .foregroundColor(.red)
                                 }
                             }
-                            .padding(.top, 4)
-                        }
-                    }
 
-                    // Note Field
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(store.t("note"))
-                            .font(.appFont(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                            HStack {
+                                TextField("0", text: $amountText)
+                                    .keyboardType(.numberPad)
+                                    .font(.appFont(size: 24, weight: .bold))
+                                    .onChange(of: amountText) { _, newValue in
+                                        showAmountError = false
+                                        let formatted = formatAmountString(newValue)
+                                        if formatted != newValue {
+                                            amountText = formatted
+                                        }
+                                    }
+                                    .id("amountField")
 
-                        TextField(store.t("note_placeholder"), text: $noteText)
-                            .font(.appFont(size: 15, weight: .regular))
+                                Text(store.currencySymbol)
+                                    .font(.appFont(size: 20, weight: .bold))
+                                    .foregroundColor(.secondary)
+                            }
                             .padding(14)
                             .background(Color(.secondarySystemBackground))
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    }
-                }
-                .padding(20)
-                .liquidGlass(cornerRadius: 28)
+                        }
 
-                // Action Buttons
-                HStack(spacing: 12) {
-                    Button(store.t("cancel")) {
-                        resetForm()
-                        onCancel()
-                    }
-                    .font(.appFont(size: 16, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .liquidGlass(cornerRadius: 22)
-                    .liquidGlassButton()
+                        // Category Field
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(store.t("category"))
+                                .font(.appFont(size: 14, weight: .medium))
+                                .foregroundColor(.secondary)
 
-                    Button(store.t("save_expense")) {
-                        saveExpense()
+                            Picker("Category", selection: $selectedCategory) {
+                                ForEach(store.categories) { cat in
+                                    Text(cat.localizedLabel(lang: store.language)).tag(cat.id)
+                                }
+                            }
+                            .font(.appFont(size: 15, weight: .medium))
+                            .pickerStyle(.menu)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                            if !isAddingCategory {
+                                Button {
+                                    isAddingCategory = true
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "plus.circle.fill")
+                                        Text(store.t("add_new_category"))
+                                    }
+                                    .font(.appFont(size: 13, weight: .semibold))
+                                    .foregroundColor(.blue)
+                                }
+                                .padding(.top, 2)
+                            } else {
+                                HStack {
+                                    TextField(store.t("new_cat_placeholder"), text: $newCategoryName)
+                                        .font(.appFont(size: 14, weight: .regular))
+                                        .padding(10)
+                                        .background(Color(.tertiarySystemBackground))
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .id("newCatField")
+
+                                    Button(store.t("save")) {
+                                        let trimmed = newCategoryName.trimmingCharacters(in: .whitespaces)
+                                        if !trimmed.isEmpty {
+                                            store.addCategory(label: trimmed)
+                                            if let last = store.categories.last {
+                                                selectedCategory = last.id
+                                            }
+                                            newCategoryName = ""
+                                            isAddingCategory = false
+                                        }
+                                    }
+                                    .font(.appFont(size: 14, weight: .semibold))
+                                    .buttonStyle(.borderedProminent)
+
+                                    LiquidGlassCloseButton(size: 28) {
+                                        isAddingCategory = false
+                                        newCategoryName = ""
+                                    }
+                                }
+                                .padding(.top, 4)
+                            }
+                        }
+
+                        // Note Field
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(store.t("note"))
+                                .font(.appFont(size: 14, weight: .medium))
+                                .foregroundColor(.secondary)
+
+                            TextField(store.t("note_placeholder"), text: $noteText)
+                                .font(.appFont(size: 15, weight: .regular))
+                                .padding(14)
+                                .background(Color(.secondarySystemBackground))
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .id("noteField")
+                        }
                     }
-                    .font(.appFont(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.blue, Color(red: 0, green: 0.45, blue: 0.95)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+                    .padding(20)
+                    .liquidGlass(cornerRadius: 28)
+
+                    // Action Buttons
+                    HStack(spacing: 12) {
+                        Button(store.t("cancel")) {
+                            resetForm()
+                            onCancel()
+                        }
+                        .font(.appFont(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .liquidGlass(cornerRadius: 22)
+                        .liquidGlassButton()
+
+                        Button(store.t("save_expense")) {
+                            saveExpense()
+                        }
+                        .font(.appFont(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.blue, Color(red: 0, green: 0.45, blue: 0.95)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        .shadow(color: Color.blue.opacity(0.35), radius: 10, x: 0, y: 4)
+                        .liquidGlassButton()
+                    }
+
+                    // Extra bottom padding for keyboard
+                    Color.clear.frame(height: 40)
+                        .id("bottomAnchor")
+                }
+                .padding(16)
+                .padding(.top, 12)
+                .padding(.bottom, 110)
+            }
+            .coordinateSpace(name: "mdaily_scroll")
+            .mask {
+                VStack(spacing: 0) {
+                    // Top Scroll Soft Fade Mask
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0.0),
+                            .init(color: .black, location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    .shadow(color: Color.blue.opacity(0.35), radius: 10, x: 0, y: 4)
-                    .liquidGlassButton()
+                    .frame(height: 14)
+
+                    Rectangle()
+                        .fill(Color.black)
+
+                    // Bottom Scroll Soft Fade Mask
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black, location: 0.0),
+                            .init(color: .clear, location: 1.0)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 36)
                 }
             }
-            .padding(16)
-            .padding(.bottom, 110)
+            .scrollDismissesKeyboard(.interactively)
+            .hideKeyboardOnTap()
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.easeOut(duration: 0.25)) {
+                        scrollProxy.scrollTo("noteField", anchor: .center)
+                    }
+                }
+            }
         }
-        .scrollDismissesKeyboard(.interactively)
-        .hideKeyboardOnTap()
-        .confirmationDialog("Thêm ảnh chi tiêu", isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
+        .confirmationDialog(store.t("add_expense_photo"), isPresented: $showPhotoSourceDialog, titleVisibility: .visible) {
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button("Chụp ảnh từ Máy ảnh") {
+                Button(store.t("take_photo_camera")) {
                     showCameraPicker = true
                 }
             }
-            Button("Chọn từ Thư viện ảnh") {
+            Button(store.t("choose_from_library")) {
                 showLibraryPicker = true
             }
-            Button("Huỷ", role: .cancel) {}
+            Button(store.t("cancel"), role: .cancel) {}
         }
         .sheet(isPresented: $showCameraPicker) {
             ImagePickerView(sourceType: .camera) { image in
@@ -402,7 +453,7 @@ public struct AddExpenseView: View {
                         HStack(spacing: 8) {
                             ProgressView()
                                 .tint(.white)
-                            Text("AI đang nhận diện...")
+                            Text(store.t("ai_recognizing"))
                                 .font(.appFont(size: 14, weight: .medium))
                                 .foregroundColor(.white)
                         }
