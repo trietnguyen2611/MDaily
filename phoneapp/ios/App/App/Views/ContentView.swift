@@ -165,24 +165,17 @@ public struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
-            // 3. Floating Bottom Blur Fade (frosted glass blur instead of color fade)
-            ZStack {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .frame(height: 110)
-                    .mask(
-                        LinearGradient(
-                            stops: [
-                                .init(color: .clear, location: 0.0),
-                                .init(color: .black.opacity(0.5), location: 0.35),
-                                .init(color: .black, location: 0.65),
-                                .init(color: .black, location: 1.0)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-            }
+            // 3. Floating Bottom Ambient Gradient Fade
+            LinearGradient(
+                stops: [
+                    .init(color: Color.clear, location: 0.0),
+                    .init(color: (colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground)).opacity(0.80), location: 0.60),
+                    .init(color: (colorScheme == .dark ? Color.black : Color(UIColor.systemGroupedBackground)), location: 1.0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 90)
             .allowsHitTesting(false)
             .ignoresSafeArea(edges: .bottom)
 

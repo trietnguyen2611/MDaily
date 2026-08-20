@@ -110,11 +110,56 @@ export const extractTextFromImage = async (imageSrc: string): Promise<string> =>
   }
 }
 
+export const analyzeReceiptWithMacModel = async (imageBase64: string): Promise<NativeReceiptResult | null> => {
+  if (!window.ipcRenderer) return null
+
+  try {
+    return await window.ipcRenderer.invoke('analyze-receipt-native', imageBase64)
+  } catch (error) {
+    console.warn('Native macOS receipt model unavailable:', error)
+    return null
+  }
+}
+
+const normalizeReceiptText = (text: string) => text
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+
+const getReceiptCategory = (categories: { value: string, label: string }[]) => {
+  const receiptCategory = categories.find(category => {
+    const normalizedValue = normalizeReceiptText(category.value)
+    const normalizedLabel = normalizeReceiptText(category.label)
+    return normalizedValue === 'bills' || normalizedValue.includes('hoa-don') || normalizedLabel.includes('hoa don')
+  })
+  return receiptCategory?.value || 'bills'
+}
+
+const hasReceiptAmount = (text: string) => {
+  return /\b\d{1,3}(?:[.,]\d{3})+(?:\s*(?:k|đ|vnd|vnđ))?\b/i.test(text) ||
+    /\b\d{4,8}\s*(?:k|đ|vnd|vnđ)\b/i.test(text)
+}
+
+export const isLikelyReceiptText = (text: string) => {
+  const normalizedText = normalizeReceiptText(text)
+  if (!hasReceiptAmount(text)) return false
+
+  const receiptSignals = [
+    /hoa don|invoice|receipt|bill/,
+    /tong tien|tong cong|thanh tien|total|subtotal|grand total/,
+    /don gia|so luong|qty|vat|tax|cashier|thanh toan|payment/,
+    /cam on|thank you|customer|khach hang/
+  ]
+  const signalCount = receiptSignals.filter(signal => signal.test(normalizedText)).length
+
+  return signalCount >= 2 || /hoa don|invoice|receipt|grand total/.test(normalizedText)
+}
+
 // Smart Regex Fallback Parser for receipts when LLM endpoint is offline
-export const parseReceiptTextLocally = (text: string, categories?: { value: string, label: string }[]) => {
+export const parseReceiptTextLocally = (text: string, categories: { value: string, label: string }[] = []) => {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
   let extractedAmount = 0
-  let extractedCategory = categories && categories.length > 0 ? categories[0].value : 'shopping'
+  const extractedCategory = getReceiptCategory(categories)
   let extractedNote = ''
 
   if (lines.length > 0) {
@@ -122,7 +167,7 @@ export const parseReceiptTextLocally = (text: string, categories?: { value: stri
   }
 
   const numberMatches: number[] = []
-  const matches = text.match(/\b\d{1,3}(?:[.,]\d{3})*(?:\s*(?:k|K|đ|VND|VNĐ))?\b/g)
+  const matches = text.match(/\b(?:\d{1,3}(?:[.,]\d{3})+|\d{4,8})(?:\s*(?:k|K|đ|VND|VNĐ))?\b/g)
   if (matches) {
     for (const m of matches) {
       let clean = m.replace(/[^\d]/g, '')
@@ -141,7 +186,7 @@ export const parseReceiptTextLocally = (text: string, categories?: { value: stri
   let totalFromKeyword = 0;
   for (const line of lines) {
     if (line.toLowerCase().includes('tổng') || line.toLowerCase().includes('total')) {
-      const lineMatches = line.match(/\b\d{1,3}(?:[.,]\d{3})*\b/g);
+      const lineMatches = line.match(/\b(?:\d{1,3}(?:[.,]\d{3})+|\d{4,8})\b/g);
       if (lineMatches) {
         const nums = lineMatches.map(m => parseInt(m.replace(/[^\d]/g, ''), 10)).filter(n => n >= 1000);
         if (nums.length > 0) {
@@ -158,30 +203,6 @@ export const parseReceiptTextLocally = (text: string, categories?: { value: stri
     extractedAmount = Math.max(...numberMatches)
   }
 
-  const lowerText = text.toLowerCase()
-  
-  // Smart mapping logic
-  const isFood = /(cơm|bún|phở|ăn|uống|cà phê|cafe|trà|nhà hàng|quán|lẩu|nướng|bakery|bánh|food|gà|bò|heo|cá)/i.test(lowerText)
-  const isTransport = /(xe|xăng|grab|gojek|be|taxi|vé|gửi xe|bãi xe|transport|xanh sm|bike|car)/i.test(lowerText)
-  const isBills = /(điện|nước|internet|wifi|hóa đơn|hoa don|nạp tiền|thẻ|bill|tiền nhà|điện thoại)/i.test(lowerText)
-  const isShopping = /(siêu thị|quần áo|áo|quần|giày|dép|shop|mua|shopee|tiki|lazada|mall|store|mart|coop|winmart)/i.test(lowerText)
-
-  // Map to provided categories if available
-  if (categories && categories.length > 0) {
-    const catValues = categories.map(c => c.value)
-    
-    if (isFood) extractedCategory = catValues.find(v => v === 'food' || v.includes('an-uong') || v.includes('ăn')) || extractedCategory
-    else if (isTransport) extractedCategory = catValues.find(v => v === 'transport' || v.includes('di-lai') || v.includes('xe')) || extractedCategory
-    else if (isBills) extractedCategory = catValues.find(v => v === 'bills' || v.includes('hoa-don') || v.includes('tiền')) || extractedCategory
-    else if (isShopping) extractedCategory = catValues.find(v => v === 'shopping' || v.includes('mua-sam') || v.includes('shop')) || extractedCategory
-  } else {
-    // Fallback if no categories provided
-    if (isFood) extractedCategory = 'food'
-    else if (isTransport) extractedCategory = 'transport'
-    else if (isBills) extractedCategory = 'bills'
-    else if (isShopping) extractedCategory = 'shopping'
-  }
-
   return {
     amount: extractedAmount,
     category: extractedCategory,
@@ -190,18 +211,23 @@ export const parseReceiptTextLocally = (text: string, categories?: { value: stri
 }
 
 export const processReceiptWithAI = async (text: string, categories: { value: string, label: string }[]) => {
+  if (!isLikelyReceiptText(text)) {
+    return { isReceipt: false, amount: 0, category: '', note: '' }
+  }
+
+  const receiptCategory = getReceiptCategory(categories)
   const categoryOptionsStr = categories.map(c => `- ID: "${c.value}" (Tên: ${c.label})`).join('\n')
   const prompt = `Trích xuất thông tin hoá đơn.
 Phân tích văn bản sau và trả về ĐÚNG 1 object JSON. KHÔNG giải thích.
 
 Yêu cầu:
 1. amount: Tổng số tiền (chỉ lấy số, ví dụ 50000).
-2. category: Chọn ĐÚNG 1 ID từ danh sách bên dưới sao cho phù hợp nhất.
+2. category: Luôn chọn danh mục Hoá đơn.
 
 Danh sách danh mục (CHỈ trả về ID):
 ${categoryOptionsStr}
 
-Gợi ý: Đồ ăn/uống/nhà hàng -> Ăn uống; Grab/xe/xăng -> Di chuyển; Siêu thị/quần áo/shopee -> Mua sắm; Điện/nước/internet -> Hóa đơn.
+Chỉ lấy tổng tiền cuối cùng trên hóa đơn, không lấy mã đơn hàng, số điện thoại, ngày tháng hoặc số lượng sản phẩm.
 
 Văn bản hoá đơn:
 ${text}`
@@ -232,13 +258,10 @@ ${text}`
         const jsonMatch = cleanContent.match(/\{[\s\S]*?\}/)
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0])
-          let finalCategory = parsed.category || 'shopping'
-          const matchedCat = categories.find(c => c.value === finalCategory || c.label.toLowerCase() === finalCategory.toLowerCase())
-          if (matchedCat) finalCategory = matchedCat.value
-
           return {
+            isReceipt: true,
             amount: typeof parsed.amount === 'number' ? parsed.amount : parseInt(String(parsed.amount).replace(/\D/g, ''), 10) || 0,
-            category: finalCategory,
+            category: receiptCategory,
             note: parsed.note || ''
           }
         }
@@ -248,7 +271,7 @@ ${text}`
     }
   }
 
-  return parseReceiptTextLocally(text, categories)
+  return { isReceipt: true, ...parseReceiptTextLocally(text, categories) }
 }
 
 export const chatWithAI = async (messages: { role: string, content: string }[], expenseHistoryContext: string, onToken?: (text: string) => void) => {

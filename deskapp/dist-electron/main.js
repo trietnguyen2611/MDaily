@@ -1,15 +1,15 @@
-import { BrowserWindow, app, ipcMain, nativeTheme } from "electron";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { BrowserWindow as e, app as t, ipcMain as n, nativeTheme as r } from "electron";
+import { spawn as i } from "node:child_process";
+import a from "node:fs";
+import o from "node:path";
+import { fileURLToPath as s } from "node:url";
 //#region electron/main.ts
-var __dirname = path.dirname(fileURLToPath(import.meta.url));
-process.env.DIST = path.join(__dirname, "../dist");
-process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
-var win;
-var VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-function createWindow() {
-	win = new BrowserWindow({
-		icon: path.join(process.env.VITE_PUBLIC, "icon.png"),
+var c = o.dirname(s(import.meta.url));
+process.env.DIST = o.join(c, "../dist"), process.env.VITE_PUBLIC = t.isPackaged ? process.env.DIST : o.join(process.env.DIST, "../public");
+var l, u = process.env.VITE_DEV_SERVER_URL;
+function d() {
+	l = new e({
+		icon: o.join(process.env.VITE_PUBLIC, "icon.png"),
 		title: "MDaily Desktop v2.1",
 		width: 1e3,
 		height: 700,
@@ -18,36 +18,42 @@ function createWindow() {
 		titleBarStyle: "hiddenInset",
 		vibrancy: "under-window",
 		visualEffectState: "active",
-		transparent: true,
+		transparent: !0,
 		backgroundColor: "#00000000",
 		webPreferences: {
-			preload: path.join(__dirname, "preload.js"),
-			nodeIntegration: true,
-			contextIsolation: false,
-			webSecurity: false
+			preload: o.join(c, "preload.js"),
+			nodeIntegration: !0,
+			contextIsolation: !1,
+			webSecurity: !1
 		}
-	});
-	win.webContents.on("did-finish-load", () => {
-		win?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-	});
-	if (VITE_DEV_SERVER_URL) win.loadURL(VITE_DEV_SERVER_URL);
-	else win.loadFile(path.join(process.env.DIST, "index.html"));
-	nativeTheme.on("updated", () => {
-		win?.webContents.send("theme-changed", nativeTheme.shouldUseDarkColors ? "dark" : "light");
+	}), l.webContents.on("did-finish-load", () => {
+		l?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+	}), u ? l.loadURL(u) : l.loadFile(o.join(process.env.DIST, "index.html")), r.on("updated", () => {
+		l?.webContents.send("theme-changed", r.shouldUseDarkColors ? "dark" : "light");
 	});
 }
-app.on("window-all-closed", () => {
-	if (process.platform !== "darwin") {
-		app.quit();
-		win = null;
-	}
-});
-app.on("activate", () => {
-	if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
-app.whenReady().then(createWindow);
-ipcMain.handle("get-system-theme", () => {
-	return nativeTheme.shouldUseDarkColors ? "dark" : "light";
-});
+t.on("window-all-closed", () => {
+	process.platform !== "darwin" && (t.quit(), l = null);
+}), t.on("activate", () => {
+	e.getAllWindows().length === 0 && d();
+}), t.whenReady().then(d), n.handle("analyze-receipt-native", async (e, n) => {
+	let r = t.isPackaged ? o.join(process.resourcesPath, "receipt-analyzer") : o.join(c, "../build/native/receipt-analyzer");
+	return a.existsSync(r) ? new Promise((e) => {
+		let t = i(r, [], { stdio: [
+			"pipe",
+			"pipe",
+			"ignore"
+		] }), a = "";
+		t.stdout.on("data", (e) => {
+			a += e.toString();
+		}), t.once("error", () => e(null)), t.once("close", () => {
+			try {
+				e(JSON.parse(a.trim()));
+			} catch {
+				e(null);
+			}
+		}), t.stdin.write(`${JSON.stringify({ imageBase64: n })}\n`), t.stdin.end();
+	}) : null;
+}), n.handle("get-system-theme", () => r.shouldUseDarkColors ? "dark" : "light");
 //#endregion
 export {};

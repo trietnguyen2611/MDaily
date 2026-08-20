@@ -98,7 +98,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onDataCleared, onAiS
   return (
     <div className="settings-container">
       <div className="settings-section">
-        <h3>MDaily AI</h3>
+        <h3>MDaily
         <div className="settings-group">
           <div className="settings-item">
             <div className="settings-item-left">

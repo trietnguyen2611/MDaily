@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Upload, Loader2, Wand2, X, Plus } from 'lucide-react'
 import type { Expense } from '../types'
-import { extractTextFromImage, processReceiptWithAI } from '../services/ai'
+import { analyzeReceiptWithMacModel, extractTextFromImage, processReceiptWithAI } from '../services/ai'
 import { CustomSelect } from './CustomSelect'
 import type { SelectOption } from './CustomSelect'
 import './AddExpense.css'
@@ -28,21 +28,45 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
   const [isConverting, setIsConverting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const getBillsCategory = useCallback(() => {
+    const billsCategory = categoryOptions.find(option => {
+      const value = option.value.toLowerCase()
+      const label = option.label.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      return value === 'bills' || value.includes('hoa-don') || label.includes('hoa don')
+    })
+    return billsCategory?.value || 'bills'
+  }, [categoryOptions])
+
   const runExtraction = useCallback(async (base64: string) => {
     setIsAiProcessing(true)
     try {
+      const nativeResult = await analyzeReceiptWithMacModel(base64)
+      if (nativeResult) {
+        if (!nativeResult.isReceipt) {
+          setIsAiProcessed(false)
+          return
+        }
+        if (nativeResult.amount > 0) setAmount(nativeResult.amount.toLocaleString('en-US'))
+        setCategory(getBillsCategory())
+        setIsAiProcessed(true)
+        return
+      }
+
       const text = await extractTextFromImage(base64)
       const aiData = await processReceiptWithAI(text, categoryOptions)
+      if (!aiData.isReceipt) {
+        setIsAiProcessed(false)
+        return
+      }
       if (aiData.amount > 0) setAmount(aiData.amount.toLocaleString('en-US'))
       if (aiData.category) setCategory(aiData.category)
-      if (aiData.note) setNote(aiData.note)
       setIsAiProcessed(true)
     } catch (error) {
       console.error('AI Processing Error:', error)
     } finally {
       setIsAiProcessing(false)
     }
-  }, [categoryOptions])
+  }, [categoryOptions, getBillsCategory])
 
   useEffect(() => {
     if (initialPhoto && autoExtractEnabled) void runExtraction(initialPhoto)
@@ -192,8 +216,26 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
     if (!photoPreview) return
     setIsAiProcessing(true)
     try {
+      const nativeResult = await analyzeReceiptWithMacModel(photoPreview)
+      if (nativeResult) {
+        if (!nativeResult.isReceipt) {
+          setIsAiProcessed(false)
+          alert('Ảnh này chưa có đủ dấu hiệu của hoá đơn nên chưa tự động trích xuất.')
+          return
+        }
+        if (nativeResult.amount > 0) setAmount(nativeResult.amount.toLocaleString('en-US'))
+        setCategory(getBillsCategory())
+        setIsAiProcessed(true)
+        return
+      }
+
       const text = await extractTextFromImage(photoPreview)
       const aiData = await processReceiptWithAI(text, categoryOptions)
+      if (!aiData.isReceipt) {
+        setIsAiProcessed(false)
+        alert('Ảnh này chưa có đủ dấu hiệu của hoá đơn nên chưa tự động trích xuất.')
+        return
+      }
       if (aiData.amount && aiData.amount > 0) {
         setAmount(aiData.amount.toLocaleString('en-US'))
       }

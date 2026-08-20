@@ -96,6 +96,13 @@ public struct DashboardView: View {
                             expenseCard(for: expense)
                                 .frame(height: cardHeight(for: expense.amount))
                                 .id(expense.id)
+                                .transition(.asymmetric(
+                                    insertion: .scale(scale: 0.95).combined(with: .opacity),
+                                    removal: .modifier(
+                                        active: TelegramEvaporateModifier(isActive: true),
+                                        identity: TelegramEvaporateModifier(isActive: false)
+                                    )
+                                ))
                         }
                     }
 
@@ -105,6 +112,13 @@ public struct DashboardView: View {
                             expenseCard(for: expense)
                                 .frame(height: cardHeight(for: expense.amount))
                                 .id(expense.id)
+                                .transition(.asymmetric(
+                                    insertion: .scale(scale: 0.95).combined(with: .opacity),
+                                    removal: .modifier(
+                                        active: TelegramEvaporateModifier(isActive: true),
+                                        identity: TelegramEvaporateModifier(isActive: false)
+                                    )
+                                ))
                         }
                     }
                 }
@@ -153,7 +167,9 @@ public struct DashboardView: View {
         .alert(store.t("delete_confirm"), isPresented: $showDeleteConfirmation) {
             Button(store.t("delete"), role: .destructive) {
                 if let exp = expenseToDelete {
-                    store.deleteExpense(id: exp.id)
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.75)) {
+                        store.deleteExpense(id: exp.id)
+                    }
                     expenseToDelete = nil
                 }
             }
@@ -443,5 +459,18 @@ private struct ExpenseTextCard: View {
         .onTapGesture {
             onSelect()
         }
+    }
+}
+
+// MARK: - Custom Transitions
+private struct TelegramEvaporateModifier: ViewModifier {
+    let isActive: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .scaleEffect(isActive ? 0.75 : 1.0)
+            .blur(radius: isActive ? 12 : 0)
+            .opacity(isActive ? 0.0 : 1.0)
+            .offset(y: isActive ? -25 : 0) // Float up slightly like dust
     }
 }

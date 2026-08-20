@@ -1,5 +1,5 @@
-import { ipcRenderer } from "electron";
+import { ipcRenderer as e } from "electron";
 //#region electron/preload.ts
-window.ipcRenderer = ipcRenderer;
+window.ipcRenderer = e;
 //#endregion
 export {};

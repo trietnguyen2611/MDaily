@@ -1,4 +1,6 @@
 import { app, BrowserWindow, ipcMain, nativeTheme } from 'electron'
+import { spawn } from 'node:child_process'
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -78,6 +80,34 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(createWindow)
+
+ipcMain.handle('analyze-receipt-native', async (_event, imageBase64: string) => {
+  const helperPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'receipt-analyzer')
+    : path.join(__dirname, '../build/native/receipt-analyzer')
+
+  if (!fs.existsSync(helperPath)) return null
+
+  return new Promise((resolve) => {
+    const helper = spawn(helperPath, [], { stdio: ['pipe', 'pipe', 'ignore'] })
+    let output = ''
+
+    helper.stdout.on('data', chunk => {
+      output += chunk.toString()
+    })
+    helper.once('error', () => resolve(null))
+    helper.once('close', () => {
+      try {
+        resolve(JSON.parse(output.trim()))
+      } catch {
+        resolve(null)
+      }
+    })
+
+    helper.stdin.write(`${JSON.stringify({ imageBase64 })}\n`)
+    helper.stdin.end()
+  })
+})
 
 // IPC channel to get initial theme
 ipcMain.handle('get-system-theme', () => {

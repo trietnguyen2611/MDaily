@@ -31,6 +31,8 @@ public struct LiquidGlassDock: View {
     @Environment(\.colorScheme) private var colorScheme
     @Namespace private var dockNamespace
 
+    private let selectionFeedback = UISelectionFeedbackGenerator()
+
     public init(
         activeTab: Binding<AppTab>,
         onQuickPhotoCaptured: @escaping (Data) -> Void,
@@ -49,7 +51,7 @@ public struct LiquidGlassDock: View {
                     cameraButton
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 28) // Moved dock further down for easier thumb access
+                .padding(.bottom, 12)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -73,17 +75,36 @@ public struct LiquidGlassDock: View {
         }
     }
 
-    // MARK: - 4-Tab Main Capsule with Liquid Glass
+    // MARK: - 4-Tab Main Capsule with Liquid Glass & Drag/Slide Support
     private var capsuleTabs: some View {
-        HStack(spacing: 0) {
-            ForEach(AppTab.allCases) { tab in
+        let tabs = AppTab.allCases
+        let capsuleWidth: CGFloat = 276
+        let tabWidth: CGFloat = capsuleWidth / CGFloat(tabs.count)
+
+        return HStack(spacing: 0) {
+            ForEach(tabs) { tab in
                 tabButton(for: tab)
             }
         }
-        .frame(width: 276, height: 60)
+        .frame(width: capsuleWidth, height: 60)
         .background {
             capsuleGlassBackground
         }
+        .contentShape(Rectangle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    let x = value.location.x
+                    let index = min(max(0, Int(x / tabWidth)), tabs.count - 1)
+                    let targetTab = tabs[index]
+                    if targetTab != activeTab {
+                        selectionFeedback.selectionChanged()
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.75)) {
+                            activeTab = targetTab
+                        }
+                    }
+                }
+        )
     }
 
     /// Glass background for the dock capsule — uses native .glassEffect on iOS 26+, falls back to custom material
@@ -96,7 +117,7 @@ public struct LiquidGlassDock: View {
             // iOS 26+: Use native Apple Liquid Glass
             capsuleShape
                 .fill(.clear)
-                .glassEffect(.regular.interactive, in: .capsule)
+                .glassEffect(.regular.interactive(), in: .capsule)
                 .shadow(
                     color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.10),
                     radius: 20,
@@ -147,37 +168,30 @@ public struct LiquidGlassDock: View {
             ? Color.white
             : (colorScheme == .dark ? Color.white.opacity(0.60) : Color.black.opacity(0.50))
 
-        Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                activeTab = tab
-            }
-        } label: {
-            Image(systemName: tab.iconName)
-                .font(.system(size: 20, weight: isSelected ? .bold : .regular))
-                .foregroundColor(iconColor)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background {
-                    if isSelected {
-                        Capsule(style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(red: 0.16, green: 0.72, blue: 0.54), Color(red: 0.08, green: 0.48, blue: 0.68)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+        Image(systemName: tab.iconName)
+            .font(.system(size: 20, weight: isSelected ? .bold : .regular))
+            .foregroundColor(iconColor)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background {
+                if isSelected {
+                    Capsule(style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(red: 0.16, green: 0.72, blue: 0.54), Color(red: 0.08, green: 0.48, blue: 0.68)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
                             )
-                            .overlay {
-                                Capsule(style: .continuous)
-                                    .strokeBorder(Color.white.opacity(0.40), lineWidth: 0.65)
-                            }
-                            .matchedGeometryEffect(id: "activeTabPill", in: dockNamespace)
-                            .shadow(color: Color(red: 0.16, green: 0.72, blue: 0.54).opacity(0.40), radius: 8, x: 0, y: 3)
-                            .padding(4)
-                    }
+                        )
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.40), lineWidth: 0.65)
+                        }
+                        .matchedGeometryEffect(id: "activeTabPill", in: dockNamespace)
+                        .shadow(color: Color(red: 0.16, green: 0.72, blue: 0.54).opacity(0.40), radius: 8, x: 0, y: 3)
+                        .padding(4)
                 }
-        }
-        .buttonStyle(.plain)
-        .frame(height: 52)
+            }
+            .frame(height: 52)
     }
 
     // MARK: - Standalone Camera Button (Direct Camera Trigger)

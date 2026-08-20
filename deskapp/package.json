@@ -4,8 +4,9 @@
   "version": "2.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
+    "native:build": "mkdir -p build/native && swiftc -parse-as-library -O -framework Vision -framework ImageIO native/ReceiptAnalyzer.swift -o build/native/receipt-analyzer",
+    "dev": "npm run native:build && vite",
+    "build": "npm run native:build && tsc && vite build && electron-builder",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -34,6 +35,12 @@
   "build": {
     "appId": "com.mdaily.deskapp",
     "productName": "MDaily Desktop",
+    "extraResources": [
+      {
+        "from": "build/native/receipt-analyzer",
+        "to": "receipt-analyzer"
+      }
+    ],
     "mac": {
       "icon": "build/icon.png",
       "target": [
