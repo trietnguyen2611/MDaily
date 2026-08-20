@@ -203,8 +203,8 @@ public struct ReportsView: View {
                                 .font(.appFont(size: 22, weight: .bold))
                                 .foregroundColor(.primary)
 
-                            Text("\(expenses.count) \(store.t("expenses_count"))")
-                                .font(.appFont(size: 12, weight: .regular))
+                            Text("\(expenses.count) \(store.t("transactions"))")
+                                .font(.appFont(size: 14, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
                         Spacer()

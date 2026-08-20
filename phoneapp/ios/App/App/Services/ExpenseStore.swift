@@ -11,6 +11,7 @@ public final class ExpenseStore: ObservableObject {
     @Published public var autoExtractEnabled: Bool = true
     @Published public var aiChatEnabled: Bool = true
     @Published public var appearanceMode: AppearanceMode = .system
+    @Published public var chatMessages: [ChatMessageSwift] = []
 
     private let expensesKey = "mdaily_expenses_json"
     private let categoriesKey = "mdaily_categories_json"

@@ -14,7 +14,7 @@ public struct SettingsView: View {
             ScrollOffsetTracker()
 
             VStack(spacing: 24) {
-                // 1. Apple Intelligence / Smart Financial AI Section
+                // 1. MDaily AI / Smart Financial AI Section
                 VStack(alignment: .leading, spacing: 10) {
                     Text(store.t("apple_intelligence"))
                         .font(.appFont(size: 14, weight: .bold))

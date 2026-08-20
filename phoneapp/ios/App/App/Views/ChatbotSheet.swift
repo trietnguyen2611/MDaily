@@ -17,7 +17,6 @@ public struct ChatbotSheet: View {
     @ObservedObject public var store: ExpenseStore
     public var onClose: () -> Void
 
-    @State private var messages: [ChatMessageSwift] = []
     @State private var inputText: String = ""
     @State private var isLoading: Bool = false
     @State private var afmStatus: AFMStatus = AFMService.shared.checkStatus()
@@ -30,29 +29,12 @@ public struct ChatbotSheet: View {
     public var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // AFM Status Banner
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.purple)
-                    Text("Apple Intelligence AFM")
-                        .font(.appFont(size: 12, weight: .semibold))
-                        .foregroundColor(.primary)
-                    Circle()
-                        .fill(Color.green)
-                        .frame(width: 6, height: 6)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 5)
-                .liquidGlassPill()
-                .padding(.top, 8)
-                .padding(.bottom, 4)
-
+                // Top spacing removed
                 // Messages List
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
                         LazyVStack(spacing: 12) {
-                            ForEach(messages) { msg in
+                            ForEach(store.chatMessages) { msg in
                                 HStack {
                                     if msg.role == "user" {
                                         Spacer()
@@ -97,7 +79,7 @@ public struct ChatbotSheet: View {
                                                 .padding(.vertical, 10)
                                                 .liquidGlass(cornerRadius: 18)
                                             } else {
-                                                Text(msg.content)
+                                                TypewriterText(text: msg.content)
                                                     .font(.appFont(size: 15, weight: .regular))
                                                     .foregroundColor(.primary)
                                                     .padding(.horizontal, 16)
@@ -113,8 +95,8 @@ public struct ChatbotSheet: View {
                         }
                         .padding(16)
                     }
-                    .onChange(of: messages.count) { _, _ in
-                        if let lastId = messages.last?.id {
+                    .onChange(of: store.chatMessages.count) { _, _ in
+                        if let lastId = store.chatMessages.last?.id {
                             withAnimation {
                                 proxy.scrollTo(lastId, anchor: .bottom)
                             }
@@ -145,7 +127,7 @@ public struct ChatbotSheet: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .hideKeyboardOnTap()
-            .navigationTitle("Apple Intelligence")
+            .navigationTitle("MDaily AI")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -154,7 +136,7 @@ public struct ChatbotSheet: View {
                     } label: {
                         Image(systemName: "trash")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.red)
                     }
                 }
 
@@ -165,7 +147,7 @@ public struct ChatbotSheet: View {
                 }
             }
             .onAppear {
-                if messages.isEmpty {
+                if store.chatMessages.isEmpty {
                     resetChat()
                 }
             }
@@ -174,10 +156,10 @@ public struct ChatbotSheet: View {
 
     private func resetChat() {
         let initialGreeting = store.language == .en
-            ? "Hello! I am Apple Intelligence on MDaily. I analyze your on-device expense data privately. How can I assist you today?"
-            : "Chào bạn! Tôi là trợ lý Apple Intelligence (AFM) trên MDaily. Dữ liệu chi tiêu được phân tích hoàn toàn an toàn trên thiết bị của bạn. Bạn cần tư vấn hay thống kê tài chính gì hôm nay?"
+            ? "Hello! I am MDaily AI. I analyze your on-device expense data privately. How can I assist you today?"
+            : "Chào bạn! Tôi là trợ lý MDaily AI. Dữ liệu chi tiêu được phân tích hoàn toàn an toàn trên thiết bị của bạn. Bạn cần tư vấn hay thống kê tài chính gì hôm nay?"
 
-        messages = [
+        store.chatMessages = [
             ChatMessageSwift(role: "assistant", content: initialGreeting)
         ]
     }
@@ -188,8 +170,8 @@ public struct ChatbotSheet: View {
 
         let userMsg = ChatMessageSwift(role: "user", content: userText)
         let typingMsg = ChatMessageSwift(role: "assistant", content: "...")
-        messages.append(userMsg)
-        messages.append(typingMsg)
+        store.chatMessages.append(userMsg)
+        store.chatMessages.append(typingMsg)
         inputText = ""
         isLoading = true
 
@@ -209,8 +191,48 @@ public struct ChatbotSheet: View {
 
             await MainActor.run {
                 isLoading = false
-                if let lastIdx = messages.indices.last {
-                    messages[lastIdx] = ChatMessageSwift(role: "assistant", content: reply)
+                if let lastIdx = store.chatMessages.indices.last {
+                    store.chatMessages[lastIdx] = ChatMessageSwift(role: "assistant", content: reply)
+                }
+            }
+        }
+    }
+}
+
+public struct TypewriterText: View {
+    public let text: String
+    @State private var displayedText: String = ""
+    @State private var isFinished: Bool = false
+    
+    public init(text: String) {
+        self.text = text
+    }
+    
+    public var body: some View {
+        Text(isFinished ? text : displayedText)
+            .onAppear {
+                if !isFinished {
+                    typeText()
+                }
+            }
+            .onChange(of: text) { _, _ in
+                displayedText = ""
+                isFinished = false
+                typeText()
+            }
+    }
+    
+    private func typeText() {
+        let characters = Array(text)
+        var currentIndex = 0
+        Timer.scheduledTimer(withTimeInterval: 0.015, repeats: true) { timer in
+            DispatchQueue.main.async {
+                if currentIndex < characters.count {
+                    displayedText.append(characters[currentIndex])
+                    currentIndex += 1
+                } else {
+                    isFinished = true
+                    timer.invalidate()
                 }
             }
         }

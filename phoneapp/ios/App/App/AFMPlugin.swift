@@ -35,9 +35,9 @@ public class AFMPlugin: CAPPlugin, CAPBridgedPlugin {
                 var reasonText = "Không khả dụng"
                 switch reason {
                 case .deviceNotEligible:
-                    reasonText = "Thiết bị không hỗ trợ Apple Intelligence"
+                    reasonText = "Thiết bị không hỗ trợ MDaily AI"
                 case .appleIntelligenceNotEnabled:
-                    reasonText = "Apple Intelligence chưa được bật trong Cài đặt"
+                    reasonText = "MDaily AI chưa được bật trong Cài đặt"
                 case .modelNotReady:
                     reasonText = "Model đang tải xuống, vui lòng thử lại sau"
                 @unknown default:
@@ -57,7 +57,7 @@ public class AFMPlugin: CAPPlugin, CAPBridgedPlugin {
 
         call.resolve([
             "available": false,
-            "model": "Cần iOS 26+ và thiết bị hỗ trợ Apple Intelligence",
+            "model": "Cần iOS 26+ và thiết bị hỗ trợ MDaily AI",
             "canExtractImage": false
         ])
     }
@@ -227,7 +227,7 @@ public class AFMPlugin: CAPPlugin, CAPBridgedPlugin {
                                     "category": parsed["category"] as? String ?? "other",
                                     "isInvoice": parsed["isInvoice"] as? Bool ?? isLikelyInvoice,
                                     "description": parsed["description"] as? String ?? "",
-                                    "engine": "Apple Intelligence (Vision + AFM)"
+                                    "engine": "MDaily AI (Vision + AFM)"
                                 ]
                                 await MainActor.run { call.resolve(result) }
                                 return
@@ -243,7 +243,7 @@ public class AFMPlugin: CAPPlugin, CAPBridgedPlugin {
                                 "category": "other",
                                 "isInvoice": false,
                                 "description": responseText,
-                                "engine": "Apple Intelligence (AFM)"
+                                "engine": "MDaily AI (AFM)"
                             ])
                         }
                         return

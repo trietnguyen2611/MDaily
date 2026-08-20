@@ -110,7 +110,7 @@ public struct LocalizationService {
             "all_categories": [.vi: "Tất cả danh mục", .en: "All Categories"],
 
             // Dashboard
-            "no_expenses": [.vi: "Chưa có chi tiêu nào. Bấm \"Thêm\" để thêm mới.", .en: "No expenses yet. Tap \"Add\" to create one."],
+            "no_expenses": [.vi: "Chưa có chi tiêu nào. Bấm \"+\" hoặc nút chụp ảnh để thêm mới.", .en: "No expenses yet. Tap \"+\" or camera button to create one."],
             "delete_confirm": [.vi: "Xoá khoản chi tiêu này?", .en: "Delete this expense?"],
             "delete": [.vi: "Xoá", .en: "Delete"],
             "cancel": [.vi: "Huỷ", .en: "Cancel"],
@@ -120,7 +120,7 @@ public struct LocalizationService {
 
             // Add Expense
             "add_photo": [.vi: "Thêm ảnh (tùy chọn)", .en: "Add Photo (Optional)"],
-            "ai_auto_extract": [.vi: "✨ AI sẽ tự động nhận diện hoá đơn", .en: "✨ AI will auto-extract receipt"],
+            "ai_auto_extract": [.vi: "✨ MDaily AI sẽ tự động nhận diện hoá đơn", .en: "✨ MDaily AI will auto-extract receipt"],
             "take_photo": [.vi: "Chụp hoặc chọn ảnh hoá đơn", .en: "Capture or choose receipt photo"],
             "amount": [.vi: "Số tiền", .en: "Amount"],
             "category": [.vi: "Danh mục", .en: "Category"],
@@ -153,7 +153,7 @@ public struct LocalizationService {
             "delete_cat_confirm": [.vi: "Bạn chắc chắn muốn xoá danh mục này?", .en: "Are you sure you want to delete this category?"],
 
             // Settings
-            "apple_intelligence": [.vi: "Apple Intelligence", .en: "Apple Intelligence"],
+            "apple_intelligence": [.vi: "MDaily AI", .en: "MDaily AI"],
             "status": [.vi: "Trạng thái", .en: "Status"],
             "available": [.vi: "Khả dụng", .en: "Available"],
             "unavailable": [.vi: "Không khả dụng", .en: "Unavailable"],
@@ -172,7 +172,7 @@ public struct LocalizationService {
             "delete_data_btn": [.vi: "Xoá dữ liệu", .en: "Clear Data"],
             "delete_confirm_all": [.vi: "Bạn chắc chắn muốn xoá toàn bộ dữ liệu chi tiêu?", .en: "Are you sure you want to clear all expense data?"],
             "app_info": [.vi: "Thông tin ứng dụng", .en: "About App"],
-            "app_version": [.vi: "v1.2 — Apple Intelligence", .en: "v1.2 — Apple Intelligence"],
+            "app_version": [.vi: "v1.2 — MDaily AI", .en: "v1.2 — MDaily AI"],
 
             // Chatbot
             "financial_assistant": [.vi: "Trợ lý tài chính thông minh", .en: "Smart Financial Assistant"],

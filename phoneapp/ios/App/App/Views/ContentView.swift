@@ -58,6 +58,7 @@ public struct ContentView: View {
     @State private var selectedExpense: Expense? = nil
     @State private var capturedPhotoData: Data? = nil
     @State private var showCameraFromQuickAction: Bool = false
+    @State private var showSplash: Bool = true
     @State private var isKeyboardVisible: Bool = false
 
     @Environment(\.colorScheme) private var colorScheme
@@ -118,9 +119,11 @@ public struct ContentView: View {
     }
 
     public var body: some View {
-        ZStack(alignment: .bottom) {
-            // 1. Pitch Black / Grouped System Background Canvas
-            AmbientBackgroundView()
+        ZStack {
+            // Main App Content
+            ZStack(alignment: .bottom) {
+                // 1. Pitch Black / Grouped System Background Canvas
+                AmbientBackgroundView()
 
             // 2. Main Content
             VStack(spacing: 0) {
@@ -187,6 +190,22 @@ public struct ContentView: View {
                 },
                 isKeyboardActive: isKeyboardVisible
             )
+            }
+            .opacity(showSplash ? 0.0001 : 1.0)
+            
+            // Splash Screen Overlay
+            if showSplash {
+                SplashScreenView()
+                    .transition(AnyTransition.opacity.combined(with: AnyTransition.scale(scale: 1.05)))
+                    .zIndex(2)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+                            withAnimation(.easeInOut(duration: 0.5)) {
+                                showSplash = false
+                            }
+                        }
+                    }
+            }
         }
         .preferredColorScheme(preferredColorScheme)
         .hideKeyboardOnTap()
@@ -261,6 +280,31 @@ public struct ContentView: View {
                     .foregroundColor(.primary)
 
                 Spacer()
+                
+                if activeTab == .dashboard {
+                    Button {
+                        showAiChat = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("MDaily AI")
+                                .font(.appFont(size: 14, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.blue, Color(red: 0.5, green: 0, blue: 0.8)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: Color.blue.opacity(0.3), radius: 4, x: 0, y: 2)
+                    }
+                }
             }
             .padding(.horizontal, 18)
             .padding(.top, 10)
@@ -375,6 +419,44 @@ public struct ContentView: View {
                 }
                 .padding(.horizontal, 18)
                 .padding(.bottom, 8)
+            }
+        }
+    }
+}
+
+public struct SplashScreenView: View {
+    @State private var isAnimating = false
+    @Environment(\.colorScheme) private var colorScheme
+    
+    public var body: some View {
+        ZStack {
+            // Background
+            (colorScheme == .dark ? Color.black : Color(UIColor.systemBackground))
+                .ignoresSafeArea()
+            
+            VStack(spacing: 20) {
+                // Icon
+                Image("Splash")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 120, height: 120)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
+                    .scaleEffect(isAnimating ? 1.0 : 0.6)
+                    .opacity(isAnimating ? 1.0 : 0.0)
+                
+                // Text
+                Text("MDaily")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .scaleEffect(isAnimating ? 1.0 : 0.8)
+                    .opacity(isAnimating ? 1.0 : 0.0)
+                    .padding(.top, 8)
+            }
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.6, blendDuration: 0.8)) {
+                isAnimating = true
             }
         }
     }

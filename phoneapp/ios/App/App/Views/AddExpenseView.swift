@@ -13,7 +13,13 @@ public struct AddExpenseView: View {
     @State private var noteText: String = ""
     @State private var photoData: Data?
     @State private var isExtracting: Bool = false
-    @State private var extractResultText: String?
+    @State private var extractResultText: String? = nil
+
+    private enum FormField {
+        case amount, newCategory, note
+    }
+    @FocusState private var focusedField: FormField?
+
     @State private var isAddingCategory: Bool = false
     @State private var newCategoryName: String = ""
     @State private var showPhotoSourceDialog: Bool = false
@@ -159,7 +165,8 @@ public struct AddExpenseView: View {
                                             amountText = formatted
                                         }
                                     }
-                                    .id("amountField")
+                                    .focused($focusedField, equals: .amount)
+                                    .id(FormField.amount)
 
                                 Text(store.currencySymbol)
                                     .font(.appFont(size: 20, weight: .bold))
@@ -207,7 +214,8 @@ public struct AddExpenseView: View {
                                         .padding(10)
                                         .background(Color(.tertiarySystemBackground))
                                         .clipShape(RoundedRectangle(cornerRadius: 12))
-                                        .id("newCatField")
+                                        .focused($focusedField, equals: .newCategory)
+                                        .id(FormField.newCategory)
 
                                     Button(store.t("save")) {
                                         let trimmed = newCategoryName.trimmingCharacters(in: .whitespaces)
@@ -243,7 +251,8 @@ public struct AddExpenseView: View {
                                 .padding(14)
                                 .background(Color(.secondarySystemBackground))
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .id("noteField")
+                                .focused($focusedField, equals: .note)
+                                .id(FormField.note)
                         }
                     }
                     .padding(20)
@@ -320,10 +329,12 @@ public struct AddExpenseView: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .hideKeyboardOnTap()
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    withAnimation(.easeOut(duration: 0.25)) {
-                        scrollProxy.scrollTo("noteField", anchor: .center)
+            .onChange(of: focusedField) { _, newValue in
+                if let field = newValue {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            scrollProxy.scrollTo(field, anchor: .center)
+                        }
                     }
                 }
             }
@@ -403,45 +414,53 @@ public struct AddExpenseView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(maxWidth: .infinity)
-                    .frame(height: previewHeight - 16)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .shadow(color: Color.black.opacity(0.25), radius: 10, x: 0, y: 4)
-                    .padding(8)
+                    .frame(height: previewHeight - 24)
+                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    .shadow(color: Color.black.opacity(0.25), radius: 12, x: 0, y: 6)
+                    .padding(12)
 
                 // 4. Action Controls Bar (Zoom, Retake, Remove)
-                HStack(spacing: 8) {
+                HStack(spacing: 12) {
                     Button {
                         isFullscreenImage = true
                     } label: {
                         Image(systemName: "arrow.up.left.and.arrow.down.right")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 34, height: 34)
-                            .background(.ultraThinMaterial)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.primary)
+                            .frame(width: 38, height: 38)
+                            .background(.thickMaterial)
                             .clipShape(Circle())
-                            .overlay(Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 0.6))
+                            .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                     }
 
                     Button {
                         showPhotoSourceDialog = true
                     } label: {
                         Image(systemName: "camera.rotate.fill")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 34, height: 34)
-                            .background(.ultraThinMaterial)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.primary)
+                            .frame(width: 38, height: 38)
+                            .background(.thickMaterial)
                             .clipShape(Circle())
-                            .overlay(Circle().strokeBorder(Color.white.opacity(0.35), lineWidth: 0.6))
+                            .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                     }
 
-                    LiquidGlassCloseButton(size: 34, color: .white) {
+                    Button {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             self.photoData = nil
                             self.extractResultText = nil
                         }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.red)
+                            .frame(width: 38, height: 38)
+                            .background(.thickMaterial)
+                            .clipShape(Circle())
+                            .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                     }
                 }
-                .padding(10)
+                .padding(16)
 
                 // 5. AI Extraction Loading Status
                 if isExtracting {
@@ -477,11 +496,11 @@ public struct AddExpenseView: View {
                 isFullscreenImage = true
             }
 
-            if let extractResultText {
+            if extractResultText != nil {
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
                         .foregroundColor(.blue)
-                    Text(extractResultText)
+                    Text(store.t("ai_recognized_by"))
                         .font(.appFont(size: 13, weight: .semibold))
                         .foregroundColor(.primary)
                 }

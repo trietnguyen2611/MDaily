@@ -86,16 +86,17 @@ public struct ExpenseDetailSheet: View {
                                         Spacer()
                                         HStack {
                                             Spacer()
-                                            HStack(spacing: 4) {
+                                            Button {
+                                                isFullscreenImage = true
+                                            } label: {
                                                 Image(systemName: "arrow.up.left.and.arrow.down.right")
-                                                    .font(.appFont(size: 11, weight: .semibold))
-                                                Text(store.t("view_full"))
-                                                    .font(.appFont(size: 11, weight: .semibold))
+                                                    .font(.system(size: 14, weight: .bold))
+                                                    .foregroundColor(.primary)
+                                                    .frame(width: 36, height: 36)
+                                                    .background(.ultraThinMaterial)
+                                                    .clipShape(Circle())
+                                                    .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                                             }
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 5)
-                                            .background(Capsule().fill(Color.black.opacity(0.6)))
                                             .padding(12)
                                         }
                                     }
@@ -104,9 +105,6 @@ public struct ExpenseDetailSheet: View {
                                 .frame(height: 240)
                                 .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                                 .liquidGlass(cornerRadius: 24)
-                                .onTapGesture {
-                                    isFullscreenImage = true
-                                }
                             }
 
                             // Hero Amount Display / Edit
@@ -220,7 +218,7 @@ public struct ExpenseDetailSheet: View {
 
                                         Spacer()
 
-                                        Text("Apple Intelligence")
+                                        Text("MDaily AI")
                                             .font(.appFont(size: 13, weight: .semibold))
                                             .foregroundColor(.purple)
                                             .padding(.horizontal, 8)

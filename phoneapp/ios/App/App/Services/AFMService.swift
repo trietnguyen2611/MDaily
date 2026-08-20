@@ -2,6 +2,10 @@ import Foundation
 import UIKit
 import Vision
 
+#if canImport(FoundationModels)
+import FoundationModels
+#endif
+
 public struct ExtractionResult: Sendable {
     public var success: Bool
     public var itemName: String?
@@ -32,7 +36,7 @@ public final class AFMService: Sendable {
         if #available(iOS 26.0, *) {
             return AFMStatus(
                 available: true,
-                model: "Apple Intelligence (On-Device AFM)",
+                model: "MDaily AI (On-Device AFM)",
                 message: "Apple Foundation Model"
             )
         }
@@ -44,21 +48,30 @@ public final class AFMService: Sendable {
         )
     }
 
-    // MARK: - Image & Receipt Extraction (Receipt-only — no object classification)
+    // MARK: - Image & Receipt Extraction
     public func extractExpense(from image: UIImage) async -> ExtractionResult {
         guard let cgImage = image.cgImage else {
             return ExtractionResult(success: false)
         }
 
-        // 1. Run Vision OCR Text Recognition
+        // 1. Check if the image contains a receipt/invoice
+        let classification = await classifyImage(from: cgImage)
+        let isReceiptImage = classification.category == "bills" // "bills" means receipt/invoice in classifyImage
+
+        // 2. Only proceed if it is a receipt image
+        guard isReceiptImage else {
+            return ExtractionResult(success: false)
+        }
+
+        // 3. Run Vision OCR Text Recognition
         let textResult = await recognizeText(from: cgImage)
 
-        // 2. If OCR found text, parse receipt (total amount, receipt name, auto bills category)
+        // 4. Parse receipt
         if !textResult.isEmpty {
             var parsed = parseReceiptText(lines: textResult)
             if parsed.success {
-                // If invoice detected, always set category to bills
-                if parsed.isInvoice {
+                // Ensure category is bills for invoices
+                if parsed.isInvoice || isReceiptImage {
                     parsed = ExtractionResult(
                         success: parsed.success,
                         itemName: parsed.itemName,
@@ -71,7 +84,6 @@ public final class AFMService: Sendable {
             }
         }
 
-        // No object classification — only receipt recognition
         return ExtractionResult(success: false)
     }
 
@@ -351,7 +363,39 @@ public final class AFMService: Sendable {
 
         let highestExpense = expenses.max(by: { $0.amount < $1.amount })
 
-        // 2. Perform Dynamic AFM Semantic Query Reasoning
+        // 2. Real AFM Model Integration (if available)
+        #if canImport(FoundationModels)
+        if #available(iOS 26.0, *) {
+            let model = SystemLanguageModel.default
+            if model.isAvailable {
+                do {
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "dd/MM"
+                    
+                    let txDetails = expenses.map { exp in
+                        let catName = categories.first(where: { $0.id == exp.category })?.label ?? exp.category
+                        let dateStr = dateFormatter.string(from: exp.date)
+                        let noteStr = exp.note ?? (isEnglish ? "No note" : "Không ghi chú")
+                        return "- [\(dateStr)] \(catName): \(formatMoney(exp.amount)) (\(noteStr))"
+                    }.joined(separator: "\n")
+                    
+                    let txListStr = isEnglish ? "Transaction history:\n\(txDetails)" : "Lịch sử giao dịch:\n\(txDetails)"
+                    
+                    let instructions = isEnglish
+                        ? "You are MDaily AI, a smart financial assistant. Keep your answers concise, natural, and friendly. Limit your responses to personal finance, budgeting, and the user's expense data. Decline out-of-scope questions like coding, math, or history. User's data context:\nTotal spend: \(formatMoney(totalSpend)). This month: \(formatMoney(thisMonthSpend)). Top category: \(topCategoryName) (\(formatMoney(topCategoryPair?.value ?? 0))).\n\n\(txListStr)"
+                        : "Bạn là MDaily AI, trợ lý tài chính thông minh. Trả lời thân thiện, tự nhiên và ngắn gọn. Chỉ trả lời các câu hỏi liên quan đến tài chính, chi tiêu, ngân sách. Từ chối lịch sự các câu hỏi ngoài lề (như code, toán, lịch sử, làm thơ). Ngữ cảnh dữ liệu:\nTổng chi: \(formatMoney(totalSpend)). Tháng này: \(formatMoney(thisMonthSpend)). Danh mục nhiều nhất: \(topCategoryName) (\(formatMoney(topCategoryPair?.value ?? 0))).\n\n\(txListStr)"
+                    
+                    let session = LanguageModelSession(instructions: instructions)
+                    let response = try await session.respond(to: prompt)
+                    return String(response.content)
+                } catch {
+                    // Fall back to rule-based engine if model fails
+                }
+            }
+        }
+        #endif
+
+        // 3. Perform Dynamic Rule-Based Semantic Query Reasoning (Fallback)
         let p = prompt.lowercased()
 
         // Check if query is asking about specific category or keyword
@@ -398,9 +442,9 @@ public final class AFMService: Sendable {
         // 3. Generate Fluid AFM Response
         if expenses.isEmpty {
             if isEnglish {
-                return "You haven't recorded any expenses yet in MDaily. Tap the '+' button or capture a receipt photo to let Apple Intelligence start tracking your financial habits!"
+                return "You haven't recorded any expenses yet in MDaily. Tap the '+' button or capture a receipt photo to let MDaily AI start tracking your financial habits!"
             } else {
-                return "Bạn chưa có khoản chi tiêu nào trong MDaily. Hãy bấm nút '+' hoặc chụp ảnh hoá đơn để Apple Intelligence bắt đầu theo dõi và phân tích tài chính giúp bạn nhé!"
+                return "Bạn chưa có khoản chi tiêu nào trong MDaily. Hãy bấm nút '+' hoặc chụp ảnh hoá đơn để MDaily AI bắt đầu theo dõi và phân tích tài chính giúp bạn nhé!"
             }
         }
 
@@ -575,19 +619,34 @@ public final class AFMService: Sendable {
             let topPct = totalSpend > 0 ? (topAmt / totalSpend) * 100 : 0
             if isEnglish {
                 return """
-                💡 **Apple Intelligence AFM Financial Insights**:
+                💡 **MDaily AI Financial Insights**:
                 1. **High Spend Alert**: You are spending **\(Int(topPct))%** of your budget on **\(topCategoryName)** (\(formatMoney(topAmt))). Try applying a 15% reduction here.
                 2. **50/30/20 Rule**: Prioritize 50% for Needs, 30% for Lifestyle, and 20% for Long-term Wealth & Savings.
                 3. **Daily Tracking**: Consistent logging reduces impulse spending by up to 20% according to behavioral economics.
                 """
             } else {
                 return """
-                💡 **Phân tích tối ưu tài chính từ Apple Intelligence**:
+                💡 **Phân tích tối ưu tài chính từ MDaily AI**:
                 1. **Điểm cần lưu ý**: Bạn đang chi **\(Int(topPct))%** ngân sách cho danh mục **\(topCategoryName)** (\(formatMoney(topAmt))). Hãy thử đặt hạn mức chi cho mục này để tiết kiệm thêm 10–15% mỗi tháng!
                 2. **Quy tắc 50/30/20**: Phân bổ 50% chi phí thiết yếu, 30% cho sở thích cá nhân, và 20% đưa vào quỹ tiết kiệm hoặc đầu tư.
                 3. **Kiểm soát dòng tiền**: Ghi chép ngay khi phát sinh chi tiêu giúp bạn luôn chủ động nắm bắt ngân sách.
                 """
             }
+        }
+
+        // Conversational Fallbacks for Out-of-Scope or Greetings
+        let isGreeting = p.contains("chào") || p.contains("hi") || p.contains("hello") || p.contains("hey")
+        let isAskingIdentity = p.contains("mày là ai") || p.contains("bạn là ai") || p.contains("who are you") || p.contains("tên gì")
+        let isOutOfScope = p.contains("thơ") || p.contains("hát") || p.contains("chơi") || p.contains("joke") || p.contains("kể chuyện") || p.contains("toán") || p.contains("code") || p.contains("thời tiết")
+        
+        if isGreeting {
+            return isEnglish ? "Hello there! I'm MDaily AI. What financial goals can I help you with today?" : "Chào bạn! Tôi là MDaily AI. Hôm nay tôi có thể giúp gì cho kế hoạch tài chính của bạn?"
+        }
+        if isAskingIdentity {
+            return isEnglish ? "I'm MDaily AI, your dedicated personal finance assistant built securely into this app." : "Tôi là MDaily AI, trợ lý tài chính cá nhân được tích hợp an toàn ngay trong ứng dụng MDaily."
+        }
+        if isOutOfScope {
+            return isEnglish ? "I'm focused strictly on your finances and budgeting. I can't assist with that, but I'd love to help you analyze your expenses!" : "Rất tiếc, tôi là chuyên gia tài chính nên chỉ tập trung vào việc quản lý chi tiêu của bạn thôi. Bạn có câu hỏi nào về ngân sách không?"
         }
 
         // Comprehensive Dynamic Financial Overview
@@ -600,7 +659,7 @@ public final class AFMService: Sendable {
 
         if isEnglish {
             return """
-            📊 **Apple Intelligence Summary**:
+            📊 **MDaily AI Summary**:
             • **Total Spending**: \(formatMoney(totalSpend)) (\(transactionCount) transactions)
             • **This Month**: \(formatMoney(thisMonthSpend))
             • **Top Category**: \(topCategoryName) (\(formatMoney(topCategoryPair?.value ?? 0)))
@@ -610,7 +669,7 @@ public final class AFMService: Sendable {
             """
         } else {
             return """
-            📊 **Tổng quan từ Apple Intelligence**:
+            📊 **Tổng quan từ MDaily AI**:
             • **Tổng chi tiêu**: \(formatMoney(totalSpend)) (\(transactionCount) giao dịch)
             • **Chi trong tháng này**: \(formatMoney(thisMonthSpend))
             • **Mục chi nhiều nhất**: **\(topCategoryName)** (\(formatMoney(topCategoryPair?.value ?? 0)))
