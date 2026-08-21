@@ -2,6 +2,7 @@ import localforage from 'localforage'
 import type { SelectOption } from '../components/CustomSelect'
 
 const CATEGORIES_KEY = 'mdaily_categories'
+const DELETED_CATEGORIES_KEY = 'mdaily_deleted_category_values'
 
 export interface CategoryItem {
   value: string
@@ -14,6 +15,27 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
   { value: 'food', label: 'Ăn uống' },
   { value: 'transport', label: 'Di chuyển' },
 ]
+
+export const getDeletedCategoryValues = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(DELETED_CATEGORIES_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+
+export const saveDeletedCategoryValues = (values: string[]) => {
+  const unique = [...new Set(values)].slice(-200)
+  localStorage.setItem(DELETED_CATEGORIES_KEY, JSON.stringify(unique))
+}
+
+const removeDeletedCategoryValue = (val: string) => {
+  saveDeletedCategoryValues(getDeletedCategoryValues().filter(v => v !== val))
+}
+
+const notifyMutation = () => {
+  window.dispatchEvent(new CustomEvent('mdaily_expense_changed'))
+}
 
 export const getCategories = async (): Promise<CategoryItem[]> => {
   try {
@@ -48,6 +70,8 @@ export const addCategory = async (label: string): Promise<CategoryItem[]> => {
 
   const updated = [...categories, { value, label }]
   await localforage.setItem(CATEGORIES_KEY, updated)
+  removeDeletedCategoryValue(value)
+  notifyMutation()
   return updated
 }
 
@@ -55,6 +79,8 @@ export const deleteCategory = async (value: string): Promise<CategoryItem[]> => 
   const categories = await getCategories()
   const updated = categories.filter(c => c.value !== value)
   await localforage.setItem(CATEGORIES_KEY, updated)
+  saveDeletedCategoryValues([...getDeletedCategoryValues(), value])
+  notifyMutation()
   return updated
 }
 
@@ -67,6 +93,7 @@ export const updateCategory = async (oldValue: string, newLabel: string): Promis
     return c
   })
   await localforage.setItem(CATEGORIES_KEY, updated)
+  notifyMutation()
   return updated
 }
 

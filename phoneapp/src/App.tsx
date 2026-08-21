@@ -14,7 +14,7 @@ import { getCategories, addCategory, deleteCategory, updateCategory, categoriesT
 import { checkAFMStatus, getAutoExtractEnabled, getAiChatEnabled } from './services/ai'
 import { getLanguage, getCurrency, t } from './services/i18n'
 import type { Language, Currency } from './services/i18n'
-import { triggerAutoSync, startRealtimeSyncListener } from './services/sync'
+import { triggerAutoSync, startRealtimeSyncListener, setupLifecycleSyncTriggers } from './services/sync'
 import type { CategoryItem } from './services/categories'
 import type { Expense } from './types'
 import './App.css'
@@ -56,6 +56,8 @@ function App() {
     window.addEventListener('mdaily_data_synced', reloadData)
 
     let stopListener = startRealtimeSyncListener()
+    const stopLifecycle = setupLifecycleSyncTriggers()
+    triggerAutoSync(0)
     const restartSyncListener = () => {
       stopListener()
       stopListener = startRealtimeSyncListener()
@@ -71,6 +73,7 @@ function App() {
       window.removeEventListener('mdaily_sync_server_changed', restartSyncListener)
       window.removeEventListener('mdaily_expense_changed', handleLocalExpenseChange)
       stopListener()
+      stopLifecycle()
     }
   }, [reloadData])
 

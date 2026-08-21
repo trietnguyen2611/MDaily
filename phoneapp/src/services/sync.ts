@@ -1,10 +1,11 @@
 import { getExpenses, saveExpensesBatch, getDeletedExpenseIds, saveDeletedExpenseIds } from './db'
-import { getCategories, saveCategoriesBatch } from './categories'
+import { getCategories, saveCategoriesBatch, getDeletedCategoryValues, saveDeletedCategoryValues } from './categories'
 
 const LAST_SYNC_KEY = 'mdaily_last_sync_server'
 
 export interface SyncServerConfig {
   ip: string
+  allIps?: string[]
   port: number
   token: string
   name?: string
@@ -44,28 +45,48 @@ export function clearLastSyncServer() {
     activeEventSource.close()
     activeEventSource = null
   }
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
 }
 
-// Check connection to Desktop Sync Server with 4s timeout
-export async function pingSyncServer(ip: string, port: number): Promise<{ app: string; version: string; deviceName: string }> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 4000)
+// Check connection to Desktop Sync Server with fallback to all candidate IPs
+export async function pingSyncServer(
+  ip: string,
+  port: number,
+  candidateIps?: string[]
+): Promise<{ app: string; version: string; deviceName: string; activeIp: string; allIps?: string[] }> {
+  const ipsToTry = candidateIps && candidateIps.length > 0
+    ? [...new Set([ip, ...candidateIps])]
+    : [ip]
 
-  try {
-    const res = await fetch(`http://${ip}:${port}/api/ping`, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: { 'Accept': 'application/json' }
-    })
-    clearTimeout(timeout)
-    if (!res.ok) {
-      throw new Error(`Server returned ${res.status}`)
+  for (const candidate of ipsToTry) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 3500)
+
+    try {
+      const res = await fetch(`http://${candidate}:${port}/api/ping`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      })
+      clearTimeout(timeout)
+      if (res.ok) {
+        const data = await res.json()
+        return {
+          ...data,
+          activeIp: candidate,
+          allIps: data.allIps || ipsToTry
+        }
+      }
+    } catch {
+      clearTimeout(timeout)
+      // Continue to next IP
     }
-    return await res.json()
-  } catch (err: any) {
-    clearTimeout(timeout)
-    throw new Error(err?.name === 'AbortError' ? 'Timeout connecting to Desktop' : (err?.message || 'Connection failed'))
   }
+
+  throw new Error('Không thể kết nối tới máy tính (Vui lòng kiểm tra mạng Wi-Fi hoặc IP)')
 }
 
 // 1. Two-Way Smart Merge (Recommended)
@@ -75,53 +96,84 @@ export async function performTwoWayMerge(config: SyncServerConfig): Promise<Sync
     getCategories()
   ])
 
-  const res = await fetch(`http://${config.ip}:${config.port}/api/sync/merge`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-sync-token': config.token
-    },
-    body: JSON.stringify({
-      token: config.token,
-      expenses: localExpenses,
-      categories: localCategories,
-      deletedExpenseIds: getDeletedExpenseIds()
-    })
-  })
+  // Try active IP first, fallback to allIps if needed
+  const candidateIps = config.allIps && config.allIps.length > 0
+    ? [...new Set([config.ip, ...config.allIps])]
+    : [config.ip]
 
-  if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}))
-    throw new Error(errBody.error || `HTTP error ${res.status}`)
+  let lastError: Error | null = null
+  let activeWorkingIp = config.ip
+
+  for (const ipToUse of candidateIps) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 12000)
+
+    try {
+      const res = await fetch(`http://${ipToUse}:${config.port}/api/sync/merge`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-sync-token': config.token
+        },
+        body: JSON.stringify({
+          token: config.token,
+          expenses: localExpenses,
+          categories: localCategories,
+          deletedExpenseIds: getDeletedExpenseIds(),
+          deletedCategoryValues: getDeletedCategoryValues()
+        })
+      })
+      clearTimeout(timeout)
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.error || `HTTP error ${res.status}`)
+      }
+
+      const data = await res.json()
+      if (!data.success) {
+        throw new Error(data.error || 'Merge failed')
+      }
+
+      activeWorkingIp = ipToUse
+
+      // Update phone's local storage with the merged results
+      if (data.expenses) {
+        await saveExpensesBatch(data.expenses)
+      }
+      if (data.deletedExpenseIds) {
+        saveDeletedExpenseIds(data.deletedExpenseIds)
+      }
+      if (data.categories) {
+        await saveCategoriesBatch(data.categories)
+      }
+      if (data.deletedCategoryValues) {
+        saveDeletedCategoryValues(data.deletedCategoryValues)
+      }
+
+      saveLastSyncServer({
+        ...config,
+        ip: activeWorkingIp
+      })
+
+      // Notify phone UI components
+      window.dispatchEvent(new CustomEvent('mdaily_data_synced', {
+        detail: { expenses: data.expenses, categories: data.categories }
+      }))
+
+      return {
+        success: true,
+        message: `Đã hợp nhất thành công ${data.expenses?.length || 0} chi tiêu!`,
+        stats: data.stats
+      }
+    } catch (err: any) {
+      clearTimeout(timeout)
+      lastError = err
+    }
   }
 
-  const data = await res.json()
-  if (!data.success) {
-    throw new Error(data.error || 'Merge failed')
-  }
-
-  // Update phone's local storage with the merged results
-  if (data.expenses) {
-    await saveExpensesBatch(data.expenses)
-  }
-  if (data.deletedExpenseIds) {
-    saveDeletedExpenseIds(data.deletedExpenseIds)
-  }
-  if (data.categories) {
-    await saveCategoriesBatch(data.categories)
-  }
-
-  saveLastSyncServer(config)
-
-  // Notify phone UI components
-  window.dispatchEvent(new CustomEvent('mdaily_data_synced', {
-    detail: { expenses: data.expenses, categories: data.categories }
-  }))
-
-  return {
-    success: true,
-    message: `Đã hợp nhất thành công ${data.expenses?.length || 0} chi tiêu!`,
-    stats: data.stats
-  }
+  throw lastError || new Error('Không thể đồng bộ với máy tính')
 }
 
 // 2. Push from Phone -> Desktop (Upload)
@@ -141,7 +193,8 @@ export async function performPushToDesktop(config: SyncServerConfig): Promise<Sy
       token: config.token,
       expenses: localExpenses,
       categories: localCategories,
-      deletedExpenseIds: getDeletedExpenseIds()
+      deletedExpenseIds: getDeletedExpenseIds(),
+      deletedCategoryValues: getDeletedCategoryValues()
     })
   })
 
@@ -195,6 +248,9 @@ export async function performPullFromDesktop(config: SyncServerConfig): Promise<
   if (data.categories) {
     await saveCategoriesBatch(data.categories)
   }
+  if (data.deletedCategoryValues) {
+    saveDeletedCategoryValues(data.deletedCategoryValues)
+  }
 
   saveLastSyncServer(config)
 
@@ -209,10 +265,12 @@ export async function performPullFromDesktop(config: SyncServerConfig): Promise<
 }
 
 // =========================================================
-// Real-time Automatic 2-Way Sync Engine
+// Real-time Automatic 2-Way Sync Engine & Reconnect Manager
 // =========================================================
 let autoSyncTimer: any = null
 let activeEventSource: EventSource | null = null
+let reconnectTimer: any = null
+let reconnectDelay = 2000
 
 export function triggerAutoSync(delay = 250) {
   const config = getLastSyncServer()
@@ -237,34 +295,93 @@ export function startRealtimeSyncListener(): () => void {
     activeEventSource.close()
     activeEventSource = null
   }
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
 
-  try {
-    const url = `http://${config.ip}:${config.port}/api/sync/stream?token=${encodeURIComponent(config.token)}`
-    const es = new EventSource(url)
-    activeEventSource = es
+  let isClosed = false
 
-    es.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data)
-        if (payload.event === 'data_changed') {
-          console.log('[MDaily SSE] Change detected on Desktop, merging in background...')
-          triggerAutoSync(100)
+  const connect = () => {
+    if (isClosed) return
+    const currentConfig = getLastSyncServer()
+    if (!currentConfig) return
+
+    try {
+      const url = `http://${currentConfig.ip}:${currentConfig.port}/api/sync/stream?token=${encodeURIComponent(currentConfig.token)}`
+      const es = new EventSource(url)
+      activeEventSource = es
+
+      es.onopen = () => {
+        reconnectDelay = 2000
+        console.log('[MDaily SSE] Connected to Desktop Sync Stream')
+      }
+
+      es.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data)
+          if (payload.event === 'data_changed') {
+            console.log('[MDaily SSE] Change detected on Desktop, merging in background...')
+            triggerAutoSync(50)
+          }
+        } catch (err) {
+          console.error('[MDaily SSE Parse Error]', err)
         }
-      } catch (err) {
-        console.error('[MDaily SSE Parse Error]', err)
+      }
+
+      es.onerror = () => {
+        es.close()
+        if (activeEventSource === es) activeEventSource = null
+        if (!isClosed) {
+          reconnectDelay = Math.min(reconnectDelay * 1.5, 30000)
+          reconnectTimer = setTimeout(connect, reconnectDelay)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to start SSE sync listener', err)
+      if (!isClosed) {
+        reconnectTimer = setTimeout(connect, 5000)
       }
     }
+  }
 
-    es.onerror = () => {
-      // EventSource reconnects automatically
-    }
+  connect()
 
-    return () => {
-      es.close()
-      if (activeEventSource === es) activeEventSource = null
+  return () => {
+    isClosed = true
+    if (activeEventSource) {
+      activeEventSource.close()
+      activeEventSource = null
     }
-  } catch (err) {
-    console.error('Failed to start SSE sync listener', err)
-    return () => {}
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+  }
+}
+
+// Listen to browser / app foreground events to immediately sync
+export function setupLifecycleSyncTriggers(): () => void {
+  const handleForeground = () => {
+    if (document.visibilityState === 'visible') {
+      console.log('[MDaily] App became visible, triggering fast background sync...')
+      triggerAutoSync(50)
+    }
+  }
+
+  const handleOnline = () => {
+    console.log('[MDaily] Network became online, triggering fast background sync...')
+    triggerAutoSync(100)
+    startRealtimeSyncListener()
+  }
+
+  document.addEventListener('visibilitychange', handleForeground)
+  window.addEventListener('focus', handleForeground)
+  window.addEventListener('online', handleOnline)
+
+  return () => {
+    document.removeEventListener('visibilitychange', handleForeground)
+    window.removeEventListener('focus', handleForeground)
+    window.removeEventListener('online', handleOnline)
   }
 }

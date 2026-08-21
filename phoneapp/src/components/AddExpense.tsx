@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { Loader2, X, Plus, Sparkles, ImagePlus } from 'lucide-react'
 import type { Expense } from '../types'
 import { CustomSelect } from './CustomSelect'
@@ -32,16 +32,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
   const [extractResult, setExtractResult] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    if (initialPhoto) {
-      setPhotoPreview(initialPhoto)
-      if (isAFMAvailable && autoExtractEnabled) {
-        runExtraction(initialPhoto)
-      }
-    }
-  }, [initialPhoto])
-
-  const runExtraction = async (base64: string) => {
+  const runExtraction = useCallback(async (base64: string) => {
     setIsExtracting(true)
     setExtractResult(null)
     try {
@@ -69,7 +60,16 @@ export const AddExpense: React.FC<AddExpenseProps> = ({
     } finally {
       setIsExtracting(false)
     }
-  }
+  }, [categoryOptions])
+
+  useEffect(() => {
+    if (initialPhoto) {
+      setPhotoPreview(initialPhoto)
+      if (isAFMAvailable && autoExtractEnabled) {
+        runExtraction(initialPhoto)
+      }
+    }
+  }, [initialPhoto, isAFMAvailable, autoExtractEnabled, runExtraction])
 
   const decodeHeicWithHeicDecode = async (fileToConvert: File): Promise<Blob> => {
     const decodeModule = await import('heic-decode')

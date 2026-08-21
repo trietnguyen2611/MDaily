@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 public enum TimePreset: String, CaseIterable, Identifiable, Sendable {
     case all = "all"
@@ -278,12 +279,15 @@ public struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .openExpenseDetail)) { notification in
-            guard let expenseIdStr = notification.object as? String,
-                  let expenseId = UUID(uuidString: expenseIdStr) else { return }
-            if let expense = store.expenses.first(where: { $0.id == expenseId }) {
+            guard let expenseIdStr = notification.object as? String else { return }
+            if let expense = store.expenses.first(where: { $0.id == expenseIdStr }) {
                 // Instantly open the detail sheet
                 self.selectedExpense = expense
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            WifiSyncService.shared.startRealtimeListener(store: store)
+            WifiSyncService.shared.triggerAutoSync(store: store, delay: 0.1)
         }
     }
 
@@ -450,6 +454,10 @@ public struct ContentView: View {
                 .padding(.horizontal, 18)
                 .padding(.bottom, 8)
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            WifiSyncService.shared.startRealtimeListener(store: store)
+            WifiSyncService.shared.triggerAutoSync(store: store, delay: 0.1)
         }
     }
 }

@@ -30,7 +30,7 @@ public struct RecurringExpense: Identifiable, Codable, Sendable, Hashable {
     public var repeatInterval: RepeatInterval
     public var isActive: Bool
     public var lastTriggered: Date?
-    public var linkedExpenseId: UUID?
+    public var linkedExpenseId: String?
 
     public init(
         id: UUID = UUID(),
@@ -42,7 +42,7 @@ public struct RecurringExpense: Identifiable, Codable, Sendable, Hashable {
         repeatInterval: RepeatInterval = .monthly,
         isActive: Bool = true,
         lastTriggered: Date? = nil,
-        linkedExpenseId: UUID? = nil
+        linkedExpenseId: String? = nil
     ) {
         self.id = id
         self.amount = amount

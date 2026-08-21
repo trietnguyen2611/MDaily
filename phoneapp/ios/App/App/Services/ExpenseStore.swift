@@ -69,20 +69,24 @@ public final class ExpenseStore: ObservableObject {
 
     // MARK: - Expense CRUD
     public func addExpense(_ expense: Expense) {
-        expenses.insert(expense, at: 0)
+        var newEx = expense
+        newEx.updatedAt = Date()
+        expenses.insert(newEx, at: 0)
         saveExpenses()
         WifiSyncService.shared.triggerAutoSync(store: self)
     }
 
     public func updateExpense(_ expense: Expense) {
         if let idx = expenses.firstIndex(where: { $0.id == expense.id }) {
-            expenses[idx] = expense
+            var updated = expense
+            updated.updatedAt = Date()
+            expenses[idx] = updated
             saveExpenses()
             WifiSyncService.shared.triggerAutoSync(store: self)
         }
     }
 
-    public func deleteExpense(id: UUID) {
+    public func deleteExpense(id: String) {
         expenses.removeAll(where: { $0.id == id })
         WifiSyncService.shared.markDeletedExpense(id)
         saveExpenses()
@@ -169,6 +173,7 @@ public final class ExpenseStore: ObservableObject {
 
     public func deleteCategory(id: String) {
         categories.removeAll(where: { $0.id == id })
+        WifiSyncService.shared.markDeletedCategory(id)
         saveCategories()
         WifiSyncService.shared.triggerAutoSync(store: self)
     }
@@ -268,7 +273,7 @@ public final class ExpenseStore: ObservableObject {
         }
     }
 
-    private func saveCategories() {
+    public func saveCategories() {
         if let encoded = try? JSONEncoder().encode(categories) {
             UserDefaults.standard.set(encoded, forKey: categoriesKey)
         }
@@ -281,10 +286,17 @@ public final class ExpenseStore: ObservableObject {
         }
     }
 
-    private func saveExpenses() {
+    public func saveExpenses() {
         if let encoded = try? JSONEncoder().encode(expenses) {
             UserDefaults.standard.set(encoded, forKey: expensesKey)
         }
+    }
+
+    public func applySyncedData(expenses newExpenses: [Expense], categories newCategories: [CategoryItem]) {
+        self.expenses = newExpenses
+        self.saveExpenses()
+        self.categories = newCategories
+        self.saveCategories()
     }
 
     private func loadRecurringExpenses() {
@@ -294,7 +306,7 @@ public final class ExpenseStore: ObservableObject {
         }
     }
 
-    private func saveRecurringExpenses() {
+    public func saveRecurringExpenses() {
         if let encoded = try? JSONEncoder().encode(recurringExpenses) {
             UserDefaults.standard.set(encoded, forKey: recurringKey)
         }

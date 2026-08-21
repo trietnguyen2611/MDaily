@@ -16,10 +16,43 @@ const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
 // Wi-Fi Sync Server State
 let syncPort = 18321
-let syncToken = generateSyncPin()
+let syncToken = ''
 let syncServer: http.Server | null = null
 let syncServerActive = false
 const sseClients = new Set<http.ServerResponse>()
+
+function getSyncSettingsPath(): string {
+  // Keep the token stable between Electron dev mode and packaged app mode.
+  return path.join(app.getPath('appData'), 'deskapp', 'sync-server.json')
+}
+
+function loadSyncToken() {
+  try {
+    const settings = JSON.parse(fs.readFileSync(getSyncSettingsPath(), 'utf8'))
+    syncToken = typeof settings.token === 'string' && settings.token.length > 0
+      ? settings.token
+      : generateSyncPin()
+  } catch {
+    try {
+      const legacyPath = path.join(app.getPath('appData'), 'Electron', 'sync-server.json')
+      const legacySettings = JSON.parse(fs.readFileSync(legacyPath, 'utf8'))
+      syncToken = typeof legacySettings.token === 'string' && legacySettings.token.length > 0
+        ? legacySettings.token
+        : generateSyncPin()
+    } catch {
+      syncToken = generateSyncPin()
+    }
+  }
+}
+
+function saveSyncToken() {
+  try {
+    fs.mkdirSync(path.dirname(getSyncSettingsPath()), { recursive: true })
+    fs.writeFileSync(getSyncSettingsPath(), JSON.stringify({ token: syncToken }), 'utf8')
+  } catch (err) {
+    console.error('[MDaily Sync] Failed to persist sync token:', err)
+  }
+}
 
 function generateSyncPin(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -32,20 +65,32 @@ function generateSyncPin(): string {
 
 function getLocalIps(): string[] {
   const interfaces = os.networkInterfaces()
-  const ips: string[] = []
+  const physicalIps: string[] = []
+  const otherIps: string[] = []
+
   for (const name of Object.keys(interfaces)) {
+    const isVirtual = /^(vboxnet|vmnet|docker|utun|tun|tap|virbr|veth|vEthernet)/i.test(name)
     for (const iface of interfaces[name] || []) {
       if (iface.family === 'IPv4' && !iface.internal) {
-        ips.push(iface.address)
+        if (isVirtual || iface.address.startsWith('192.168.56.') || iface.address.startsWith('172.17.')) {
+          otherIps.push(iface.address)
+        } else {
+          // Prefer en0 (macOS Wi-Fi) or wlan / eth interfaces
+          if (/^(en0|wlan0|wi-fi|ethernet)/i.test(name)) {
+            physicalIps.unshift(iface.address)
+          } else {
+            physicalIps.push(iface.address)
+          }
+        }
       }
     }
   }
-  return ips.length > 0 ? ips : ['127.0.0.1']
+  const combined = [...new Set([...physicalIps, ...otherIps])]
+  return combined.length > 0 ? combined : ['127.0.0.1']
 }
 
 function getPrimaryIp(): string {
   const ips = getLocalIps()
-  // Prefer 192.168.x.x or 10.x.x.x or 172.16-31.x.x
   const wifiIp = ips.find(ip => ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.'))
   return wifiIp || ips[0] || '127.0.0.1'
 }
@@ -57,6 +102,7 @@ function getSyncServerInfo() {
     app: 'MDaily',
     v: '2.4',
     ip,
+    allIps,
     port: syncPort,
     token: syncToken,
     name: os.hostname()
@@ -94,7 +140,7 @@ setInterval(() => {
       sseClients.delete(client)
     }
   }
-}, 25000)
+}, 15000)
 
 // Pending IPC requests map for renderer sync responses
 const pendingSyncRequests = new Map<string, { resolve: (val: any) => void; reject: (err: any) => void; timeout: NodeJS.Timeout }>()
@@ -145,13 +191,18 @@ function startSyncServer(portToTry = 18321) {
     }
 
     // 1. Health check / Ping
-    if (pathname === '/api/ping' && req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' })
+    if ((pathname === '/api/ping' || pathname === '/api/sync/discover') && req.method === 'GET') {
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      })
       res.end(JSON.stringify({
         app: 'MDaily',
         version: '2.4.0',
         deviceName: os.hostname(),
         status: 'ready',
+        port: syncPort,
+        allIps: getLocalIps(),
         timestamp: Date.now()
       }))
       return
@@ -160,15 +211,17 @@ function startSyncServer(portToTry = 18321) {
     // 2. Real-time Event Stream (SSE) for Auto-Sync
     if (pathname === '/api/sync/stream' && req.method === 'GET') {
       if (!checkAuth()) {
-        res.writeHead(401, { 'Content-Type': 'application/json' })
+        res.writeHead(401, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
         res.end(JSON.stringify({ success: false, error: 'Unauthorized: Invalid token' }))
         return
       }
 
       res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+        'Access-Control-Allow-Origin': '*'
       })
       res.write(`data: ${JSON.stringify({ event: 'connected', timestamp: Date.now() })}\n\n`)
       sseClients.add(res)
@@ -200,7 +253,7 @@ function startSyncServer(portToTry = 18321) {
       if (pathname === '/api/sync/pull' && req.method === 'POST') {
         const body = await readBody()
         if (!checkAuth(body.token)) {
-          res.writeHead(401, { 'Content-Type': 'application/json' })
+          res.writeHead(401, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
           res.end(JSON.stringify({ success: false, error: 'Unauthorized: Invalid token' }))
           return
         }
@@ -214,12 +267,13 @@ function startSyncServer(portToTry = 18321) {
             timestamp: Date.now()
           })
         }
-        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
         res.end(JSON.stringify({
           success: true,
           expenses: data.expenses || [],
           categories: data.categories || [],
           deletedExpenseIds: data.deletedExpenseIds || [],
+          deletedCategoryValues: data.deletedCategoryValues || [],
           timestamp: Date.now()
         }))
         return
@@ -229,7 +283,7 @@ function startSyncServer(portToTry = 18321) {
       if (pathname === '/api/sync/push' && req.method === 'POST') {
         const body = await readBody()
         if (!checkAuth(body.token)) {
-          res.writeHead(401, { 'Content-Type': 'application/json' })
+          res.writeHead(401, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
           res.end(JSON.stringify({ success: false, error: 'Unauthorized: Invalid token' }))
           return
         }
@@ -237,7 +291,8 @@ function startSyncServer(portToTry = 18321) {
         const result = await sendRendererSyncRequest('import', {
           expenses: body.expenses || [],
           categories: body.categories || [],
-          deletedExpenseIds: body.deletedExpenseIds || []
+          deletedExpenseIds: body.deletedExpenseIds || [],
+          deletedCategoryValues: body.deletedCategoryValues || []
         })
 
         if (win && !win.isDestroyed()) {
@@ -252,7 +307,7 @@ function startSyncServer(portToTry = 18321) {
         // Notify other clients
         broadcastSyncEvent('data_changed', { source: 'phone_push' })
 
-        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
         res.end(JSON.stringify({
           success: true,
           count: body.expenses?.length || 0,
@@ -266,7 +321,7 @@ function startSyncServer(portToTry = 18321) {
       if (pathname === '/api/sync/merge' && req.method === 'POST') {
         const body = await readBody()
         if (!checkAuth(body.token)) {
-          res.writeHead(401, { 'Content-Type': 'application/json' })
+          res.writeHead(401, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
           res.end(JSON.stringify({ success: false, error: 'Unauthorized: Invalid token' }))
           return
         }
@@ -274,38 +329,41 @@ function startSyncServer(portToTry = 18321) {
         const mergeResult = await sendRendererSyncRequest('merge', {
           expenses: body.expenses || [],
           categories: body.categories || [],
-          deletedExpenseIds: body.deletedExpenseIds || []
+          deletedExpenseIds: body.deletedExpenseIds || [],
+          deletedCategoryValues: body.deletedCategoryValues || []
         })
 
-        if (win && !win.isDestroyed()) {
+        const stats = mergeResult.stats || { added: 0, updated: 0 }
+        const hasMutations = (stats.added || 0) > 0 || (stats.updated || 0) > 0
+
+        // Only notify Deskapp UI if there were actual changes
+        if (hasMutations && win && !win.isDestroyed()) {
           win.webContents.send('sync-event-notification', {
             type: 'merge',
             source: 'phone',
-            message: `Đồng bộ 2 chiều tự động (${mergeResult.expenses?.length || 0} chi tiêu)`,
+            message: `Đã đồng bộ: +${stats.added || 0} mới, ~${stats.updated || 0} cập nhật`,
             timestamp: Date.now()
           })
         }
 
-        // Broadcast data change event
-        broadcastSyncEvent('data_changed', { source: 'phone_merge' })
-
-        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
         res.end(JSON.stringify({
           success: true,
           expenses: mergeResult.expenses || [],
           categories: mergeResult.categories || [],
           deletedExpenseIds: mergeResult.deletedExpenseIds || [],
+          deletedCategoryValues: mergeResult.deletedCategoryValues || [],
           timestamp: Date.now()
         }))
         return
       }
 
       // 404 for other routes
-      res.writeHead(404, { 'Content-Type': 'application/json' })
+      res.writeHead(404, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
       res.end(JSON.stringify({ error: 'Endpoint not found' }))
     } catch (err: any) {
       console.error('Sync Server Error:', err)
-      res.writeHead(500, { 'Content-Type': 'application/json' })
+      res.writeHead(500, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
       res.end(JSON.stringify({ success: false, error: err?.message || 'Internal server error' }))
     }
   })
@@ -352,6 +410,7 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
       webSecurity: false,
+      backgroundThrottling: false, // Ensure real-time sync works reliably when window is in background
     },
   })
 
@@ -373,22 +432,30 @@ function createWindow() {
 }
 
 app.on('window-all-closed', () => {
-  if (syncServer) {
-    try { syncServer.close() } catch { /* ignore */ }
-  }
+  // On macOS, keep the sync server running in background even if window is closed
   if (process.platform !== 'darwin') {
+    if (syncServer) {
+      try { syncServer.close() } catch { /* ignore */ }
+      syncServer = null
+    }
+    syncServerActive = false
     app.quit()
     win = null
   }
 })
 
 app.on('activate', () => {
+  if (!syncServer || !syncServerActive) {
+    startSyncServer()
+  }
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
 })
 
 app.whenReady().then(() => {
+  loadSyncToken()
+  saveSyncToken()
   startSyncServer()
   createWindow()
 })
@@ -429,6 +496,7 @@ ipcMain.handle('get-sync-server-info', () => {
 
 ipcMain.handle('refresh-sync-token', () => {
   syncToken = generateSyncPin()
+  saveSyncToken()
   const info = getSyncServerInfo()
   if (win && !win.isDestroyed()) {
     win.webContents.send('sync-server-status-changed', info)

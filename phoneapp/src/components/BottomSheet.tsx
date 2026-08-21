@@ -53,7 +53,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
     return () => {
       if (timer) clearTimeout(timer)
     }
-  }, [isOpen])
+  }, [isOpen, shouldRender])
 
   // Find if any scrollable parent under target has scrollTop > 0
   const isTargetScrolled = (target: EventTarget | null): boolean => {

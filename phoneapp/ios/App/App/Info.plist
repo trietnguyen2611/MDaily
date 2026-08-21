@@ -68,6 +68,13 @@
 	<string>MDaily cần truy cập Camera để bạn chụp nhanh ảnh hoá đơn chi tiêu.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>MDaily cần truy cập Thư viện ảnh để bạn chọn ảnh hoá đơn chi tiêu.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>MDaily cần truy cập mạng cục bộ để đồng bộ chi tiêu với MDaily Desktop.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>

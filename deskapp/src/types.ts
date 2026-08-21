@@ -8,6 +8,7 @@ export interface Expense {
   photo?: string // base64 or blob URL (optional)
   note?: string
   isAiProcessed?: boolean
+  updatedAt?: number
 }
 
 export interface ChatMessage {

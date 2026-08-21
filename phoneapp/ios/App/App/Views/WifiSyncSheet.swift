@@ -280,6 +280,7 @@ public struct WifiSyncSheet: View {
     @MainActor
     private func handleScannedPayload(_ qrText: String) {
         var ip = ""
+        var allIps: [String]? = nil
         var port = 18321
         var token = ""
         var name = "MDaily Desktop"
@@ -287,6 +288,7 @@ public struct WifiSyncSheet: View {
         if let data = qrText.data(using: .utf8),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             ip = (json["ip"] as? String) ?? ""
+            allIps = json["allIps"] as? [String]
             port = (json["port"] as? Int) ?? 18321
             token = (json["token"] as? String) ?? ""
             name = (json["name"] as? String) ?? "MDaily Desktop"
@@ -309,6 +311,7 @@ public struct WifiSyncSheet: View {
             app: "MDaily",
             v: "2.4",
             ip: ip,
+            allIps: allIps,
             port: port,
             token: token,
             name: name
@@ -332,34 +335,37 @@ public struct WifiSyncSheet: View {
         let cleanIp = inputIp.trimmingCharacters(in: .whitespaces)
         let cleanPort = Int(inputPort.trimmingCharacters(in: .whitespaces)) ?? 18321
         let cleanToken = inputToken.trimmingCharacters(in: .whitespaces).uppercased()
+        let syncErrorMsg = store.t("sync_error")
 
         do {
-            let name = try await syncService.ping(ip: cleanIp, port: cleanPort)
+            let pingResult = try await syncService.ping(ip: cleanIp, port: cleanPort)
             let payload = SyncServerPayload(
                 app: "MDaily",
                 v: "2.4",
-                ip: cleanIp,
+                ip: pingResult.workingIp,
+                allIps: pingResult.allIps,
                 port: cleanPort,
                 token: cleanToken,
-                name: name
+                name: pingResult.deviceName
             )
             syncService.saveServer(payload)
             syncService.startRealtimeListener(store: store)
-            statusMsg = "Đã kết nối với \(name)"
-            try await syncService.performMerge(store: store, ip: cleanIp, port: cleanPort, token: cleanToken)
+            statusMsg = "Đã kết nối với \(pingResult.deviceName)"
+            try await syncService.performMerge(store: store, server: payload)
         } catch {
-            errorMsg = store.t("sync_error")
+            errorMsg = syncErrorMsg
         }
         isConnecting = false
     }
 
     @MainActor
     private func executeMerge(_ server: SyncServerPayload) async {
+        let syncSuccessMsg = store.t("sync_success")
         errorMsg = nil
         statusMsg = nil
         do {
-            try await syncService.performMerge(store: store, ip: server.ip, port: server.port, token: server.token)
-            statusMsg = store.t("sync_success")
+            try await syncService.performMerge(store: store, server: server)
+            statusMsg = syncSuccessMsg
         } catch {
             errorMsg = error.localizedDescription
         }

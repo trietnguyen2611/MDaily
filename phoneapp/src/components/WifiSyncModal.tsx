@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import {
   X,
   Camera,
@@ -58,6 +58,7 @@ export const WifiSyncModal: React.FC<WifiSyncModalProps> = ({
   const animationFrameRef = useRef<number | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
+  // Load paired server on mount
   useEffect(() => {
     if (isOpen) {
       const saved = getLastSyncServer()
@@ -72,23 +73,24 @@ export const WifiSyncModal: React.FC<WifiSyncModalProps> = ({
       }
       setErrorMessage(null)
       setStatusMessage(null)
-    } else {
-      stopCamera()
     }
   }, [isOpen])
 
-  useEffect(() => {
-    if (isOpen && activeTab === 'scan') {
-      startCamera()
-    } else {
-      stopCamera()
+  const stopCamera = useCallback(() => {
+    setIsScanning(false)
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
     }
-    return () => {
-      stopCamera()
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
     }
-  }, [isOpen, activeTab])
+  }, [])
 
-  const startCamera = async () => {
+  const scanQRCodeFromVideoRef = useRef<() => void>(() => {})
+
+  const startCamera = useCallback(async () => {
     setErrorMessage(null)
     setIsScanning(true)
     try {
@@ -103,25 +105,24 @@ export const WifiSyncModal: React.FC<WifiSyncModalProps> = ({
         videoRef.current.srcObject = stream
         videoRef.current.setAttribute('playsinline', 'true')
         videoRef.current.play()
-        requestAnimationFrame(scanQRCodeFromVideo)
+        requestAnimationFrame(() => scanQRCodeFromVideoRef.current())
       }
-    } catch (err: any) {
+    } catch {
       setIsScanning(false)
       setErrorMessage(t('camera_permission_error', lang))
     }
-  }
+  }, [lang])
 
-  const stopCamera = () => {
-    setIsScanning(false)
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current)
-      animationFrameRef.current = null
+  useEffect(() => {
+    if (isOpen && activeTab === 'scan') {
+      startCamera()
+    } else {
+      stopCamera()
     }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
-      streamRef.current = null
+    return () => {
+      stopCamera()
     }
-  }
+  }, [isOpen, activeTab, startCamera, stopCamera])
 
   const handleDetectedPayload = async (qrText: string) => {
     try {
@@ -149,6 +150,7 @@ export const WifiSyncModal: React.FC<WifiSyncModalProps> = ({
       stopCamera()
       await connectToServer({
         ip: parsed.ip,
+        allIps: Array.isArray(parsed.allIps) ? parsed.allIps : undefined,
         port: parsed.port || 18321,
         token: parsed.token,
         name: parsed.name || 'MDaily Desktop'
@@ -186,6 +188,7 @@ export const WifiSyncModal: React.FC<WifiSyncModalProps> = ({
 
     animationFrameRef.current = requestAnimationFrame(scanQRCodeFromVideo)
   }
+  scanQRCodeFromVideoRef.current = scanQRCodeFromVideo
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -221,9 +224,11 @@ export const WifiSyncModal: React.FC<WifiSyncModalProps> = ({
     setStatusMessage('Đang kiểm tra kết nối với máy tính...')
 
     try {
-      const pingResult = await pingSyncServer(config.ip, config.port)
-      const fullConfig = {
+      const pingResult = await pingSyncServer(config.ip, config.port, config.allIps)
+      const fullConfig: SyncServerConfig = {
         ...config,
+        ip: pingResult.activeIp || config.ip,
+        allIps: pingResult.allIps || config.allIps,
         name: pingResult.deviceName || config.name || 'MDaily Desktop'
       }
       setPairedServer(fullConfig)
@@ -231,7 +236,7 @@ export const WifiSyncModal: React.FC<WifiSyncModalProps> = ({
       setActiveTab('connected')
       setStatusMessage(`${t('paired_with', lang)}: ${fullConfig.name}`)
     } catch (err: any) {
-      setErrorMessage(t('sync_error', lang))
+      setErrorMessage(err?.message || t('sync_error', lang))
     } finally {
       setIsSyncing(false)
     }

@@ -59,8 +59,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, UNUserNotificationCente
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {}
-    func sceneDidBecomeActive(_ scene: UIScene) {}
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        NotificationCenter.default.post(name: UIApplication.didBecomeActiveNotification, object: nil)
+    }
     func sceneWillResignActive(_ scene: UIScene) {}
-    func sceneWillEnterForeground(_ scene: UIScene) {}
+    func sceneWillEnterForeground(_ scene: UIScene) {
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+    }
     func sceneDidEnterBackground(_ scene: UIScene) {}
 }

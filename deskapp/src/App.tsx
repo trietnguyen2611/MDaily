@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { MessageCircle, Sparkles, LayoutGrid, List } from 'lucide-react'
+import { Sparkles, LayoutGrid, List } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { AddExpense } from './components/AddExpense'
 import { Reports } from './components/Reports'

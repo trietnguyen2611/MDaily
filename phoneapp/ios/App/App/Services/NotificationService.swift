@@ -52,7 +52,7 @@ public final class NotificationService: @unchecked Sendable {
         
         var userInfo: [String: Any] = ["recurringId": recurring.id.uuidString]
         if let expenseId = recurring.linkedExpenseId {
-            userInfo["linkedExpenseId"] = expenseId.uuidString
+            userInfo["linkedExpenseId"] = expenseId
         }
         content.userInfo = userInfo
 

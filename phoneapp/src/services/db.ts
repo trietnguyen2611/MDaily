@@ -17,7 +17,9 @@ export const getDeletedExpenseIds = (): string[] => {
 }
 
 export const saveDeletedExpenseIds = (ids: string[]) => {
-  localStorage.setItem(DELETED_IDS_KEY, JSON.stringify([...new Set(ids)]))
+  const unique = [...new Set(ids)]
+  const trimmed = unique.slice(-1000)
+  localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(trimmed))
 }
 
 const removeDeletedExpenseId = (id: string) => {
@@ -42,9 +44,13 @@ export const getExpenses = async (): Promise<Expense[]> => {
 
 export const saveExpense = async (expense: Expense): Promise<Expense[]> => {
   const expenses = await getExpenses()
-  expenses.unshift(expense) // newest first
+  const toSave: Expense = {
+    ...expense,
+    updatedAt: expense.updatedAt || Date.now()
+  }
+  expenses.unshift(toSave) // newest first
   await localforage.setItem(DB_KEY, expenses)
-  removeDeletedExpenseId(expense.id)
+  removeDeletedExpenseId(toSave.id)
   notifyExpenseMutation()
   return expenses
 }
@@ -60,9 +66,13 @@ export const deleteExpense = async (id: string): Promise<Expense[]> => {
 
 export const updateExpense = async (updatedExpense: Expense): Promise<Expense[]> => {
   const expenses = await getExpenses()
-  const updatedList = expenses.map(e => e.id === updatedExpense.id ? updatedExpense : e)
+  const toUpdate: Expense = {
+    ...updatedExpense,
+    updatedAt: Date.now()
+  }
+  const updatedList = expenses.map(e => e.id === toUpdate.id ? toUpdate : e)
   await localforage.setItem(DB_KEY, updatedList)
-  removeDeletedExpenseId(updatedExpense.id)
+  removeDeletedExpenseId(toUpdate.id)
   notifyExpenseMutation()
   return updatedList
 }
