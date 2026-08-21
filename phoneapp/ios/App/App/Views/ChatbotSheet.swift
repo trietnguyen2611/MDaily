@@ -4,11 +4,13 @@ public struct ChatMessageSwift: Identifiable, Sendable {
     public let id: String
     public let role: String
     public var content: String
+    public var animate: Bool
 
-    public init(id: String = UUID().uuidString, role: String, content: String) {
+    public init(id: String = UUID().uuidString, role: String, content: String, animate: Bool = false) {
         self.id = id
         self.role = role
         self.content = content
+        self.animate = animate
     }
 }
 
@@ -34,7 +36,7 @@ public struct ChatbotSheet: View {
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
                         LazyVStack(spacing: 12) {
-                            ForEach(store.chatMessages) { msg in
+                            ForEach($store.chatMessages) { $msg in
                                 HStack {
                                     if msg.role == "user" {
                                         Spacer()
@@ -79,7 +81,7 @@ public struct ChatbotSheet: View {
                                                 .padding(.vertical, 10)
                                                 .liquidGlass(cornerRadius: 18)
                                             } else {
-                                                TypewriterText(text: msg.content)
+                                                TypewriterText(message: $msg)
                                                     .font(.appFont(size: 15, weight: .regular))
                                                     .foregroundColor(.primary)
                                                     .padding(.horizontal, 16)
@@ -160,7 +162,7 @@ public struct ChatbotSheet: View {
             : "Chào bạn! Tôi là trợ lý MDaily AI. Dữ liệu chi tiêu được phân tích hoàn toàn an toàn trên thiết bị của bạn. Bạn cần tư vấn hay thống kê tài chính gì hôm nay?"
 
         store.chatMessages = [
-            ChatMessageSwift(role: "assistant", content: initialGreeting)
+            ChatMessageSwift(role: "assistant", content: initialGreeting, animate: true)
         ]
     }
 
@@ -181,8 +183,10 @@ public struct ChatbotSheet: View {
         let isEn = store.language == .en
 
         Task {
+            let currentChatHistory = store.chatMessages
             let reply = await AFMService.shared.chatWithAI(
                 userMessage: userText,
+                chatHistory: currentChatHistory,
                 expenses: currentExpenses,
                 categories: currentCategories,
                 currencySymbol: currentSymbol,
@@ -192,7 +196,7 @@ public struct ChatbotSheet: View {
             await MainActor.run {
                 isLoading = false
                 if let lastIdx = store.chatMessages.indices.last {
-                    store.chatMessages[lastIdx] = ChatMessageSwift(role: "assistant", content: reply)
+                    store.chatMessages[lastIdx] = ChatMessageSwift(role: "assistant", content: reply, animate: true)
                 }
             }
         }
@@ -200,30 +204,31 @@ public struct ChatbotSheet: View {
 }
 
 public struct TypewriterText: View {
-    public let text: String
+    @Binding var message: ChatMessageSwift
     @State private var displayedText: String = ""
     @State private var isFinished: Bool = false
     
-    public init(text: String) {
-        self.text = text
-    }
-    
     public var body: some View {
-        Text(isFinished ? text : displayedText)
+        Text(isFinished || !message.animate ? message.content : displayedText)
+            .animation(.easeIn(duration: 0.1), value: displayedText)
             .onAppear {
-                if !isFinished {
+                if !message.animate {
+                    isFinished = true
+                } else if !isFinished {
                     typeText()
                 }
             }
-            .onChange(of: text) { _, _ in
-                displayedText = ""
-                isFinished = false
-                typeText()
+            .onChange(of: message.content) { _, _ in
+                if message.animate {
+                    displayedText = ""
+                    isFinished = false
+                    typeText()
+                }
             }
     }
     
     private func typeText() {
-        let characters = Array(text)
+        let characters = Array(message.content)
         var currentIndex = 0
         Timer.scheduledTimer(withTimeInterval: 0.015, repeats: true) { timer in
             DispatchQueue.main.async {
@@ -233,6 +238,7 @@ public struct TypewriterText: View {
                 } else {
                     isFinished = true
                     timer.invalidate()
+                    message.animate = false
                 }
             }
         }

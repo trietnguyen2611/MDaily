@@ -68,19 +68,48 @@ public final class AFMService: Sendable {
 
         // 4. Parse receipt
         if !textResult.isEmpty {
-            var parsed = parseReceiptText(lines: textResult)
-            if parsed.success {
-                // Ensure category is bills for invoices
-                if parsed.isInvoice || isReceiptImage {
-                    parsed = ExtractionResult(
-                        success: parsed.success,
-                        itemName: parsed.itemName,
-                        amount: parsed.amount,
-                        category: "bills",
-                        isInvoice: true
-                    )
+            var parsed: ExtractionResult? = nil
+            
+            #if canImport(FoundationModels)
+            if #available(iOS 26.0, *) {
+                let model = SystemLanguageModel.default
+                if model.isAvailable {
+                    let fullText = textResult.joined(separator: "\n")
+                    let instructions = "You are an expert receipt parser. Extract data from the following OCR text and return ONLY a valid JSON object. Do not include markdown formatting or backticks. Required keys: 'itemName' (string, name of store/merchant), 'amount' (number, total amount paid without currency symbols), 'category' (string, choose from: food, shopping, transport, bills, health, education, entertainment, other), 'isInvoice' (boolean)."
+                    let session = LanguageModelSession(instructions: instructions)
+                    if let response = try? await session.respond(to: fullText) {
+                        let jsonString = String(response.content).trimmingCharacters(in: .whitespacesAndNewlines)
+                        let cleanJson = jsonString.replacingOccurrences(of: "```json", with: "").replacingOccurrences(of: "```", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                        
+                        if let data = cleanJson.data(using: .utf8),
+                           let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                            let extractedAmount = dict["amount"] as? Double ?? Double("\(dict["amount"] ?? "")")
+                            parsed = ExtractionResult(
+                                success: true,
+                                itemName: dict["itemName"] as? String,
+                                amount: extractedAmount,
+                                category: dict["category"] as? String,
+                                isInvoice: (dict["isInvoice"] as? Bool) ?? true
+                            )
+                        }
+                    }
                 }
-                return parsed
+            }
+            #endif
+            
+            if parsed == nil || parsed?.success == false {
+                parsed = parseReceiptText(lines: textResult)
+            }
+            
+            if var finalParsed = parsed, finalParsed.success {
+                // Ensure category is bills for invoices if not specified by AI
+                if finalParsed.isInvoice || isReceiptImage {
+                    if finalParsed.category == nil {
+                        finalParsed.category = "bills"
+                    }
+                    finalParsed.isInvoice = true
+                }
+                return finalParsed
             }
         }
 
@@ -309,6 +338,7 @@ public final class AFMService: Sendable {
     // MARK: - On-Device Apple Foundation Model (AFM) Reasoning Engine
     public func chatWithAI(
         userMessage: String,
+        chatHistory: [ChatMessageSwift],
         expenses: [Expense],
         categories: [CategoryItem],
         currencySymbol: String,
@@ -385,8 +415,18 @@ public final class AFMService: Sendable {
                         ? "You are MDaily AI, a smart financial assistant. Keep your answers concise, natural, and friendly. Limit your responses to personal finance, budgeting, and the user's expense data. Decline out-of-scope questions like coding, math, or history. User's data context:\nTotal spend: \(formatMoney(totalSpend)). This month: \(formatMoney(thisMonthSpend)). Top category: \(topCategoryName) (\(formatMoney(topCategoryPair?.value ?? 0))).\n\n\(txListStr)"
                         : "Bạn là MDaily AI, trợ lý tài chính thông minh. Trả lời thân thiện, tự nhiên và ngắn gọn. Chỉ trả lời các câu hỏi liên quan đến tài chính, chi tiêu, ngân sách. Từ chối lịch sự các câu hỏi ngoài lề (như code, toán, lịch sử, làm thơ). Ngữ cảnh dữ liệu:\nTổng chi: \(formatMoney(totalSpend)). Tháng này: \(formatMoney(thisMonthSpend)). Danh mục nhiều nhất: \(topCategoryName) (\(formatMoney(topCategoryPair?.value ?? 0))).\n\n\(txListStr)"
                     
+                    let validHistory = chatHistory.dropLast(2).suffix(12)
+                    let historyContext = validHistory.map { msg in
+                        let roleName = msg.role == "user" ? (isEnglish ? "User" : "Người dùng") : "MDaily AI"
+                        return "\(roleName): \(msg.content)"
+                    }.joined(separator: "\n")
+                    
+                    let historyPrefix = historyContext.isEmpty ? "" : (isEnglish ? "Chat History:\n\(historyContext)\n\nCurrent user message: " : "Lịch sử chat:\n\(historyContext)\n\nTin nhắn hiện tại: ")
+                    
+                    let fullPrompt = "\(historyPrefix)\(prompt)"
+                    
                     let session = LanguageModelSession(instructions: instructions)
-                    let response = try await session.respond(to: prompt)
+                    let response = try await session.respond(to: fullPrompt)
                     return String(response.content)
                 } catch {
                     // Fall back to rule-based engine if model fails

@@ -435,19 +435,19 @@ public struct SplashScreenView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 20) {
-                // Icon
-                Image("Splash")
+                // Icon using new Logo asset
+                Image("Logo")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 120, height: 120)
-                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .frame(width: 180, height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 38, style: .continuous))
                     .shadow(color: Color.black.opacity(0.15), radius: 20, x: 0, y: 10)
                     .scaleEffect(isAnimating ? 1.0 : 0.6)
                     .opacity(isAnimating ? 1.0 : 0.0)
                 
                 // Text
                 Text("MDaily")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
                     .scaleEffect(isAnimating ? 1.0 : 0.8)
                     .opacity(isAnimating ? 1.0 : 0.0)
