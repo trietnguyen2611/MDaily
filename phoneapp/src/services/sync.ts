@@ -273,6 +273,7 @@ let autoSyncTimer: any = null
 let activeEventSource: EventSource | null = null
 let reconnectTimer: any = null
 let reconnectDelay = 2000
+let autoSyncInFlight: Promise<void> | null = null
 
 export function triggerAutoSync(delay = 250) {
   const config = getLastSyncServer()
@@ -280,11 +281,23 @@ export function triggerAutoSync(delay = 250) {
 
   if (autoSyncTimer) clearTimeout(autoSyncTimer)
   autoSyncTimer = setTimeout(async () => {
+    if (autoSyncInFlight) return
+
+    autoSyncInFlight = (async () => {
+      try {
+        await performTwoWayMerge(config)
+        console.log('[MDaily Auto-Sync] Background 2-way sync completed')
+      } catch (err) {
+        console.warn('[MDaily Auto-Sync] Skipped (Desktop may be offline):', err)
+      } finally {
+        autoSyncInFlight = null
+      }
+    })()
+
     try {
-      await performTwoWayMerge(config)
-      console.log('[MDaily Auto-Sync] Background 2-way sync completed')
-    } catch (err) {
-      console.warn('[MDaily Auto-Sync] Skipped (Desktop may be offline):', err)
+      await autoSyncInFlight
+    } finally {
+      autoSyncInFlight = null
     }
   }, delay)
 }
@@ -317,13 +330,14 @@ export function startRealtimeSyncListener(): () => void {
       es.onopen = () => {
         reconnectDelay = 2000
         console.log('[MDaily SSE] Connected to Desktop Sync Stream')
+        triggerAutoSync(0)
       }
 
       es.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data)
-          if (payload.event === 'data_changed') {
-            console.log('[MDaily SSE] Change detected on Desktop, merging in background...')
+          if (payload.event === 'data_changed' || payload.event === 'connected') {
+            console.log(`[MDaily SSE] ${payload.event === 'connected' ? 'Connection restored' : 'Change detected'}, merging in background...`)
             triggerAutoSync(50)
           }
         } catch (err) {
