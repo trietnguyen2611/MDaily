@@ -111,8 +111,9 @@ export async function mergeExpensesAndCategories(
     saveExpensesBatch(mergedExpenses),
     saveCategoriesBatch(mergedCategories)
   ])
-  saveDeletedExpenseIds(Array.from(deletedExpenseIds))
-  saveDeletedCategoryValues(Array.from(deletedCategoryValues))
+  // Bug Fix: Union với existing ids thay vì replace để không mất deletedIds khi Deskapp đóng và phone sync lại
+  saveDeletedExpenseIds([...new Set([...getDeletedExpenseIds(), ...Array.from(deletedExpenseIds)])])
+  saveDeletedCategoryValues([...new Set([...getDeletedCategoryValues(), ...Array.from(deletedCategoryValues)])])
 
   // Dispatch event so UI instantly updates
   window.dispatchEvent(new CustomEvent('mdaily_data_synced', {
@@ -160,8 +161,9 @@ export function initDeskappSyncBridge() {
           await saveCategoriesBatch(categories)
         }
         await saveExpensesBatch(expenses)
-        saveDeletedExpenseIds(deletedExpenseIds)
-        saveDeletedCategoryValues(deletedCategoryValues)
+        // Bug Fix: Union thay vì replace — giữ lại deletedIds của Deskapp (có thể có ids mà phone chưa biết)
+        saveDeletedExpenseIds([...new Set([...getDeletedExpenseIds(), ...deletedExpenseIds])])
+        saveDeletedCategoryValues([...new Set([...getDeletedCategoryValues(), ...deletedCategoryValues])])
         window.dispatchEvent(new CustomEvent('mdaily_data_synced', {
           detail: { expenses, categories }
         }))

@@ -143,13 +143,14 @@ export async function performTwoWayMerge(config: SyncServerConfig): Promise<Sync
         await saveExpensesBatch(data.expenses)
       }
       if (data.deletedExpenseIds) {
-        saveDeletedExpenseIds(data.deletedExpenseIds)
+        // Bug Fix: Union với local ids để không mất tracking các expense đã xoá offline
+        saveDeletedExpenseIds([...new Set([...getDeletedExpenseIds(), ...data.deletedExpenseIds])])
       }
       if (data.categories) {
         await saveCategoriesBatch(data.categories)
       }
       if (data.deletedCategoryValues) {
-        saveDeletedCategoryValues(data.deletedCategoryValues)
+        saveDeletedCategoryValues([...new Set([...getDeletedCategoryValues(), ...data.deletedCategoryValues])])
       }
 
       saveLastSyncServer({
@@ -243,13 +244,14 @@ export async function performPullFromDesktop(config: SyncServerConfig): Promise<
     await saveExpensesBatch(data.expenses)
   }
   if (data.deletedExpenseIds) {
-    saveDeletedExpenseIds(data.deletedExpenseIds)
+    // Bug Fix: Union với local ids để không mất tracking các expense đã xoá khi offline
+    saveDeletedExpenseIds([...new Set([...getDeletedExpenseIds(), ...data.deletedExpenseIds])])
   }
   if (data.categories) {
     await saveCategoriesBatch(data.categories)
   }
   if (data.deletedCategoryValues) {
-    saveDeletedCategoryValues(data.deletedCategoryValues)
+    saveDeletedCategoryValues([...new Set([...getDeletedCategoryValues(), ...data.deletedCategoryValues])])
   }
 
   saveLastSyncServer(config)
