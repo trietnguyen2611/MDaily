@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, nativeTheme } from 'electron'
+import { app, BrowserWindow, ipcMain, nativeTheme, dialog } from 'electron'
 import { spawn } from 'node:child_process'
 import http from 'node:http'
 import os from 'node:os'
@@ -19,6 +19,11 @@ let syncPort = 18321
 let syncToken = ''
 let syncServer: http.Server | null = null
 let syncServerActive = false
+const syncRequestInterval = setInterval(() => {
+  if (syncServerActive) {
+    broadcastSyncEvent('sync_requested', { source: 'desktop_interval' })
+  }
+}, 1000)
 const sseClients = new Set<http.ServerResponse>()
 
 function getSyncSettingsPath(): string {
@@ -225,6 +230,7 @@ function startSyncServer(portToTry = 18321) {
       })
       res.write(`data: ${JSON.stringify({ event: 'connected', timestamp: Date.now() })}\n\n`)
       sseClients.add(res)
+      res.write(`data: ${JSON.stringify({ event: 'sync_requested', timestamp: Date.now() })}\n\n`)
 
       req.on('close', () => {
         sseClients.delete(res)
@@ -452,9 +458,6 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-  if (!syncServer || !syncServerActive) {
-    startSyncServer()
-  }
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
@@ -463,7 +466,6 @@ app.on('activate', () => {
 app.whenReady().then(() => {
   loadSyncToken()
   saveSyncToken()
-  startSyncServer()
   createWindow()
 })
 
@@ -511,9 +513,75 @@ ipcMain.handle('refresh-sync-token', () => {
   return info
 })
 
+ipcMain.handle('choose-cloud-sync-file', async () => {
+  const result = await dialog.showOpenDialog(win || undefined, {
+    title: 'Choose MDaily iCloud sync file',
+    properties: ['openFile', 'createDirectory'],
+    filters: [{ name: 'MDaily Sync File', extensions: ['json'] }]
+  })
+  if (result.canceled || result.filePaths.length === 0) return { configured: false }
+  const filePath = result.filePaths[0]
+  fs.writeFileSync(path.join(app.getPath('userData'), 'cloud-sync-path.json'), JSON.stringify({ filePath }))
+  return { configured: true, name: path.basename(filePath) }
+})
+
+function getDefaultCloudSyncPath() {
+  if (process.platform === 'darwin') {
+    return path.join(os.homedir(), 'Library/Mobile Documents/com~apple~CloudDocs/MDaily.sync.json')
+  } else if (process.platform === 'win32') {
+    const winPath1 = path.join(os.homedir(), 'iCloudDrive', 'MDaily.sync.json')
+    if (fs.existsSync(path.dirname(winPath1))) return winPath1
+    return path.join(os.homedir(), 'iCloud Drive', 'MDaily.sync.json')
+  }
+  return path.join(os.homedir(), 'MDaily.sync.json')
+}
+
+function ensureDefaultCloudSyncFile() {
+  const filePath = getDefaultCloudSyncPath()
+  try {
+    if (fs.existsSync(path.dirname(filePath))) {
+      if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, JSON.stringify({ version: 1, updatedAt: Date.now(), expenses: [], categories: [], deletedExpenseIds: [], deletedCategoryValues: [] }), 'utf8')
+      fs.writeFileSync(path.join(app.getPath('userData'), 'cloud-sync-path.json'), JSON.stringify({ filePath }))
+      return filePath
+    }
+  } catch (error) {
+    console.warn('[MDaily Cloud Sync] Could not create default iCloud file:', error)
+  }
+  return null
+}
+
+ipcMain.handle('read-cloud-sync-file', () => {
+  try {
+    const settingsPath = path.join(app.getPath('userData'), 'cloud-sync-path.json')
+    if (!fs.existsSync(settingsPath)) ensureDefaultCloudSyncFile()
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'))
+    return {
+      configured: true,
+      contents: fs.readFileSync(settings.filePath, 'utf8'),
+      name: path.basename(settings.filePath)
+    }
+  } catch {
+    return { configured: false }
+  }
+})
+
+ipcMain.handle('write-cloud-sync-file', (_event, contents: string) => {
+  try {
+    const settings = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'cloud-sync-path.json'), 'utf8'))
+    fs.writeFileSync(settings.filePath, contents, 'utf8')
+    return { configured: true, success: true }
+  } catch {
+    return { configured: false, success: false }
+  }
+})
+
 // Broadcast data mutation event to mobile clients
 ipcMain.on('broadcast-sync-event', (_event, data) => {
   broadcastSyncEvent('data_changed', data)
+})
+
+ipcMain.on('request-sync-now', () => {
+  broadcastSyncEvent('sync_requested', { source: 'desktop_manual' })
 })
 
 // Renderer sends back response for a pending sync request

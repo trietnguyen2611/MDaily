@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Sparkles, LayoutGrid, List } from 'lucide-react'
+import { Sparkles, LayoutGrid, List, RefreshCw } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { AddExpense } from './components/AddExpense'
 import { Reports } from './components/Reports'
@@ -13,7 +13,9 @@ import { getExpenses, saveExpense, deleteExpense, updateExpense } from './servic
 import { getCategories, addCategory, deleteCategory, updateCategory, categoriesToSelectOptions } from './services/categories'
 import { getLanguage, getCurrency, t } from './services/i18n'
 import type { Language, Currency } from './services/i18n'
-import { initDeskappSyncBridge } from './services/sync'
+import { initDeskappSyncBridge, requestDeskappSync } from './services/sync'
+import { syncLocalDataWithCloudFile, triggerCloudSync } from './services/cloudFileSync'
+import { getEffectiveDarkMode, getThemeMode, type ThemeMode } from './services/theme'
 import type { CategoryItem } from './services/categories'
 import type { Expense } from './types'
 import './App.css'
@@ -31,6 +33,9 @@ function App() {
   const [isAiAvailable, setIsAiAvailable] = useState(false)
   const [autoExtractEnabled, setAutoExtractEnabledState] = useState(getAutoExtractEnabled())
   const [aiChatEnabled, setAiChatEnabledState] = useState(getAiChatEnabled())
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(getThemeMode())
+  const [isDarkMode, setIsDarkMode] = useState(() => getEffectiveDarkMode(getThemeMode()))
   
   // Language & Currency state
   const [lang, setLang] = useState<Language>(getLanguage())
@@ -61,6 +66,38 @@ function App() {
   // Initialize Desktop Sync IPC listener on mount
   useEffect(() => {
     initDeskappSyncBridge()
+    void syncLocalDataWithCloudFile().catch(error => console.warn('[MDaily Cloud Sync]', error))
+
+    const handleLocalExpenseChange = () => {
+      triggerCloudSync()
+    }
+    window.addEventListener('mdaily_expense_changed', handleLocalExpenseChange)
+    return () => {
+      window.removeEventListener('mdaily_expense_changed', handleLocalExpenseChange)
+    }
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode === 'system' ? (isDarkMode ? 'dark' : 'light') : themeMode
+    document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light'
+  }, [isDarkMode, themeMode])
+
+  useEffect(() => {
+    const handleThemeChanged = () => {
+      const nextMode = getThemeMode()
+      setThemeModeState(nextMode)
+      setIsDarkMode(getEffectiveDarkMode(nextMode))
+    }
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleSystemThemeChanged = () => {
+      if (getThemeMode() === 'system') setIsDarkMode(mediaQuery.matches)
+    }
+    window.addEventListener('mdaily_theme_change', handleThemeChanged)
+    mediaQuery.addEventListener('change', handleSystemThemeChanged)
+    return () => {
+      window.removeEventListener('mdaily_theme_change', handleThemeChanged)
+      mediaQuery.removeEventListener('change', handleSystemThemeChanged)
+    }
   }, [])
 
   useEffect(() => {
@@ -81,6 +118,13 @@ function App() {
   useEffect(() => {
     reloadData()
   }, [reloadData])
+
+  const handleManualSync = () => {
+    if (isSyncing) return
+    setIsSyncing(true)
+    requestDeskappSync()
+    window.setTimeout(() => setIsSyncing(false), 1200)
+  }
 
   const handleSaveExpense = async (newExpenseData: Omit<Expense, 'id' | 'date'>) => {
     const expense: Expense = {
@@ -210,6 +254,15 @@ function App() {
           <div className="top-bar-right">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             <div className="top-actions">
+              <button
+                className={`circular-btn sync-btn ${isSyncing ? 'syncing' : ''}`}
+                onClick={handleManualSync}
+                title={lang === 'vi' ? 'Đồng bộ ngay' : 'Sync now'}
+                aria-label={lang === 'vi' ? 'Đồng bộ ngay' : 'Sync now'}
+                disabled={isSyncing}
+              >
+                <RefreshCw size={20} />
+              </button>
               {isAiAvailable && aiChatEnabled && (
                 <button
                   className="circular-btn"

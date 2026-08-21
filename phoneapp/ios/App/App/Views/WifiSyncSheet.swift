@@ -11,7 +11,7 @@ public enum SyncTab: String, CaseIterable, Identifiable {
 @MainActor
 public struct WifiSyncSheet: View {
     @ObservedObject public var store: ExpenseStore
-    @ObservedObject public var syncService = WifiSyncService.shared
+    @ObservedObject public var syncService: WifiSyncService
     public var onClose: () -> Void
 
     @State private var selectedTab: SyncTab = .scan

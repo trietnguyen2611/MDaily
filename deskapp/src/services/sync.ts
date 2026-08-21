@@ -1,7 +1,13 @@
-import { getExpenses, saveExpensesBatch, getDeletedExpenseIds, saveDeletedExpenseIds } from './db'
+import { getExpenses, saveExpensesBatch, removeExpensesByIds, getDeletedExpenseIds, saveDeletedExpenseIds } from './db'
 import { getCategories, saveCategoriesBatch, getDeletedCategoryValues, saveDeletedCategoryValues } from './categories'
 import type { Expense } from '../types'
 import type { CategoryItem } from './categories'
+import { syncLocalDataWithCloudFile } from './cloudFileSync'
+
+export function requestDeskappSync() {
+  window.ipcRenderer?.send('request-sync-now')
+  void syncLocalDataWithCloudFile().catch(error => console.warn('[MDaily Cloud Sync]', error))
+}
 
 export interface SyncStats {
   added: number
@@ -106,14 +112,19 @@ export async function mergeExpensesAndCategories(
     return new Date(b.date).getTime() - new Date(a.date).getTime()
   })
 
+  const mergedDeletedExpenseIds = [...new Set([...getDeletedExpenseIds(), ...Array.from(deletedExpenseIds)])]
+  const mergedDeletedCategoryValues = [...new Set([...getDeletedCategoryValues(), ...Array.from(deletedCategoryValues)])]
+
+  // Persist tombstones before the batch write so deleted records cannot be restored by a concurrent merge.
+  saveDeletedExpenseIds(mergedDeletedExpenseIds)
+  saveDeletedCategoryValues(mergedDeletedCategoryValues)
+
   // Persist merged data
   await Promise.all([
     saveExpensesBatch(mergedExpenses),
     saveCategoriesBatch(mergedCategories)
   ])
-  // Bug Fix: Union với existing ids thay vì replace để không mất deletedIds khi Deskapp đóng và phone sync lại
-  saveDeletedExpenseIds([...new Set([...getDeletedExpenseIds(), ...Array.from(deletedExpenseIds)])])
-  saveDeletedCategoryValues([...new Set([...getDeletedCategoryValues(), ...Array.from(deletedCategoryValues)])])
+  await removeExpensesByIds(Array.from(deletedExpenseIds))
 
   // Dispatch event so UI instantly updates
   window.dispatchEvent(new CustomEvent('mdaily_data_synced', {
@@ -123,8 +134,8 @@ export async function mergeExpensesAndCategories(
   return {
     mergedExpenses,
     mergedCategories,
-    deletedExpenseIds: Array.from(deletedExpenseIds),
-    deletedCategoryValues: Array.from(deletedCategoryValues),
+    deletedExpenseIds: mergedDeletedExpenseIds,
+    deletedCategoryValues: mergedDeletedCategoryValues,
     stats: {
       added,
       updated,

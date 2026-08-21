@@ -84,6 +84,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 /* MDaily AI Liquid Glass Button */
@@ -193,6 +195,21 @@
 
 .circular-btn:active {
   transform: scale(0.94);
+}
+
+.circular-btn.syncing svg {
+  animation: sync-spin 0.8s linear infinite;
+}
+
+.manual-sync-btn {
+  flex: 0 0 42px;
+  background: #007aff;
+  color: #ffffff;
+  border-color: transparent;
+}
+
+@keyframes sync-spin {
+  to { transform: rotate(360deg); }
 }
 
 /* Filters — System Liquid Glass Pills */

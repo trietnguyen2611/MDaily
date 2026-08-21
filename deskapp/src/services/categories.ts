@@ -39,6 +39,7 @@ const notifyDeskappMutation = () => {
     if (ipc) {
       ipc.send('broadcast-sync-event', { type: 'category_changed', timestamp: Date.now() })
     }
+    window.dispatchEvent(new CustomEvent('mdaily_expense_changed'))
   }
 }
 

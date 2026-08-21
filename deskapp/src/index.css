@@ -58,7 +58,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --ink: #ffffff;
     --body-text: #ffffff;
     --body-muted: #a1a1a6;
@@ -74,6 +74,22 @@
     --surface-chip-translucent: rgba(60, 60, 65, 0.64);
     --shadow-product: none;
   }
+}
+
+:root[data-theme="dark"] {
+  --ink: #ffffff;
+  --body-text: #ffffff;
+  --body-muted: #a1a1a6;
+  --divider-soft: rgba(255, 255, 255, 0.1);
+  --hairline: rgba(255, 255, 255, 0.15);
+  --canvas: rgba(30, 30, 30, 0.3);
+  --canvas-parchment: transparent;
+  --surface-pearl: rgba(40, 40, 40, 0.4);
+  --surface-tile-1: #272729;
+  --surface-tile-2: #2a2a2c;
+  --surface-tile-3: #252527;
+  --surface-chip-translucent: rgba(60, 60, 65, 0.64);
+  --shadow-product: none;
 }
 
 

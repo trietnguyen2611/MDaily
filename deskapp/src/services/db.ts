@@ -16,6 +16,7 @@ const notifyDeskappMutation = () => {
     if (ipc) {
       ipc.send('broadcast-sync-event', { type: 'expense_changed', timestamp: Date.now() })
     }
+    window.dispatchEvent(new CustomEvent('mdaily_expense_changed'))
   }
 }
 
@@ -84,8 +85,18 @@ export const updateExpense = async (updatedExpense: Expense): Promise<Expense[]>
 }
 
 export const saveExpensesBatch = async (newExpenses: Expense[]): Promise<Expense[]> => {
-  await localforage.setItem(DB_KEY, newExpenses)
-  return newExpenses
+  const deletedIds = new Set(getDeletedExpenseIds())
+  const filteredExpenses = newExpenses.filter(expense => !deletedIds.has(expense.id))
+  await localforage.setItem(DB_KEY, filteredExpenses)
+  return filteredExpenses
+}
+
+export const removeExpensesByIds = async (ids: string[]): Promise<Expense[]> => {
+  if (ids.length === 0) return getExpenses()
+  const deletedIds = new Set(ids)
+  const remaining = (await getExpenses()).filter(expense => !deletedIds.has(expense.id))
+  await localforage.setItem(DB_KEY, remaining)
+  return remaining
 }
 
 export const clearExpenses = async () => {

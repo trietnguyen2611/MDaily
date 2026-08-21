@@ -11,12 +11,11 @@ import {
   ScanLine,
   MessageCircle,
   Wifi,
-  QrCode,
-  Copy,
   Languages,
-  CheckCircle2
+  CheckCircle2,
+  Sun,
+  Cloud
 } from 'lucide-react'
-import QRCode from 'qrcode'
 import { clearExpenses } from '../services/db'
 import {
   getCustomAiUrl,
@@ -38,9 +37,10 @@ import {
 import type { Language, Currency } from '../services/i18n'
 import { CustomSelect } from './CustomSelect'
 import type { SelectOption } from './CustomSelect'
-import type { SyncServerInfo } from '../electron'
 import { APP_NAME, APP_VERSION_LABEL } from '../constants'
+import { getThemeMode, setThemeMode, type ThemeMode } from '../services/theme'
 import './SettingsPage.css'
+import { chooseCloudSyncFile, getCloudSyncFileName } from '../services/cloudFileSync'
 
 const CURRENCY_OPTIONS: SelectOption[] = [
   { value: 'vnd', label: 'VNĐ (₫)' },
@@ -76,88 +76,26 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [aiAvailable, setAiAvailable] = useState(false)
   const [autoExtract, setAutoExtract] = useState(getAutoExtractEnabled())
   const [aiChatOn, setAiChatOn] = useState(getAiChatEnabled())
+  const [cloudFileName, setCloudFileName] = useState('')
+  const [themeMode, setThemeModeState] = useState<ThemeMode>(getThemeMode())
 
-  // Wi-Fi Sync State
-  const [syncInfo, setSyncInfo] = useState<SyncServerInfo | null>(null)
-  const [qrDataUrl, setQrDataUrl] = useState<string>('')
-  const [copiedNotice, setCopiedNotice] = useState(false)
-  const [syncEventNotice, setSyncEventNotice] = useState<string | null>(null)
+  const themeOptions: SelectOption[] = [
+    { value: 'system', label: t('theme_system', currentLang) },
+    { value: 'light', label: t('theme_light', currentLang) },
+    { value: 'dark', label: t('theme_dark', currentLang) }
+  ]
+
 
   useEffect(() => {
     const saved = getCustomAiUrl()
     if (saved) setAiUrl(saved)
     else setAiUrl('http://127.0.0.1:1337/v1')
+
+    getCloudSyncFileName().then(name => {
+      if (name) setCloudFileName(name)
+    })
   }, [])
 
-  // Load sync server info on mount
-  useEffect(() => {
-    if (window.ipcRenderer) {
-      window.ipcRenderer.invoke('get-sync-server-info').then((info: SyncServerInfo) => {
-        if (info) {
-          setSyncInfo(info)
-          generateQr(info.qrPayload)
-        }
-      }).catch(console.error)
-
-      const handleServerStatus = (_event: any, info: SyncServerInfo) => {
-        const payload = info || _event
-        if (payload && payload.qrPayload) {
-          setSyncInfo(payload)
-          generateQr(payload.qrPayload)
-        }
-      }
-
-      const handleSyncEvent = (_event: any, eventData: any) => {
-        const data = eventData || _event
-        if (data && data.message) {
-          setSyncEventNotice(data.message)
-          setTimeout(() => setSyncEventNotice(null), 6000)
-        }
-      }
-
-      window.ipcRenderer.on('sync-server-status-changed', handleServerStatus)
-      window.ipcRenderer.on('sync-event-notification', handleSyncEvent)
-
-      return () => {
-        window.ipcRenderer?.removeListener('sync-server-status-changed', handleServerStatus)
-        window.ipcRenderer?.removeListener('sync-event-notification', handleSyncEvent)
-      }
-    }
-  }, [])
-
-  const generateQr = async (payloadText: string) => {
-    try {
-      const url = await QRCode.toDataURL(payloadText, {
-        width: 220,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#ffffff'
-        }
-      })
-      setQrDataUrl(url)
-    } catch (err) {
-      console.error('Failed to generate QR Code', err)
-    }
-  }
-
-  const handleRefreshToken = async () => {
-    if (window.ipcRenderer) {
-      const info = await window.ipcRenderer.invoke('refresh-sync-token')
-      if (info) {
-        setSyncInfo(info)
-        generateQr(info.qrPayload)
-      }
-    }
-  }
-
-  const handleCopyIpPort = () => {
-    if (!syncInfo) return
-    const textToCopy = `${syncInfo.ip}:${syncInfo.port}`
-    navigator.clipboard.writeText(textToCopy)
-    setCopiedNotice(true)
-    setTimeout(() => setCopiedNotice(false), 2000)
-  }
 
   useEffect(() => {
     if (aiUrl && !isAiUrlDirty) {
@@ -189,6 +127,18 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     setCurrentCurrency(c)
     setCurrency(c)
     notifySettingsChanged()
+  }
+
+  const handleThemeChange = (newTheme: string) => {
+    const mode = newTheme as ThemeMode
+    setThemeModeState(mode)
+    setThemeMode(mode)
+    window.dispatchEvent(new CustomEvent('mdaily_theme_change'))
+  }
+
+  const handleChooseCloudFile = async () => {
+    const result = await chooseCloudSyncFile()
+    if (result?.configured) setCloudFileName(result.name || t('choose_sync_file', currentLang))
   }
 
   const handleCheckConnection = async (urlToCheck: string) => {
@@ -236,86 +186,20 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   return (
     <div className="settings-container">
-      {/* 1. Wi-Fi Sync Server & QR Code Section */}
       <div className="settings-section">
-        <h3>{t('wifi_sync', currentLang)}</h3>
+        <h3>{t('cloud_sync', currentLang)}</h3>
         <div className="settings-group">
-          <div className="sync-server-card">
-            <div className="sync-server-header">
-              <div className="settings-item-left">
-                <div className="settings-icon-wrapper wifi-icon">
-                  <Wifi size={18} />
-                </div>
-                <div className="settings-item-info">
-                  <span className="settings-item-label">{t('sync_server_running', currentLang)}</span>
-                  <span className="settings-item-desc">
-                    {syncInfo ? `${syncInfo.ip}:${syncInfo.port}` : t('sync_ready_waiting', currentLang)}
-                  </span>
-                </div>
+          <div className="settings-item">
+            <div className="settings-item-left">
+              <div className="settings-icon-wrapper" style={{ background: 'linear-gradient(135deg, #5e5ce6, #af52de)' }}>
+                <Cloud size={18} />
               </div>
-
-              <span className="settings-badge success-badge">
-                <Check size={14} /> Sẵn sàng kết nối
-              </span>
-            </div>
-
-            <div className="sync-qr-container-row">
-              {/* QR Code Canvas Frame */}
-              <div className="sync-qr-frame">
-                {qrDataUrl ? (
-                  <img src={qrDataUrl} alt="QR Code Đồng bộ MDaily" className="sync-qr-image" />
-                ) : (
-                  <div className="sync-qr-placeholder">
-                    <QrCode size={48} className="spinner" />
-                  </div>
-                )}
-              </div>
-
-              {/* Instructions & Parameters */}
-              <div className="sync-details-col">
-                <p className="sync-qr-desc-text">
-                  {t('sync_qr_instruction', currentLang)}
-                </p>
-
-                <div className="sync-credentials-grid">
-                  <div className="sync-cred-item">
-                    <span className="sync-cred-label">{t('sync_server_ip', currentLang)}</span>
-                    <div className="sync-cred-val-row">
-                      <strong className="sync-code-text">{syncInfo?.ip || '127.0.0.1'}</strong>
-                    </div>
-                  </div>
-
-                  <div className="sync-cred-item">
-                    <span className="sync-cred-label">{t('sync_server_port', currentLang)}</span>
-                    <strong className="sync-code-text">{syncInfo?.port || 18321}</strong>
-                  </div>
-
-                  <div className="sync-cred-item">
-                    <span className="sync-cred-label">{t('sync_server_pin', currentLang)}</span>
-                    <strong className="sync-code-text pin-highlight">{syncInfo?.token || '------'}</strong>
-                  </div>
-                </div>
-
-                <div className="sync-actions-toolbar">
-                  <button className="btn-utility" onClick={handleCopyIpPort}>
-                    <Copy size={15} />
-                    <span>{copiedNotice ? 'Đã sao chép!' : t('sync_copy_ip', currentLang)}</span>
-                  </button>
-
-                  <button className="btn-utility" onClick={handleRefreshToken} title={t('sync_refresh_token', currentLang)}>
-                    <RefreshCw size={15} />
-                    <span>{t('sync_refresh_token', currentLang)}</span>
-                  </button>
-                </div>
-
-                {syncEventNotice && (
-                  <div className="sync-live-event-toast">
-                    <CheckCircle2 size={16} />
-                    <span>{syncEventNotice}</span>
-                  </div>
-                )}
+              <div className="settings-item-info">
+                <span className="settings-item-label">{t('cloud_sync', currentLang)}</span>
+                <span className="settings-item-desc">{cloudFileName || t('cloud_sync_desc', currentLang)}</span>
               </div>
             </div>
+            <button className="btn-utility" onClick={handleChooseCloudFile}>{t('choose_sync_file', currentLang)}</button>
           </div>
         </div>
       </div>
@@ -435,6 +319,26 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       <div className="settings-section">
         <h3>{t('ui_options', currentLang)}</h3>
         <div className="settings-group">
+          {/* Language Selector */}
+          <div className="settings-item">
+            <div className="settings-item-left">
+              <div className="settings-icon-wrapper theme-icon">
+                <Sun size={18} />
+              </div>
+              <div className="settings-item-info">
+                <span className="settings-item-label">{t('theme_mode', currentLang)}</span>
+                <span className="settings-item-desc">{t('theme_mode_desc', currentLang)}</span>
+              </div>
+            </div>
+            <div style={{ width: 180 }}>
+              <CustomSelect
+                options={themeOptions}
+                value={themeMode}
+                onChange={handleThemeChange}
+              />
+            </div>
+          </div>
+
           {/* Language Selector */}
           <div className="settings-item">
             <div className="settings-item-left">

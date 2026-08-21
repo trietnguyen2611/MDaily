@@ -13,9 +13,13 @@ export interface AFMPluginInterface {
     engine?: string
     error?: string
   }>
+  chooseSyncFile(): Promise<{ configured: boolean; name?: string }>
+  ensureSyncFile(): Promise<{ configured: boolean; name?: string }>
+  readSyncFile(): Promise<{ configured: boolean; contents?: string; name?: string }>
+  writeSyncFile(options: { contents: string }): Promise<{ success: boolean; configured: boolean }>
 }
 
-const AFMPlugin = registerPlugin<AFMPluginInterface>('AFMPlugin')
+export const AFMPlugin = registerPlugin<AFMPluginInterface>('AFMPlugin')
 
 const SETTINGS_AI_URL_KEY = 'mdaily_ai_url'
 const SETTINGS_AUTO_EXTRACT_KEY = 'mdaily_auto_extract'

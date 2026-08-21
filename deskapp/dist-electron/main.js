@@ -1,6 +1,5 @@
-import { BrowserWindow as e, app as t, ipcMain as n, nativeTheme as r } from "electron";
-import { spawn as i } from "node:child_process";
-import a from "node:http";
+import { BrowserWindow as e, app as t, dialog as n, ipcMain as r, nativeTheme as i } from "electron";
+import { spawn as a } from "node:child_process";
 import o from "node:os";
 import s from "node:fs";
 import c from "node:path";
@@ -8,7 +7,11 @@ import { fileURLToPath as l } from "node:url";
 //#region electron/main.ts
 var u = c.dirname(l(import.meta.url));
 process.env.DIST = c.join(u, "../dist"), process.env.VITE_PUBLIC = t.isPackaged ? process.env.DIST : c.join(process.env.DIST, "../public");
-var d = null, f = process.env.VITE_DEV_SERVER_URL, p = 18321, m = "", h = null, g = !1, _ = /* @__PURE__ */ new Set();
+var d = null, f = process.env.VITE_DEV_SERVER_URL, p = 18321, m = "", h = null, g = !1;
+setInterval(() => {
+	g && T("sync_requested", { source: "desktop_interval" });
+}, 1e3);
+var _ = /* @__PURE__ */ new Set();
 function v() {
 	return c.join(t.getPath("appData"), "deskapp", "sync-server.json");
 }
@@ -92,213 +95,7 @@ setInterval(() => {
 	}
 }, 15e3);
 var E = /* @__PURE__ */ new Map();
-function D(e, t) {
-	return new Promise((n, r) => {
-		if (!d || d.isDestroyed()) return r(/* @__PURE__ */ Error("Window not available"));
-		let i = `sync_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, a = setTimeout(() => {
-			E.delete(i), r(/* @__PURE__ */ Error("Sync request to renderer timed out"));
-		}, 15e3);
-		E.set(i, {
-			resolve: n,
-			reject: r,
-			timeout: a
-		}), d.webContents.send("sync-bridge-request", {
-			requestId: i,
-			type: e,
-			payload: t
-		});
-	});
-}
-function O(e = 18321) {
-	if (h) try {
-		h.close();
-	} catch {}
-	let t = a.createServer(async (e, t) => {
-		if (t.setHeader("Access-Control-Allow-Origin", "*"), t.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS"), t.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-sync-token"), e.method === "OPTIONS") {
-			t.writeHead(204), t.end();
-			return;
-		}
-		let n = new URL(e.url || "/", `http://localhost:${p}`), r = n.pathname, i = (t) => {
-			let r = e.headers.authorization || "", i = r.startsWith("Bearer ") ? r.substring(7) : "", a = e.headers["x-sync-token"] || "", o = n.searchParams.get("token") || "";
-			return (i || a || o || t || "").trim().toUpperCase() === m.toUpperCase();
-		};
-		if ((r === "/api/ping" || r === "/api/sync/discover") && e.method === "GET") {
-			t.writeHead(200, {
-				"Content-Type": "application/json",
-				"Access-Control-Allow-Origin": "*"
-			}), t.end(JSON.stringify({
-				app: "MDaily",
-				version: "2.4.0",
-				deviceName: o.hostname(),
-				status: "ready",
-				port: p,
-				allIps: S(),
-				timestamp: Date.now()
-			}));
-			return;
-		}
-		if (r === "/api/sync/stream" && e.method === "GET") {
-			if (!i()) {
-				t.writeHead(401, {
-					"Content-Type": "application/json",
-					"Access-Control-Allow-Origin": "*"
-				}), t.end(JSON.stringify({
-					success: !1,
-					error: "Unauthorized: Invalid token"
-				}));
-				return;
-			}
-			t.writeHead(200, {
-				"Content-Type": "text/event-stream; charset=utf-8",
-				"Cache-Control": "no-cache, no-transform",
-				Connection: "keep-alive",
-				"X-Accel-Buffering": "no",
-				"Access-Control-Allow-Origin": "*"
-			}), t.write(`data: ${JSON.stringify({
-				event: "connected",
-				timestamp: Date.now()
-			})}\n\n`), _.add(t), e.on("close", () => {
-				_.delete(t);
-			});
-			return;
-		}
-		let a = async () => new Promise((t, n) => {
-			let r = "";
-			e.on("data", (e) => {
-				r += e.toString();
-			}), e.on("end", () => {
-				try {
-					t(r ? JSON.parse(r) : {});
-				} catch {
-					t({});
-				}
-			}), e.on("error", n);
-		});
-		try {
-			if (r === "/api/sync/pull" && e.method === "POST") {
-				if (!i((await a()).token)) {
-					t.writeHead(401, {
-						"Content-Type": "application/json",
-						"Access-Control-Allow-Origin": "*"
-					}), t.end(JSON.stringify({
-						success: !1,
-						error: "Unauthorized: Invalid token"
-					}));
-					return;
-				}
-				let e = await D("export");
-				d && !d.isDestroyed() && d.webContents.send("sync-event-notification", {
-					type: "pull",
-					source: "phone",
-					message: "Đã gửi dữ liệu chi tiêu sang Điện thoại",
-					timestamp: Date.now()
-				}), t.writeHead(200, {
-					"Content-Type": "application/json",
-					"Access-Control-Allow-Origin": "*"
-				}), t.end(JSON.stringify({
-					success: !0,
-					expenses: e.expenses || [],
-					categories: e.categories || [],
-					deletedExpenseIds: e.deletedExpenseIds || [],
-					deletedCategoryValues: e.deletedCategoryValues || [],
-					timestamp: Date.now()
-				}));
-				return;
-			}
-			if (r === "/api/sync/push" && e.method === "POST") {
-				let e = await a();
-				if (!i(e.token)) {
-					t.writeHead(401, {
-						"Content-Type": "application/json",
-						"Access-Control-Allow-Origin": "*"
-					}), t.end(JSON.stringify({
-						success: !1,
-						error: "Unauthorized: Invalid token"
-					}));
-					return;
-				}
-				let n = await D("import", {
-					expenses: e.expenses || [],
-					categories: e.categories || [],
-					deletedExpenseIds: e.deletedExpenseIds || [],
-					deletedCategoryValues: e.deletedCategoryValues || []
-				});
-				d && !d.isDestroyed() && d.webContents.send("sync-event-notification", {
-					type: "push",
-					source: "phone",
-					message: `Đã nhận ${e.expenses?.length || 0} chi tiêu từ Điện thoại`,
-					timestamp: Date.now()
-				}), T("data_changed", { source: "phone_push" }), t.writeHead(200, {
-					"Content-Type": "application/json",
-					"Access-Control-Allow-Origin": "*"
-				}), t.end(JSON.stringify({
-					success: !0,
-					count: e.expenses?.length || 0,
-					details: n,
-					timestamp: Date.now()
-				}));
-				return;
-			}
-			if (r === "/api/sync/merge" && e.method === "POST") {
-				let e = await a();
-				if (!i(e.token)) {
-					t.writeHead(401, {
-						"Content-Type": "application/json",
-						"Access-Control-Allow-Origin": "*"
-					}), t.end(JSON.stringify({
-						success: !1,
-						error: "Unauthorized: Invalid token"
-					}));
-					return;
-				}
-				let n = await D("merge", {
-					expenses: e.expenses || [],
-					categories: e.categories || [],
-					deletedExpenseIds: e.deletedExpenseIds || [],
-					deletedCategoryValues: e.deletedCategoryValues || []
-				}), r = n.stats || {
-					added: 0,
-					updated: 0
-				};
-				((r.added || 0) > 0 || (r.updated || 0) > 0) && d && !d.isDestroyed() && d.webContents.send("sync-event-notification", {
-					type: "merge",
-					source: "phone",
-					message: `Đã đồng bộ: +${r.added || 0} mới, ~${r.updated || 0} cập nhật`,
-					timestamp: Date.now()
-				}), t.writeHead(200, {
-					"Content-Type": "application/json",
-					"Access-Control-Allow-Origin": "*"
-				}), t.end(JSON.stringify({
-					success: !0,
-					expenses: n.expenses || [],
-					categories: n.categories || [],
-					deletedExpenseIds: n.deletedExpenseIds || [],
-					deletedCategoryValues: n.deletedCategoryValues || [],
-					timestamp: Date.now()
-				}));
-				return;
-			}
-			t.writeHead(404, {
-				"Content-Type": "application/json",
-				"Access-Control-Allow-Origin": "*"
-			}), t.end(JSON.stringify({ error: "Endpoint not found" }));
-		} catch (e) {
-			console.error("Sync Server Error:", e), t.writeHead(500, {
-				"Content-Type": "application/json",
-				"Access-Control-Allow-Origin": "*"
-			}), t.end(JSON.stringify({
-				success: !1,
-				error: e?.message || "Internal server error"
-			}));
-		}
-	});
-	t.listen(e, "0.0.0.0", () => {
-		p = e, g = !0, h = t, console.log(`[MDaily Sync Server] Running at http://${C()}:${p}`), d && !d.isDestroyed() && d.webContents.send("sync-server-status-changed", w());
-	}), t.on("error", (t) => {
-		t.code === "EADDRINUSE" ? (console.warn(`Port ${e} in use, trying ${e + 1}...`), O(e + 1)) : (console.error("[MDaily Sync Server Error]", t), g = !1, d && !d.isDestroyed() && d.webContents.send("sync-server-status-changed", w()));
-	});
-}
-function k() {
+function D() {
 	d = new e({
 		icon: t.isPackaged ? c.join(process.resourcesPath, "icon.icns") : c.join(process.env.VITE_PUBLIC, "icon.png"),
 		title: "MDaily Desktop v2.4",
@@ -321,8 +118,8 @@ function k() {
 		console.error(`[MDaily Renderer] Failed to load ${r}: ${t} ${n}`);
 	}), d.webContents.on("console-message", (e, t, n, r, i) => {
 		console.log(`[MDaily Renderer] ${i}:${r} ${n}`);
-	}), f ? d.loadURL(f) : d.loadFile(c.join(process.env.DIST, "index.html")), r.on("updated", () => {
-		d?.webContents.send("theme-changed", r.shouldUseDarkColors ? "dark" : "light");
+	}), f ? d.loadURL(f) : d.loadFile(c.join(process.env.DIST, "index.html")), i.on("updated", () => {
+		d?.webContents.send("theme-changed", i.shouldUseDarkColors ? "dark" : "light");
 	});
 }
 t.on("window-all-closed", () => {
@@ -336,36 +133,104 @@ t.on("window-all-closed", () => {
 		g = !1, t.quit(), d = null;
 	}
 }), t.on("activate", () => {
-	(!h || !g) && O(), e.getAllWindows().length === 0 && k();
+	e.getAllWindows().length === 0 && D();
 }), t.whenReady().then(() => {
-	y(), b(), O(), k();
-}), n.handle("analyze-receipt-native", async (e, n) => {
+	y(), b(), D();
+}), r.handle("analyze-receipt-native", async (e, n) => {
 	let r = t.isPackaged ? c.join(process.resourcesPath, "receipt-analyzer") : c.join(u, "../build/native/receipt-analyzer");
 	return s.existsSync(r) ? new Promise((e) => {
-		let t = i(r, [], { stdio: [
+		let t = a(r, [], { stdio: [
 			"pipe",
 			"pipe",
 			"ignore"
-		] }), a = "";
+		] }), i = "";
 		t.stdout.on("data", (e) => {
-			a += e.toString();
+			i += e.toString();
 		}), t.once("error", () => e(null)), t.once("close", () => {
 			try {
-				e(JSON.parse(a.trim()));
+				e(JSON.parse(i.trim()));
 			} catch {
 				e(null);
 			}
 		}), t.stdin.write(`${JSON.stringify({ imageBase64: n })}\n`), t.stdin.end();
 	}) : null;
-}), n.handle("get-sync-server-info", () => w()), n.handle("refresh-sync-token", () => {
+}), r.handle("get-sync-server-info", () => w()), r.handle("refresh-sync-token", () => {
 	m = x(), b();
 	let e = w();
 	return d && !d.isDestroyed() && d.webContents.send("sync-server-status-changed", e), e;
-}), n.on("broadcast-sync-event", (e, t) => {
+}), r.handle("choose-cloud-sync-file", async () => {
+	let e = await n.showOpenDialog(d || void 0, {
+		title: "Choose MDaily iCloud sync file",
+		properties: ["openFile", "createDirectory"],
+		filters: [{
+			name: "MDaily Sync File",
+			extensions: ["json"]
+		}]
+	});
+	if (e.canceled || e.filePaths.length === 0) return { configured: !1 };
+	let r = e.filePaths[0];
+	return s.writeFileSync(c.join(t.getPath("userData"), "cloud-sync-path.json"), JSON.stringify({ filePath: r })), {
+		configured: !0,
+		name: c.basename(r)
+	};
+});
+function O() {
+	if (process.platform === "darwin") return c.join(o.homedir(), "Library/Mobile Documents/com~apple~CloudDocs/MDaily.sync.json");
+	if (process.platform === "win32") {
+		let e = c.join(o.homedir(), "iCloudDrive", "MDaily.sync.json");
+		return s.existsSync(c.dirname(e)) ? e : c.join(o.homedir(), "iCloud Drive", "MDaily.sync.json");
+	}
+	return c.join(o.homedir(), "MDaily.sync.json");
+}
+function k() {
+	let e = O();
+	try {
+		if (s.existsSync(c.dirname(e))) return s.existsSync(e) || s.writeFileSync(e, JSON.stringify({
+			version: 1,
+			updatedAt: Date.now(),
+			expenses: [],
+			categories: [],
+			deletedExpenseIds: [],
+			deletedCategoryValues: []
+		}), "utf8"), s.writeFileSync(c.join(t.getPath("userData"), "cloud-sync-path.json"), JSON.stringify({ filePath: e })), e;
+	} catch (e) {
+		console.warn("[MDaily Cloud Sync] Could not create default iCloud file:", e);
+	}
+	return null;
+}
+r.handle("read-cloud-sync-file", () => {
+	try {
+		let e = c.join(t.getPath("userData"), "cloud-sync-path.json");
+		s.existsSync(e) || k();
+		let n = JSON.parse(s.readFileSync(e, "utf8"));
+		return {
+			configured: !0,
+			contents: s.readFileSync(n.filePath, "utf8"),
+			name: c.basename(n.filePath)
+		};
+	} catch {
+		return { configured: !1 };
+	}
+}), r.handle("write-cloud-sync-file", (e, n) => {
+	try {
+		let e = JSON.parse(s.readFileSync(c.join(t.getPath("userData"), "cloud-sync-path.json"), "utf8"));
+		return s.writeFileSync(e.filePath, n, "utf8"), {
+			configured: !0,
+			success: !0
+		};
+	} catch {
+		return {
+			configured: !1,
+			success: !1
+		};
+	}
+}), r.on("broadcast-sync-event", (e, t) => {
 	T("data_changed", t);
-}), n.on("sync-bridge-response", (e, { requestId: t, error: n, data: r }) => {
+}), r.on("request-sync-now", () => {
+	T("sync_requested", { source: "desktop_manual" });
+}), r.on("sync-bridge-response", (e, { requestId: t, error: n, data: r }) => {
 	let i = E.get(t);
 	i && (clearTimeout(i.timeout), E.delete(t), n ? i.reject(Error(n)) : i.resolve(r));
-}), n.handle("get-system-theme", () => r.shouldUseDarkColors ? "dark" : "light");
+}), r.handle("get-system-theme", () => i.shouldUseDarkColors ? "dark" : "light");
 //#endregion
 export {};

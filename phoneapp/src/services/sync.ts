@@ -1,5 +1,6 @@
-import { getExpenses, saveExpensesBatch, getDeletedExpenseIds, saveDeletedExpenseIds } from './db'
+import { getExpenses, saveExpensesBatch, removeExpensesByIds, getDeletedExpenseIds, saveDeletedExpenseIds } from './db'
 import { getCategories, saveCategoriesBatch, getDeletedCategoryValues, saveDeletedCategoryValues } from './categories'
+import { syncLocalDataWithCloudFile } from './cloudFileSync'
 
 const LAST_SYNC_KEY = 'mdaily_last_sync_server'
 
@@ -143,6 +144,7 @@ export async function performTwoWayMerge(config: SyncServerConfig): Promise<Sync
         await saveExpensesBatch(data.expenses)
       }
       if (data.deletedExpenseIds) {
+        await removeExpensesByIds(data.deletedExpenseIds)
         // Bug Fix: Union với local ids để không mất tracking các expense đã xoá offline
         saveDeletedExpenseIds([...new Set([...getDeletedExpenseIds(), ...data.deletedExpenseIds])])
       }
@@ -274,6 +276,7 @@ let activeEventSource: EventSource | null = null
 let reconnectTimer: any = null
 let reconnectDelay = 2000
 let autoSyncInFlight: Promise<void> | null = null
+let periodicSyncTimer: ReturnType<typeof setInterval> | null = null
 
 export function triggerAutoSync(delay = 250) {
   const config = getLastSyncServer()
@@ -285,7 +288,7 @@ export function triggerAutoSync(delay = 250) {
 
     autoSyncInFlight = (async () => {
       try {
-        await performTwoWayMerge(config)
+        await syncLocalDataWithCloudFile()
         console.log('[MDaily Auto-Sync] Background 2-way sync completed')
       } catch (err) {
         console.warn('[MDaily Auto-Sync] Skipped (Desktop may be offline):', err)
@@ -336,8 +339,13 @@ export function startRealtimeSyncListener(): () => void {
       es.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data)
-          if (payload.event === 'data_changed' || payload.event === 'connected') {
-            console.log(`[MDaily SSE] ${payload.event === 'connected' ? 'Connection restored' : 'Change detected'}, merging in background...`)
+          if (payload.event === 'data_changed' || payload.event === 'connected' || payload.event === 'sync_requested') {
+            const reason = payload.event === 'sync_requested'
+              ? 'Desktop requested a fresh sync'
+              : payload.event === 'connected'
+                ? 'Connection restored'
+                : 'Change detected'
+            console.log(`[MDaily SSE] ${reason}, merging in background...`)
             triggerAutoSync(50)
           }
         } catch (err) {
@@ -362,6 +370,7 @@ export function startRealtimeSyncListener(): () => void {
   }
 
   connect()
+  periodicSyncTimer = setInterval(() => triggerAutoSync(0), 1000)
 
   return () => {
     isClosed = true
@@ -372,6 +381,10 @@ export function startRealtimeSyncListener(): () => void {
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
+    }
+    if (periodicSyncTimer) {
+      clearInterval(periodicSyncTimer)
+      periodicSyncTimer = null
     }
   }
 }

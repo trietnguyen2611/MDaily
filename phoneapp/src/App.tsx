@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Sparkles, Wifi } from 'lucide-react'
+import { Sparkles, RefreshCw } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { AddExpense } from './components/AddExpense'
 import { Reports } from './components/Reports'
@@ -8,13 +8,13 @@ import { BottomTabBar } from './components/BottomTabBar'
 import { Chatbot } from './components/Chatbot'
 import { CustomSelect } from './components/CustomSelect'
 import { SplashScreen } from './components/SplashScreen'
-import { WifiSyncModal } from './components/WifiSyncModal'
 import { getExpenses, saveExpense, deleteExpense, updateExpense } from './services/db'
 import { getCategories, addCategory, deleteCategory, updateCategory, categoriesToSelectOptions } from './services/categories'
 import { checkAFMStatus, getAutoExtractEnabled, getAiChatEnabled } from './services/ai'
 import { getLanguage, getCurrency, t } from './services/i18n'
 import type { Language, Currency } from './services/i18n'
-import { triggerAutoSync, startRealtimeSyncListener, setupLifecycleSyncTriggers } from './services/sync'
+import { triggerAutoSync } from './services/sync'
+import { syncLocalDataWithCloudFile, triggerCloudSync } from './services/cloudFileSync'
 import type { CategoryItem } from './services/categories'
 import type { Expense } from './types'
 import './App.css'
@@ -24,7 +24,7 @@ function App() {
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [activeTab, setActiveTab] = useState<string>('dashboard')
   const [isChatOpen, setIsChatOpen] = useState(false)
-  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false)
+  const [isManualSyncing, setIsManualSyncing] = useState(false)
   const [timeFilter, setTimeFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
@@ -48,6 +48,7 @@ function App() {
 
   // Listen to cross-window or internal settings events & sync events
   useEffect(() => {
+    syncLocalDataWithCloudFile().catch(error => console.warn('[MDaily Cloud Sync] Startup sync skipped:', error))
     const handleSettingEvent = () => {
       setLang(getLanguage())
       setCurr(getCurrency())
@@ -55,25 +56,18 @@ function App() {
     window.addEventListener('mdaily_settings_change', handleSettingEvent)
     window.addEventListener('mdaily_data_synced', reloadData)
 
-    let stopListener = startRealtimeSyncListener()
-    const stopLifecycle = setupLifecycleSyncTriggers()
     triggerAutoSync(0)
-    const restartSyncListener = () => {
-      stopListener()
-      stopListener = startRealtimeSyncListener()
-      triggerAutoSync(0)
+    triggerCloudSync(0)
+    const handleLocalExpenseChange = () => {
+      triggerAutoSync()
+      triggerCloudSync()
     }
-    const handleLocalExpenseChange = () => triggerAutoSync()
-    window.addEventListener('mdaily_sync_server_changed', restartSyncListener)
     window.addEventListener('mdaily_expense_changed', handleLocalExpenseChange)
 
     return () => {
       window.removeEventListener('mdaily_settings_change', handleSettingEvent)
       window.removeEventListener('mdaily_data_synced', reloadData)
-      window.removeEventListener('mdaily_sync_server_changed', restartSyncListener)
       window.removeEventListener('mdaily_expense_changed', handleLocalExpenseChange)
-      stopListener()
-      stopLifecycle()
     }
   }, [reloadData])
 
@@ -270,6 +264,13 @@ function App() {
   // Show AI chat button only when AFM available AND AI chat enabled
   const showAiChat = isAFMAvailable && aiChatEnabled
 
+  const handleManualSync = () => {
+    if (isManualSyncing) return
+    setIsManualSyncing(true)
+    triggerAutoSync(0)
+    window.setTimeout(() => setIsManualSyncing(false), 1200)
+  }
+
   return (
     <div className="app-layout">
       <SplashScreen />
@@ -278,14 +279,17 @@ function App() {
         <div className="top-bar">
           <h2 className="page-header-title">{getPageTitle(activeTab)}</h2>
           <div className="top-bar-right">
-            <button
-              className="wifi-sync-trigger-btn"
-              onClick={() => setIsSyncModalOpen(true)}
-              title={t('wifi_sync', lang)}
-            >
-              <Wifi size={16} />
-              <span>{t('wifi_sync', lang)}</span>
-            </button>
+            {activeTab === 'dashboard' && (
+              <button
+                className={`circular-btn manual-sync-btn ${isManualSyncing ? 'syncing' : ''}`}
+                onClick={handleManualSync}
+                disabled={isManualSyncing}
+                title={t('sync_now', lang)}
+                aria-label={t('sync_now', lang)}
+              >
+                <RefreshCw size={18} />
+              </button>
+            )}
             {showAiChat && (
               <button
                 className="ai-chat-trigger-btn"
@@ -378,7 +382,6 @@ function App() {
               onDataCleared={() => setExpenses([])}
               onAiSettingsChanged={refreshAiSettings}
               onSettingsChanged={handleSettingsChanged}
-              onOpenWifiSync={() => setIsSyncModalOpen(true)}
             />
           </div>
         )}
@@ -400,11 +403,6 @@ function App() {
         />
       )}
 
-      <WifiSyncModal
-        isOpen={isSyncModalOpen}
-        onClose={() => setIsSyncModalOpen(false)}
-        onSyncCompleted={reloadData}
-      />
     </div>
   )
 }
