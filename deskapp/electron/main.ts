@@ -394,17 +394,16 @@ function startSyncServer(portToTry = 18321) {
 
 function createWindow() {
   win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, 'icon.png'),
+    icon: app.isPackaged
+      ? path.join(process.resourcesPath, 'icon.icns')
+      : path.join(process.env.VITE_PUBLIC, 'icon.png'),
     title: 'MDaily Desktop v2.4',
     width: 1000,
     height: 700,
     minWidth: 850,
     minHeight: 600,
     titleBarStyle: 'hiddenInset',
-    vibrancy: 'under-window', // macOS native blur effect
-    visualEffectState: 'active',
-    transparent: true,
-    backgroundColor: '#00000000',
+    backgroundColor: '#f5f5f7',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true,
@@ -417,6 +416,14 @@ function createWindow() {
   win.webContents.on('did-finish-load', () => {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
     win?.webContents.send('sync-server-status-changed', getSyncServerInfo())
+  })
+
+  win.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[MDaily Renderer] Failed to load ${validatedURL}: ${errorCode} ${errorDescription}`)
+  })
+
+  win.webContents.on('console-message', (_event, _level, message, line, sourceId) => {
+    console.log(`[MDaily Renderer] ${sourceId}:${line} ${message}`)
   })
 
   if (VITE_DEV_SERVER_URL) {

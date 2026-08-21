@@ -4,9 +4,11 @@
   "version": "2.4.0",
   "type": "module",
   "scripts": {
+    "icon:build": "mkdir -p build/icon.iconset && swiftc native/IconGenerator.swift -framework CoreGraphics -framework ImageIO -o /tmp/mdaily-icon-generator && /tmp/mdaily-icon-generator ../md.icon/Assets/MDaily.png build/icon.iconset/icon_16x16.png 16 && /tmp/mdaily-icon-generator ../md.icon/Assets/MDaily.png build/icon.iconset/icon_16x16@2x.png 32 && /tmp/mdaily-icon-generator ../md.icon/Assets/MDaily.png build/icon.iconset/icon_32x32.png 32 && /tmp/mdaily-icon-generator ../md.icon/Assets/MDaily.png build/icon.iconset/icon_32x32@2x.png 64 && /tmp/mdaily-icon-generator ../md.icon/Assets/MDaily.png build/icon.iconset/icon_128x128.png 128 && /tmp/mdaily-icon-generator ../md.icon/Assets/MDaily.png build/icon.iconset/icon_128x128@2x.png 256 && /tmp/mdaily-icon-generator ../md.icon/Assets/MDaily.png build/icon.iconset/icon_256x256.png 256 && /tmp/mdaily-icon-generator ../md.icon/Assets/MDaily.png build/icon.iconset/icon_256x256@2x.png 512 && /tmp/mdaily-icon-generator ../md.icon/Assets/MDaily.png build/icon.iconset/icon_512x512.png 512 && /tmp/mdaily-icon-generator ../md.icon/Assets/MDaily.png build/icon.iconset/icon_512x512@2x.png 1024 && iconutil -c icns build/icon.iconset -o build/icon.icns",
     "native:build": "mkdir -p build/native && swiftc -parse-as-library -O -framework Vision -framework ImageIO native/ReceiptAnalyzer.swift -o build/native/receipt-analyzer",
     "dev": "npm run native:build && vite",
-    "build": "npm run native:build && tsc && vite build && electron-builder",
+    "build": "npm run icon:build && npm run native:build && tsc && vite build && electron-builder",
+    "build:mac:intel": "npm run icon:build && npm run native:build && tsc && vite build && electron-builder --mac --x64 --config.mac.target=dir",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -37,6 +39,12 @@
   "build": {
     "appId": "com.mdaily.deskapp",
     "productName": "MDaily Desktop",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
     "extraResources": [
       {
         "from": "build/native/receipt-analyzer",
@@ -44,7 +52,7 @@
       }
     ],
     "mac": {
-      "icon": "build/icon.png",
+      "icon": "build/icon.icns",
       "target": [
         "zip"
       ]

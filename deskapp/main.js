@@ -7,7 +7,7 @@ import c from "node:path";
 import { fileURLToPath as l } from "node:url";
 //#region electron/main.ts
 var u = c.dirname(l(import.meta.url));
-process.env.DIST = c.join(u, "../dist"), process.env.VITE_PUBLIC = t.isPackaged ? process.env.DIST : c.join(process.env.DIST, "../public");
+process.env.DIST = t.isPackaged ? c.join(u, "..") : c.join(u, "../dist"), process.env.VITE_PUBLIC = t.isPackaged ? process.env.DIST : c.join(process.env.DIST, "../public");
 var d = null, f = process.env.VITE_DEV_SERVER_URL, p = 18321, m = "", h = null, g = !1, _ = /* @__PURE__ */ new Set();
 function v() {
 	return c.join(t.getPath("appData"), "deskapp", "sync-server.json");
