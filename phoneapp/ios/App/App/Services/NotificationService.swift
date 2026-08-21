@@ -49,7 +49,12 @@ public final class NotificationService: @unchecked Sendable {
             : "\(noteName): \(amountStr) đến hạn thanh toán hôm nay."
         content.sound = .default
         content.categoryIdentifier = "RECURRING_EXPENSE"
-        content.userInfo = ["recurringId": recurring.id.uuidString]
+        
+        var userInfo: [String: Any] = ["recurringId": recurring.id.uuidString]
+        if let expenseId = recurring.linkedExpenseId {
+            userInfo["linkedExpenseId"] = expenseId.uuidString
+        }
+        content.userInfo = userInfo
 
         // Build trigger based on repeat interval
         let calendar = Calendar.current

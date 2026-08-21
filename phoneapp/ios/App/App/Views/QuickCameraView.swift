@@ -8,6 +8,8 @@ public struct QuickCameraView: View {
 
     @StateObject private var camera = CameraController()
     @State private var flashMode: AVCaptureDevice.FlashMode = .off
+    @State private var isExpanded: Bool = false
+    @State private var dragOffset: CGSize = .zero
 
     public init(onPhotoCaptured: @escaping (Data) -> Void, onDismiss: @escaping () -> Void) {
         self.onPhotoCaptured = onPhotoCaptured
@@ -15,71 +17,216 @@ public struct QuickCameraView: View {
     }
 
     public var body: some View {
-        ZStack {
-            // Camera Preview
-            CameraPreviewRepresentable(session: camera.session)
-                .ignoresSafeArea()
+        let screenWidth = UIScreen.main.bounds.width
+        let cardWidth = screenWidth - 20
+        let previewWidth = cardWidth - 20
+        let previewHeight = previewWidth * 4.0 / 3.0 // Default 3:4 portrait photo ratio
 
-            // UI Overlay
+        // Native iOS physics: morph scale and corners based on drag-up distance
+        let dragProgress = min(1.0, max(0.0, -dragOffset.height / 150.0)) // 0.0 to 1.0 based on 150pt threshold
+        let scaleX = 1.0 - (dragProgress * 0.18) // Squish width down by up to 18%
+        let scaleY = 1.0 - (dragProgress * 0.12) // Squish height down by up to 12%
+        let cornerRadius = 42.0 + (dragProgress * (16.0 - 42.0)) // Morph corner radius back to pill (16)
+        let shadowOpacity = 0.35 - (dragProgress * 0.20)
+        let shadowRadius = 15.0 - (dragProgress * 7.0)
+
+        return ZStack {
+            // 1. Transparent Backdrop overlay (captures taps outside card to close, but keeps app visible)
+            Color.clear
+                .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if isExpanded {
+                        // Native iOS snappy exit transition
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                            isExpanded = false
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                            onDismiss()
+                        }
+                    }
+                }
+
+            // 2. Dynamic Island Expanding Square Camera Card
             VStack(spacing: 0) {
-                // Top Bar
-                topBar
-                    .padding(.top, 56)
+                VStack(spacing: 0) {
+                    if isExpanded {
+                        VStack(spacing: 12) {
+                            // Top controls bar inside the expanded island card
+                            HStack {
+                                Spacer()
+
+                                // Close Button (Right, Colored Red!)
+                                Button {
+                                    // Native iOS snappy exit transition
+                                    withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                        isExpanded = false
+                                    }
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                                        onDismiss()
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 15, weight: .bold))
+                                        .foregroundColor(.red)
+                                        .frame(width: 34, height: 34)
+                                        .background(Circle().fill(Color.white.opacity(0.15)))
+                                }
+                                .transition(.scale.combined(with: .opacity))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 14)
+
+                            // Camera Preview (Default 3:4 portrait photo aspect ratio)
+                            CameraPreviewRepresentable(session: camera.session)
+                                .frame(width: previewWidth, height: previewHeight)
+                                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+
+                            // Bottom actions layout (Zoom + Rotate/Capture row)
+                            VStack(spacing: 14) {
+                                // Native zoom selector (Larger buttons)
+                                HStack(spacing: 12) {
+                                    ForEach([0.5, 1.0, 2.0, 3.0], id: \.self) { level in
+                                        Button {
+                                            withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                                camera.setZoom(factor: level)
+                                            }
+                                        } label: {
+                                            let isActive = abs(camera.currentZoom - level) < 0.1
+                                            Text(level == 0.5 ? ".5" : "\(Int(level))")
+                                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                                .foregroundColor(isActive ? .yellow : .white.opacity(0.7))
+                                                .frame(width: 32, height: 32)
+                                                .background(Circle().fill(isActive ? Color.white.opacity(0.20) : Color.white.opacity(0.08)))
+                                        }
+                                    }
+                                }
+                                .transition(.opacity)
+
+                                // Rotate, Center Capture, and Flash Button
+                                HStack {
+                                    // Rotate Camera (left - larger button)
+                                    Button {
+                                        camera.switchCamera()
+                                    } label: {
+                                        Image(systemName: "camera.rotate.fill")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(.white)
+                                            .frame(width: 44, height: 44)
+                                            .background(Circle().fill(Color.white.opacity(0.15)))
+                                    }
+                                    .padding(.leading, 16)
+                                    .transition(.scale.combined(with: .opacity))
+
+                                    Spacer()
+
+                                    // Capture Photo Button (center - significantly larger)
+                                    Button {
+                                        let generator = UIImpactFeedbackGenerator(style: .medium)
+                                        generator.impactOccurred()
+                                        camera.capturePhoto { data in
+                                            if let data = data {
+                                                onPhotoCaptured(data)
+                                                onDismiss()
+                                            }
+                                        }
+                                    } label: {
+                                        ZStack {
+                                            Circle()
+                                                .fill(Color.white)
+                                                .frame(width: 56, height: 56)
+                                            Circle()
+                                                .strokeBorder(Color.white.opacity(0.5), lineWidth: 2)
+                                                .frame(width: 66, height: 66)
+                                        }
+                                    }
+                                    .transition(.scale.combined(with: .opacity))
+
+                                    Spacer()
+
+                                    // Flash toggle (right - larger button)
+                                    Button {
+                                        switch flashMode {
+                                        case .off: flashMode = .on
+                                        case .on: flashMode = .auto
+                                        case .auto: flashMode = .off
+                                        @unknown default: flashMode = .off
+                                        }
+                                        camera.flashMode = flashMode
+                                    } label: {
+                                        Image(systemName: flashIconName)
+                                            .font(.system(size: 18, weight: .semibold))
+                                            .foregroundColor(flashMode == .off ? .white.opacity(0.6) : .yellow)
+                                            .frame(width: 44, height: 44)
+                                            .background(Circle().fill(Color.white.opacity(0.15)))
+                                    }
+                                    .padding(.trailing, 16)
+                                    .transition(.scale.combined(with: .opacity))
+                                }
+                            }
+                            .padding(.bottom, 16)
+                        }
+                    } else {
+                        // Collapsed State: exact Dynamic Island frame
+                        ZStack {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 5, height: 5)
+                        }
+                        .frame(width: 110, height: 32)
+                    }
+                }
+                .frame(
+                    width: isExpanded ? cardWidth : 110,
+                    height: isExpanded ? nil : 32
+                )
+                .background(Color.black)
+                .scaleEffect(x: isExpanded ? scaleX : 1.0, y: isExpanded ? scaleY : 1.0, anchor: .top)
+                .clipShape(RoundedRectangle(cornerRadius: isExpanded ? cornerRadius : 16, style: .continuous))
+                .shadow(color: Color.black.opacity(shadowOpacity), radius: shadowRadius, x: 0, y: 8)
+                .offset(y: dragOffset.height + 11)
+                .gesture(
+                    DragGesture()
+                        .onChanged { gesture in
+                            if gesture.translation.height < 0 { // Only allow swiping up to close
+                                dragOffset = gesture.translation
+                            }
+                        }
+                        .onEnded { gesture in
+                            if gesture.translation.height < -70 { // Snappy dismiss trigger
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                                    isExpanded = false
+                                    dragOffset = .zero
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                                    onDismiss()
+                                }
+                            } else {
+                                // Dynamic elastic snap-back
+                                withAnimation(.spring(response: 0.40, dampingFraction: 0.70)) {
+                                    dragOffset = .zero
+                                }
+                            }
+                        }
+                )
 
                 Spacer()
-
-                // Zoom Controls
-                zoomControls
-                    .padding(.bottom, 20)
-
-                // Bottom Bar with Capture Button
-                bottomBar
-                    .padding(.bottom, 20)
             }
+            .ignoresSafeArea(edges: .top)
         }
         .onAppear {
             camera.startSession()
+            // Native Apple spring for rich opening expand bounce
+            withAnimation(.spring(response: 0.46, dampingFraction: 0.66, blendDuration: 0.1)) {
+                isExpanded = true
+            }
         }
         .onDisappear {
             camera.stopSession()
+            isExpanded = false
         }
         .statusBarHidden(true)
-    }
-
-    // MARK: - Top Bar
-    private var topBar: some View {
-        HStack {
-            // Close button
-            Button {
-                onDismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 40, height: 40)
-                    .background(Circle().fill(Color.black.opacity(0.45)))
-            }
-
-            Spacer()
-
-            // Flash toggle
-            Button {
-                switch flashMode {
-                case .off: flashMode = .on
-                case .on: flashMode = .auto
-                case .auto: flashMode = .off
-                @unknown default: flashMode = .off
-                }
-                camera.flashMode = flashMode
-            } label: {
-                Image(systemName: flashIconName)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(flashMode == .off ? .white.opacity(0.6) : .yellow)
-                    .frame(width: 40, height: 40)
-                    .background(Circle().fill(Color.black.opacity(0.45)))
-            }
-        }
-        .padding(.horizontal, 20)
     }
 
     private var flashIconName: String {
@@ -89,81 +236,6 @@ public struct QuickCameraView: View {
         case .auto: return "bolt.badge.automatic.fill"
         @unknown default: return "bolt.slash.fill"
         }
-    }
-
-    // MARK: - Zoom Controls
-    private var zoomControls: some View {
-        HStack(spacing: 14) {
-            ForEach([0.5, 1.0, 2.0, 3.0], id: \.self) { level in
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        camera.setZoom(factor: level)
-                    }
-                } label: {
-                    let isActive = abs(camera.currentZoom - level) < 0.1
-                    Text(level == 0.5 ? ".5" : "\(Int(level))")
-                        .font(.system(size: isActive ? 14 : 12, weight: .bold, design: .rounded))
-                        .foregroundColor(isActive ? .yellow : .white.opacity(0.7))
-                        .frame(width: isActive ? 40 : 34, height: isActive ? 40 : 34)
-                        .background(
-                            Circle()
-                                .fill(isActive ? Color.black.opacity(0.65) : Color.black.opacity(0.35))
-                                .overlay(
-                                    Circle()
-                                        .strokeBorder(isActive ? Color.yellow.opacity(0.50) : Color.white.opacity(0.15), lineWidth: 0.75)
-                                )
-                        )
-                }
-            }
-        }
-    }
-
-    // MARK: - Bottom Bar
-    private var bottomBar: some View {
-        HStack {
-            // Spacer for symmetry
-            Color.clear.frame(width: 60, height: 60)
-
-            Spacer()
-
-            // Capture Button
-            Button {
-                let generator = UIImpactFeedbackGenerator(style: .medium)
-                generator.impactOccurred()
-                camera.capturePhoto { data in
-                    if let data = data {
-                        onPhotoCaptured(data)
-                        onDismiss()
-                    }
-                }
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 72, height: 72)
-                        .shadow(color: Color.white.opacity(0.3), radius: 8, x: 0, y: 0)
-
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.5), lineWidth: 3)
-                        .frame(width: 82, height: 82)
-                }
-            }
-            .liquidGlassButton()
-
-            Spacer()
-
-            // Flip Camera
-            Button {
-                camera.switchCamera()
-            } label: {
-                Image(systemName: "camera.rotate.fill")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 50, height: 50)
-                    .background(Circle().fill(Color.black.opacity(0.45)))
-            }
-        }
-        .padding(.horizontal, 30)
     }
 }
 

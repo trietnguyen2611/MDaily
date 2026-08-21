@@ -143,10 +143,10 @@ public struct LiquidGlassSpringButtonStyle: ButtonStyle {
 // MARK: - Redesigned Clean Close Button (No Background)
 public struct LiquidGlassCloseButton: View {
     public var size: CGFloat = 32
-    public var color: Color = .secondary
+    public var color: Color = .red
     public var action: () -> Void
 
-    public init(size: CGFloat = 32, color: Color = .secondary, action: @escaping () -> Void) {
+    public init(size: CGFloat = 32, color: Color = .red, action: @escaping () -> Void) {
         self.size = size
         self.color = color
         self.action = action
@@ -393,6 +393,12 @@ public struct FadingHorizontalText: View {
                 containerWidth = geo.size.width
                 startMarqueeAnimationIfNeeded()
             }
+            .onChange(of: text) { _, _ in
+                stopMarqueeAnimation()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    startMarqueeAnimationIfNeeded()
+                }
+            }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
                     startMarqueeAnimationIfNeeded()
@@ -400,12 +406,14 @@ public struct FadingHorizontalText: View {
                     stopMarqueeAnimation()
                 }
             }
+            .onAppear {
+                startMarqueeAnimationIfNeeded()
+            }
         }
         .frame(height: 18)
     }
 
     private func startMarqueeAnimationIfNeeded() {
-        guard scenePhase == .active else { return }
         guard textWidth > containerWidth, containerWidth > 0, !isAnimating else { return }
         isAnimating = true
         let diff = textWidth - containerWidth + 24

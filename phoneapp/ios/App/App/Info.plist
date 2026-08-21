@@ -84,9 +84,9 @@
 			<key>UIApplicationShortcutItemType</key>
 			<string>org.mdaily.app.quickCamera</string>
 			<key>UIApplicationShortcutItemTitle</key>
-			<string>Chụp hoá đơn</string>
+			<string>Chụp nhanh</string>
 			<key>UIApplicationShortcutItemSubtitle</key>
-			<string>Quét thông minh Vision AI</string>
+			<string>Quét thông minh với MDaily AI</string>
 			<key>UIApplicationShortcutItemIconType</key>
 			<string>UIApplicationShortcutIconTypeCapturePhoto</string>
 		</dict>
@@ -96,7 +96,7 @@
 			<key>UIApplicationShortcutItemTitle</key>
 			<string>MDaily AI Chat</string>
 			<key>UIApplicationShortcutItemSubtitle</key>
-			<string>Hỏi trợ lý tài chính AI</string>
+			<string>Trợ lý tài chính AI</string>
 			<key>UIApplicationShortcutItemIconType</key>
 			<string>UIApplicationShortcutIconTypeSearch</string>
 		</dict>
@@ -104,11 +104,11 @@
 			<key>UIApplicationShortcutItemType</key>
 			<string>org.mdaily.app.quickReports</string>
 			<key>UIApplicationShortcutItemTitle</key>
-			<string>Tổng quan</string>
+			<string>Báo cáo</string>
 			<key>UIApplicationShortcutItemSubtitle</key>
 			<string>Xem báo cáo chi tiêu</string>
 			<key>UIApplicationShortcutItemIconType</key>
-			<string>UIApplicationShortcutIconTypeHome</string>
+			<string>UIApplicationShortcutIconTypeBarChart</string>
 		</dict>
 	</array>
 </dict>

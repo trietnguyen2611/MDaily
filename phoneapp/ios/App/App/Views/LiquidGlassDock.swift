@@ -24,8 +24,8 @@ public struct LiquidGlassDock: View {
     @Binding public var activeTab: AppTab
     public var onQuickPhotoCaptured: (Data) -> Void
     public var isKeyboardActive: Bool = false
+    @Binding public var showCameraPicker: Bool
 
-    @State private var showCameraPicker: Bool = false
     @State private var showLibraryPicker: Bool = false
 
     @Environment(\.colorScheme) private var colorScheme
@@ -36,11 +36,13 @@ public struct LiquidGlassDock: View {
     public init(
         activeTab: Binding<AppTab>,
         onQuickPhotoCaptured: @escaping (Data) -> Void,
-        isKeyboardActive: Bool = false
+        isKeyboardActive: Bool = false,
+        showCameraPicker: Binding<Bool>
     ) {
         self._activeTab = activeTab
         self.onQuickPhotoCaptured = onQuickPhotoCaptured
         self.isKeyboardActive = isKeyboardActive
+        self._showCameraPicker = showCameraPicker
     }
 
     public var body: some View {
@@ -56,18 +58,6 @@ public struct LiquidGlassDock: View {
             }
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.82), value: isKeyboardActive)
-        .fullScreenCover(isPresented: $showCameraPicker) {
-            QuickCameraView(
-                onPhotoCaptured: { data in
-                    onQuickPhotoCaptured(data)
-                    activeTab = .addExpense
-                },
-                onDismiss: {
-                    showCameraPicker = false
-                }
-            )
-            .ignoresSafeArea()
-        }
         .sheet(isPresented: $showLibraryPicker) {
             ImagePickerView(sourceType: .photoLibrary) { image in
                 if let data = image.jpegData(compressionQuality: 0.85) {

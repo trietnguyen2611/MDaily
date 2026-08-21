@@ -58,7 +58,7 @@ public struct ContentView: View {
     @State private var selectedExpense: Expense? = nil
     @State private var editingExpense: Expense? = nil
     @State private var capturedPhotoData: Data? = nil
-    @State private var showCameraFromQuickAction: Bool = false
+    @State private var showCameraPicker: Bool = false
     @State private var showSplash: Bool = true
     @State private var isKeyboardVisible: Bool = false
 
@@ -195,9 +195,25 @@ public struct ContentView: View {
                 onQuickPhotoCaptured: { photoData in
                     self.capturedPhotoData = photoData
                 },
-                isKeyboardActive: isKeyboardVisible
+                isKeyboardActive: isKeyboardVisible,
+                showCameraPicker: $showCameraPicker
             )
             .offset(y: 12)
+            
+            // 5. Quick Camera Overlay (Floats directly over app layout)
+            if showCameraPicker {
+                QuickCameraView(
+                    onPhotoCaptured: { data in
+                        self.capturedPhotoData = data
+                        self.activeTab = .addExpense
+                        self.showCameraPicker = false
+                    },
+                    onDismiss: {
+                        self.showCameraPicker = false
+                    }
+                )
+                .zIndex(10)
+            }
             }
             .opacity(showSplash ? 0.0001 : 1.0)
             
@@ -261,18 +277,6 @@ public struct ContentView: View {
                 onClose: { showCustomTimeFilterSheet = false }
             )
         }
-        .fullScreenCover(isPresented: $showCameraFromQuickAction) {
-            QuickCameraView(
-                onPhotoCaptured: { data in
-                    self.capturedPhotoData = data
-                    activeTab = .addExpense
-                },
-                onDismiss: {
-                    showCameraFromQuickAction = false
-                }
-            )
-            .ignoresSafeArea()
-        }
         .onReceive(NotificationCenter.default.publisher(for: .handleQuickAction)) { notification in
             guard let actionType = notification.object as? String else { return }
             withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
@@ -281,7 +285,7 @@ public struct ContentView: View {
                     activeTab = .addExpense
                 case "org.mdaily.app.quickCamera":
                     activeTab = .addExpense
-                    showCameraFromQuickAction = true
+                    showCameraPicker = true
                 case "org.mdaily.app.quickReports":
                     activeTab = .reports
                 case "org.mdaily.app.quickAIChat":
@@ -289,6 +293,14 @@ public struct ContentView: View {
                 default:
                     break
                 }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openExpenseDetail)) { notification in
+            guard let expenseIdStr = notification.object as? String,
+                  let expenseId = UUID(uuidString: expenseIdStr) else { return }
+            if let expense = store.expenses.first(where: { $0.id == expenseId }) {
+                // Instantly open the detail sheet
+                self.selectedExpense = expense
             }
         }
     }

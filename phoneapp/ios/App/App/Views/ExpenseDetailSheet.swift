@@ -14,6 +14,9 @@ public struct ExpenseDetailSheet: View {
     @State private var editDate: Date
     @State private var isFullscreenImage: Bool = false
     @State private var showDeleteModal: Bool = false
+    @State private var isRecurring: Bool = false
+    @State private var reminderDate: Date = Date()
+    @State private var repeatInterval: RepeatInterval = .monthly
 
     private enum EditField: Hashable {
         case amount, note
@@ -46,6 +49,11 @@ public struct ExpenseDetailSheet: View {
         _editCategory = State(initialValue: expense.category)
         _editNote = State(initialValue: expense.note ?? "")
         _editDate = State(initialValue: expense.date)
+
+        let linkedReminder = store.recurringExpenses.first(where: { $0.linkedExpenseId == expense.id })
+        _isRecurring = State(initialValue: linkedReminder != nil)
+        _reminderDate = State(initialValue: linkedReminder?.reminderDate ?? Date())
+        _repeatInterval = State(initialValue: linkedReminder?.repeatInterval ?? .monthly)
     }
 
     private func syncState(from exp: Expense) {
@@ -54,6 +62,11 @@ public struct ExpenseDetailSheet: View {
         editCategory = exp.category
         editNote = exp.note ?? ""
         editDate = exp.date
+        
+        let linkedReminder = store.recurringExpenses.first(where: { $0.linkedExpenseId == exp.id })
+        isRecurring = linkedReminder != nil
+        reminderDate = linkedReminder?.reminderDate ?? Date()
+        repeatInterval = linkedReminder?.repeatInterval ?? .monthly
     }
 
     private func formatDate(_ date: Date) -> String {
@@ -282,6 +295,92 @@ public struct ExpenseDetailSheet: View {
                                 .padding(.horizontal, 16)
                                 .id(EditField.note)
                                 .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isEditing)
+
+                                // Nhắc thanh toán (Reminder) Row
+                                if !isEditing {
+                                    if isRecurring {
+                                        Divider()
+                                            .padding(.leading, 44)
+                                        HStack {
+                                            Label {
+                                                Text(store.t("recurring_reminder"))
+                                                    .font(.appFont(size: 16, weight: .medium))
+                                            } icon: {
+                                                Image(systemName: "calendar.badge.clock")
+                                                    .foregroundColor(.orange)
+                                            }
+                                            Spacer()
+                                            Text("\(repeatInterval.title(lang: store.language)) (\(formatDate(reminderDate)))")
+                                                .font(.appFont(size: 14, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .padding(.vertical, 14)
+                                        .padding(.horizontal, 16)
+                                    }
+                                } else {
+                                    Divider()
+                                        .padding(.leading, 44)
+
+                                    VStack(spacing: 0) {
+                                        HStack {
+                                            Label {
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(store.t("recurring_reminder"))
+                                                        .font(.appFont(size: 16, weight: .medium))
+                                                    Text(store.t("recurring_reminder_desc"))
+                                                        .font(.appFont(size: 12, weight: .regular))
+                                                        .foregroundColor(.secondary)
+                                                }
+                                            } icon: {
+                                                Image(systemName: "calendar.badge.clock")
+                                                    .foregroundColor(.orange)
+                                            }
+                                            Spacer()
+                                            Toggle("", isOn: $isRecurring.animation(.spring(response: 0.35, dampingFraction: 0.8)))
+                                                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                                                .labelsHidden()
+                                        }
+                                        .padding(.vertical, 14)
+                                        .padding(.horizontal, 16)
+
+                                        if isRecurring {
+                                            VStack(spacing: 12) {
+                                                // Repeat Interval Picker
+                                                HStack {
+                                                    Text(store.language == .en ? "Repeat" : "Lặp lại")
+                                                        .font(.appFont(size: 15, weight: .medium))
+                                                        .foregroundColor(.secondary)
+                                                    Spacer()
+                                                    Picker("", selection: $repeatInterval) {
+                                                        ForEach(RepeatInterval.allCases.filter { $0 != .none }) { interval in
+                                                            Text(interval.title(lang: store.language)).tag(interval)
+                                                        }
+                                                    }
+                                                    .pickerStyle(.menu)
+                                                }
+                                                .padding(.horizontal, 16)
+
+                                                // Reminder Date Picker
+                                                HStack {
+                                                    Text(store.t("reminder_date"))
+                                                        .font(.appFont(size: 15, weight: .medium))
+                                                        .foregroundColor(.secondary)
+                                                    Spacer()
+                                                    DatePicker("", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
+                                                        .datePickerStyle(.compact)
+                                                        .labelsHidden()
+                                                        .environment(\.locale, Locale(identifier: store.language == .en ? "en_US" : "vi_VN"))
+                                                }
+                                                .padding(.horizontal, 16)
+                                                .padding(.bottom, 12)
+                                            }
+                                            .transition(.asymmetric(
+                                                insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+                                                removal: .opacity.combined(with: .scale(scale: 0.95, anchor: .top))
+                                            ))
+                                        }
+                                    }
+                                }
                             }
                             .liquidGlass(cornerRadius: 24)
 
@@ -392,6 +491,36 @@ public struct ExpenseDetailSheet: View {
                                 updated.note = editNote.trimmingCharacters(in: .whitespaces).isEmpty ? nil : editNote.trimmingCharacters(in: .whitespaces)
                                 updated.date = editDate
                                 store.updateExpense(updated)
+                                
+                                // Handle Recurring Reminder Update
+                                let existingReminder = store.recurringExpenses.first(where: { $0.linkedExpenseId == currentExpense.id })
+                                if isRecurring {
+                                    if var reminder = existingReminder {
+                                        reminder.amount = amount
+                                        reminder.category = editCategory
+                                        reminder.note = updated.note
+                                        reminder.reminderDate = reminderDate
+                                        reminder.repeatInterval = repeatInterval
+                                        store.updateRecurringExpense(reminder)
+                                    } else {
+                                        let newReminder = RecurringExpense(
+                                            amount: amount,
+                                            category: editCategory,
+                                            note: updated.note,
+                                            photoData: updated.photoData,
+                                            reminderDate: reminderDate,
+                                            repeatInterval: repeatInterval,
+                                            isActive: true,
+                                            linkedExpenseId: currentExpense.id
+                                        )
+                                        store.addRecurringExpense(newReminder)
+                                    }
+                                } else {
+                                    if let reminder = existingReminder {
+                                        store.deleteRecurringExpense(id: reminder.id)
+                                    }
+                                }
+                                
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                                     focusedEditField = nil
                                     currentExpense = updated
