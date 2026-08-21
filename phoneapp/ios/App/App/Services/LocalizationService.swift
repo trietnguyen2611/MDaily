@@ -172,7 +172,7 @@ public struct LocalizationService {
             "delete_data_btn": [.vi: "Xoá dữ liệu", .en: "Clear Data"],
             "delete_confirm_all": [.vi: "Bạn chắc chắn muốn xoá toàn bộ dữ liệu chi tiêu?", .en: "Are you sure you want to clear all expense data?"],
             "app_info": [.vi: "Thông tin ứng dụng", .en: "About App"],
-            "app_version": [.vi: "v1.2 — MDaily AI", .en: "v1.2 — MDaily AI"],
+            "app_version": [.vi: "v2.3 — MDaily AI", .en: "v2.3 — MDaily AI"],
 
             // Chatbot
             "financial_assistant": [.vi: "Trợ lý tài chính thông minh", .en: "Smart Financial Assistant"],

@@ -1,6 +1,5 @@
 import SwiftUI
 import AVFoundation
-import Vision
 
 @MainActor
 public struct QuickCameraView: View {
@@ -8,9 +7,6 @@ public struct QuickCameraView: View {
     public var onDismiss: () -> Void
 
     @StateObject private var camera = CameraController()
-    @State private var receiptDetected: Bool = false
-    @State private var receiptDetectionEnabled: Bool = true
-    @State private var showReceiptBanner: Bool = false
     @State private var flashMode: AVCaptureDevice.FlashMode = .off
 
     public init(onPhotoCaptured: @escaping (Data) -> Void, onDismiss: @escaping () -> Void) {
@@ -32,13 +28,6 @@ public struct QuickCameraView: View {
 
                 Spacer()
 
-                // Receipt Detection Banner
-                if showReceiptBanner && receiptDetectionEnabled {
-                    receiptBanner
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .padding(.bottom, 12)
-                }
-
                 // Zoom Controls
                 zoomControls
                     .padding(.bottom, 20)
@@ -50,23 +39,6 @@ public struct QuickCameraView: View {
         }
         .onAppear {
             camera.startSession()
-            camera.onReceiptDetected = { detected in
-                if receiptDetectionEnabled {
-                    let stateChanged = !receiptDetected && detected
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        receiptDetected = detected
-                        showReceiptBanner = detected
-                    }
-                    if stateChanged {
-                        let generator = UINotificationFeedbackGenerator()
-                        generator.notificationOccurred(.success)
-                        // Auto-hide banner after 3 seconds
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                            withAnimation { showReceiptBanner = false }
-                        }
-                    }
-                }
-            }
         }
         .onDisappear {
             camera.stopSession()
@@ -89,30 +61,6 @@ public struct QuickCameraView: View {
             }
 
             Spacer()
-
-            // Receipt detection toggle
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    receiptDetectionEnabled.toggle()
-                    if !receiptDetectionEnabled {
-                        showReceiptBanner = false
-                        receiptDetected = false
-                    }
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: receiptDetectionEnabled ? "doc.viewfinder.fill" : "doc.viewfinder")
-                        .font(.system(size: 14, weight: .semibold))
-                    if receiptDetectionEnabled {
-                        Text("ON")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                    }
-                }
-                .foregroundColor(receiptDetectionEnabled ? .green : .white.opacity(0.6))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Capsule().fill(Color.black.opacity(0.45)))
-            }
 
             // Flash toggle
             Button {
@@ -141,30 +89,6 @@ public struct QuickCameraView: View {
         case .auto: return "bolt.badge.automatic.fill"
         @unknown default: return "bolt.slash.fill"
         }
-    }
-
-    // MARK: - Receipt Detection Banner
-    private var receiptBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "doc.text.viewfinder")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(.green)
-
-            Text("📄 Phát hiện hoá đơn!")
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(
-            Capsule()
-                .fill(Color.black.opacity(0.70))
-                .overlay(
-                    Capsule()
-                        .strokeBorder(Color.green.opacity(0.40), lineWidth: 1)
-                )
-        )
-        .shadow(color: Color.green.opacity(0.25), radius: 8, x: 0, y: 4)
     }
 
     // MARK: - Zoom Controls
@@ -263,19 +187,15 @@ private class CameraPreviewUIView: UIView {
 }
 
 // MARK: - Camera Controller
-@MainActor
-class CameraController: NSObject, ObservableObject {
+class CameraController: NSObject, ObservableObject, @unchecked Sendable {
     let session = AVCaptureSession()
     private var photoOutput = AVCapturePhotoOutput()
-    private var videoOutput = AVCaptureVideoDataOutput()
     private var currentDevice: AVCaptureDevice?
     private var isUsingFrontCamera = false
     private var photoCaptureCompletion: ((Data?) -> Void)?
-    private var receiptDetectionTimer: Timer?
 
     @Published var currentZoom: Double = 1.0
     var flashMode: AVCaptureDevice.FlashMode = .off
-    var onReceiptDetected: ((Bool) -> Void)?
 
     private let sessionQueue = DispatchQueue(label: "org.mdaily.camera.session")
 
@@ -294,8 +214,6 @@ class CameraController: NSObject, ObservableObject {
         sessionQueue.async { [weak self] in
             self?.session.stopRunning()
         }
-        receiptDetectionTimer?.invalidate()
-        receiptDetectionTimer = nil
     }
 
     private func configureSession() {
@@ -321,14 +239,6 @@ class CameraController: NSObject, ObservableObject {
         // Add photo output
         if session.canAddOutput(photoOutput) {
             session.addOutput(photoOutput)
-            photoOutput.isHighResolutionCaptureEnabled = true
-        }
-
-        // Add video output for receipt detection
-        if session.canAddOutput(videoOutput) {
-            session.addOutput(videoOutput)
-            videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "org.mdaily.camera.video"))
-            videoOutput.alwaysDiscardsLateVideoFrames = true
         }
 
         session.commitConfiguration()
@@ -390,41 +300,5 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
             self.photoCaptureCompletion?(data)
             self.photoCaptureCompletion = nil
         }
-    }
-}
-
-// MARK: - Video Frame Delegate (for receipt detection)
-extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
-    nonisolated func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        // Throttle: Only check every ~0.5 seconds by skipping frames
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-
-        // Use VNDetectRectanglesRequest to detect document-like rectangles
-        let request = VNDetectRectanglesRequest { request, error in
-            guard error == nil,
-                  let results = request.results as? [VNRectangleObservation],
-                  !results.isEmpty else {
-                Task { @MainActor in
-                    self.onReceiptDetected?(false)
-                }
-                return
-            }
-
-            // Check if any detected rectangle is large enough to be a receipt
-            let hasLargeRect = results.contains { observation in
-                let area = observation.boundingBox.width * observation.boundingBox.height
-                return area > 0.15 // At least 15% of image area
-            }
-
-            Task { @MainActor in
-                self.onReceiptDetected?(hasLargeRect)
-            }
-        }
-        request.minimumSize = 0.2
-        request.maximumObservations = 3
-        request.minimumConfidence = 0.7
-
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:])
-        try? handler.perform([request])
     }
 }
