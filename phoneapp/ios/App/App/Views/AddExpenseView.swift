@@ -81,9 +81,6 @@ public struct AddExpenseView: View {
                 await MainActor.run {
                     self.isExtracting = false
                     if result.success {
-                        if let item = result.itemName, !item.isEmpty {
-                            self.noteText = item
-                        }
                         if let amount = result.amount, amount > 0 {
                             self.amountText = formatAmountString("\(Int(amount))")
                         }
@@ -286,7 +283,7 @@ public struct AddExpenseView: View {
 
                         // Recurring Payment Toggle
                         VStack(alignment: .leading, spacing: 10) {
-                            Toggle(isOn: $isRecurring) {
+                            Toggle(isOn: $isRecurring.animation(.spring(response: 0.36, dampingFraction: 0.85))) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "bell.badge.fill")
                                         .foregroundColor(.orange)
@@ -336,11 +333,13 @@ public struct AddExpenseView: View {
                                     .background(Color(.tertiarySystemBackground))
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 }
-                                .transition(.opacity.combined(with: .move(edge: .top)))
+                                .transition(.asymmetric(
+                                    insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+                                    removal: .opacity
+                                ))
                             }
                         }
                         .padding(.top, 4)
-                        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isRecurring)
                     }
                     .padding(20)
                     .liquidGlass(cornerRadius: 28)
@@ -625,7 +624,7 @@ struct AIExtractionOverlayView: View {
     let previewHeight: CGFloat
     let text: String
 
-    @State private var rotationAngle: Double = 0.0
+    @State private var glowOpacity: Double = 0.45
     @State private var pulseScale: CGFloat = 1.0
 
     // Siri Apple Intelligence colors
@@ -648,9 +647,8 @@ struct AIExtractionOverlayView: View {
             // 1. Ambient Siri Glow Backdrop (Bloom)
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(siriGradient)
-                .rotationEffect(.degrees(rotationAngle))
                 .blur(radius: 28)
-                .opacity(0.35)
+                .opacity(glowOpacity * 0.6)
                 .scaleEffect(pulseScale)
 
             // 2. Optical Glass Backdrop blurring the receipt image underneath
@@ -661,14 +659,12 @@ struct AIExtractionOverlayView: View {
             // 3. Apple Intelligence Siri Edge Glow Border (Layered for neon blur intensity)
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(siriGradient, lineWidth: 5)
-                .rotationEffect(.degrees(rotationAngle))
                 .blur(radius: 5)
-                .opacity(0.80)
+                .opacity(glowOpacity)
 
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(siriGradient, lineWidth: 1.5)
-                .rotationEffect(.degrees(rotationAngle))
-                .opacity(0.95)
+                .opacity(glowOpacity + 0.1)
 
             // 4. Central HUD Card with spinner and text
             HStack(spacing: 10) {
@@ -692,13 +688,13 @@ struct AIExtractionOverlayView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .onAppear {
-            // Siri rotating flow animation
-            withAnimation(.linear(duration: 4.5).repeatForever(autoreverses: false)) {
-                rotationAngle = 360.0
+            // Gentle breathing glow opacity pulsing
+            withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
+                glowOpacity = 0.85
             }
             // Gentle pulse scaling
             withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
-                pulseScale = 1.08
+                pulseScale = 1.06
             }
         }
     }

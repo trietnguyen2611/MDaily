@@ -22,7 +22,9 @@ public struct ChatbotSheet: View {
     @State private var inputText: String = ""
     @State private var isLoading: Bool = false
     @State private var afmStatus: AFMStatus = AFMService.shared.checkStatus()
-    @State private var sendButtonRotation: Double = 0
+    @State private var showDeleteConfirmation = false
+    
+    @FocusState private var isInputFocused: Bool
 
     public init(store: ExpenseStore, onClose: @escaping () -> Void) {
         self.store = store
@@ -97,10 +99,40 @@ public struct ChatbotSheet: View {
                         }
                         .padding(16)
                     }
+                    .mask {
+                        VStack(spacing: 0) {
+                            LinearGradient(
+                                colors: [.clear, .black],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 16)
+
+                            Rectangle()
+
+                            LinearGradient(
+                                colors: [.black, .clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .frame(height: 24)
+                        }
+                    }
                     .onChange(of: store.chatMessages.count) { _, _ in
                         if let lastId = store.chatMessages.last?.id {
                             withAnimation {
                                 proxy.scrollTo(lastId, anchor: .bottom)
+                            }
+                        }
+                    }
+                    .onChange(of: isInputFocused) { _, isFocused in
+                        if isFocused {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                                if let lastId = store.chatMessages.last?.id {
+                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                        proxy.scrollTo(lastId, anchor: .bottom)
+                                    }
+                                }
                             }
                         }
                     }
@@ -109,6 +141,7 @@ public struct ChatbotSheet: View {
                 // Liquid Glass Input Bar
                 liquidGlassInputBar
             }
+            .background(AmbientBackgroundView())
             .scrollDismissesKeyboard(.interactively)
             .hideKeyboardOnTap()
             .navigationTitle("MDaily AI")
@@ -116,7 +149,7 @@ public struct ChatbotSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
-                        resetChat()
+                        showDeleteConfirmation = true
                     } label: {
                         Image(systemName: "trash")
                             .font(.system(size: 14, weight: .medium))
@@ -135,50 +168,38 @@ public struct ChatbotSheet: View {
                     resetChat()
                 }
             }
+            .alert(isPresented: $showDeleteConfirmation) {
+                Alert(
+                    title: Text(store.t("clear_chat_confirm_title")),
+                    message: Text(store.t("clear_chat_confirm_desc")),
+                    primaryButton: .destructive(Text(store.t("delete"))) {
+                        resetChat()
+                    },
+                    secondaryButton: .cancel(Text(store.t("cancel")))
+                )
+            }
         }
     }
 
     // MARK: - Liquid Glass Input Bar
     private var liquidGlassInputBar: some View {
-        HStack(spacing: 10) {
-            // Text input with liquid glass background
+        HStack(spacing: 12) {
+            // Text input
             TextField(store.t("type_message"), text: $inputText)
                 .font(.appFont(size: 15, weight: .regular))
-                .padding(.horizontal, 16)
+                .focused($isInputFocused)
+                .padding(.horizontal, 4)
                 .padding(.vertical, 12)
-                .background {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: Color.white.opacity(0.35), location: 0.0),
-                                        .init(color: Color.white.opacity(0.10), location: 0.5),
-                                        .init(color: Color.white.opacity(0.04), location: 1.0)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.75
-                            )
-                    }
-                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 3)
-                }
 
             // Send button with liquid glass effect
             Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                    sendButtonRotation += 360
-                }
                 sendMessage(inputText)
             } label: {
                 let isEmpty = inputText.trimmingCharacters(in: .whitespaces).isEmpty
                 ZStack {
                     if isEmpty {
                         Circle()
-                            .fill(Color.secondary.opacity(0.15))
+                            .fill(Color.secondary.opacity(0.12))
                     } else {
                         Circle()
                             .fill(
@@ -194,17 +215,18 @@ public struct ChatbotSheet: View {
                     Image(systemName: "arrow.up")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(isEmpty ? .secondary.opacity(0.5) : .white)
-                        .rotationEffect(.degrees(sendButtonRotation))
                 }
-                .frame(width: 40, height: 40)
+                .frame(width: 38, height: 38)
                 .animation(.spring(response: 0.35, dampingFraction: 0.75), value: isEmpty)
             }
             .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
             .liquidGlassButton()
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.ultraThinMaterial)
+        .padding(.vertical, 6)
+        .liquidGlass(cornerRadius: 24)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
     }
 
     private func resetChat() {

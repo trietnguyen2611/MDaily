@@ -177,6 +177,8 @@ public struct LocalizationService {
             // Chatbot
             "financial_assistant": [.vi: "Trợ lý tài chính thông minh", .en: "Smart Financial Assistant"],
             "clear_chat": [.vi: "Xoá đoạn chat", .en: "Clear Chat"],
+            "clear_chat_confirm_title": [.vi: "Xoá lịch sử chat?", .en: "Clear chat history?"],
+            "clear_chat_confirm_desc": [.vi: "Hành động này sẽ xoá sạch cuộc hội thoại hiện tại.", .en: "This will permanently delete all messages in the current conversation."],
             "type_message": [.vi: "Hỏi AI về chi tiêu của bạn...", .en: "Ask AI about your spending..."],
             "send": [.vi: "Gửi", .en: "Send"],
             "ai_thinking": [.vi: "MDaily AI đang suy nghĩ...", .en: "MDaily AI is thinking..."],
