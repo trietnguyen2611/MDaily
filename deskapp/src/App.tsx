@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { MessageCircle, Sparkles } from 'lucide-react'
+import { MessageCircle, Sparkles, LayoutGrid, List } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { AddExpense } from './components/AddExpense'
 import { Reports } from './components/Reports'
@@ -26,6 +26,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [timeFilter, setTimeFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards')
   const [quickPhoto, setQuickPhoto] = useState<string | null>(null)
   const [isAiAvailable, setIsAiAvailable] = useState(false)
   const [autoExtractEnabled, setAutoExtractEnabledState] = useState(getAutoExtractEnabled())
@@ -253,6 +254,27 @@ function App() {
                 value={categoryFilter}
                 onChange={setCategoryFilter}
               />
+
+              <div className="view-toggle" role="group" aria-label={lang === 'vi' ? 'Kiểu hiển thị' : 'View mode'}>
+                <button
+                  className={viewMode === 'cards' ? 'active' : ''}
+                  onClick={() => setViewMode('cards')}
+                  aria-label={lang === 'vi' ? 'Dạng thẻ' : 'Card view'}
+                  aria-pressed={viewMode === 'cards'}
+                  title={lang === 'vi' ? 'Dạng thẻ' : 'Card view'}
+                >
+                  <LayoutGrid size={16} />
+                </button>
+                <button
+                  className={viewMode === 'list' ? 'active' : ''}
+                  onClick={() => setViewMode('list')}
+                  aria-label={lang === 'vi' ? 'Dạng danh sách' : 'List view'}
+                  aria-pressed={viewMode === 'list'}
+                  title={lang === 'vi' ? 'Dạng danh sách' : 'List view'}
+                >
+                  <List size={16} />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -265,6 +287,7 @@ function App() {
               onUpdate={handleUpdateExpense}
               categories={categories}
               categoryOptions={categoryOptions}
+              viewMode={viewMode}
             />
           </div>
         )}

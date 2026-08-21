@@ -3,10 +3,13 @@ import AVFoundation
 import CoreImage
 
 public struct QRCodeScannerView: UIViewControllerRepresentable {
-    public var onCodeScanned: (String) -> Void
-    public var onError: ((String) -> Void)?
+    public var onCodeScanned: @MainActor (String) -> Void
+    public var onError: (@MainActor (String) -> Void)?
 
-    public init(onCodeScanned: @escaping (String) -> Void, onError: ((String) -> Void)? = nil) {
+    public init(
+        onCodeScanned: @escaping @MainActor (String) -> Void,
+        onError: (@MainActor (String) -> Void)? = nil
+    ) {
         self.onCodeScanned = onCodeScanned
         self.onError = onError
     }
@@ -30,10 +33,12 @@ public struct QRCodeScannerView: UIViewControllerRepresentable {
             self.parent = parent
         }
 
+        @MainActor
         public func didScanCode(_ code: String) {
             parent.onCodeScanned(code)
         }
 
+        @MainActor
         public func didFailWithError(_ error: String) {
             parent.onError?(error)
         }
@@ -41,8 +46,8 @@ public struct QRCodeScannerView: UIViewControllerRepresentable {
 }
 
 public protocol ScannerViewControllerDelegate: AnyObject {
-    func didScanCode(_ code: String)
-    func didFailWithError(_ error: String)
+    @MainActor func didScanCode(_ code: String)
+    @MainActor func didFailWithError(_ error: String)
 }
 
 public class ScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
@@ -84,7 +89,9 @@ public class ScannerViewController: UIViewController, AVCaptureMetadataOutputObj
         self.captureSession = session
 
         guard let videoCaptureDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-            delegate?.didFailWithError("Thiết bị không hỗ trợ camera")
+            DispatchQueue.main.async {
+                self.delegate?.didFailWithError("Thiết bị không hỗ trợ camera")
+            }
             return
         }
 
@@ -93,7 +100,9 @@ public class ScannerViewController: UIViewController, AVCaptureMetadataOutputObj
             if session.canAddInput(videoInput) {
                 session.addInput(videoInput)
             } else {
-                delegate?.didFailWithError("Không thể thêm đầu vào camera")
+                DispatchQueue.main.async {
+                    self.delegate?.didFailWithError("Không thể thêm đầu vào camera")
+                }
                 return
             }
 
@@ -103,7 +112,9 @@ public class ScannerViewController: UIViewController, AVCaptureMetadataOutputObj
                 metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
                 metadataOutput.metadataObjectTypes = [.qr]
             } else {
-                delegate?.didFailWithError("Không thể thêm bộ phân tích QR")
+                DispatchQueue.main.async {
+                    self.delegate?.didFailWithError("Không thể thêm bộ phân tích QR")
+                }
                 return
             }
 
@@ -117,7 +128,9 @@ public class ScannerViewController: UIViewController, AVCaptureMetadataOutputObj
                 session.startRunning()
             }
         } catch {
-            delegate?.didFailWithError("Lỗi khởi tạo camera: \(error.localizedDescription)")
+            DispatchQueue.main.async {
+                self.delegate?.didFailWithError("Lỗi khởi tạo camera: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -129,7 +142,9 @@ public class ScannerViewController: UIViewController, AVCaptureMetadataOutputObj
            let stringValue = readableObject.stringValue {
             isProcessingCode = true
             AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
-            delegate?.didScanCode(stringValue)
+            DispatchQueue.main.async {
+                self.delegate?.didScanCode(stringValue)
+            }
         }
     }
 }

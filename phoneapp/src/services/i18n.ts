@@ -161,7 +161,7 @@ export const TRANSLATIONS = {
 
     // Wi-Fi Sync
     wifi_sync: 'Đồng bộ Wi-Fi',
-    wifi_sync_desc: 'Kết nối & đồng bộ dữ liệu với MDaily Desktop qua mạng Wi-Fi',
+    wifi_sync_desc: 'Kết nối & đồng bộ dữ liệu với MDaily Desktop',
     scan_qr: 'Quét mã QR',
     scan_qr_desc: 'Hướng camera vào mã QR trên MDaily Desktop để kết nối',
     sync_connected: 'Đã kết nối',

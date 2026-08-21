@@ -14,6 +14,7 @@ interface DashboardProps {
   onUpdate: (updatedExpense: Expense) => void
   categories: CategoryItem[]
   categoryOptions: SelectOption[]
+  viewMode: 'cards' | 'list'
 }
 
 const CategoryIcon = ({ category }: { category: string }) => {
@@ -42,7 +43,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onDelete,
   onUpdate,
   categories,
-  categoryOptions
+  categoryOptions,
+  viewMode
 }) => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
   const [deletingExpenseIds, setDeletingExpenseIds] = useState<Set<string>>(new Set())
@@ -60,6 +62,40 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {expenses.length === 0 ? (
         <div className="empty-state">
           <p>{t('no_expenses', lang)}</p>
+        </div>
+      ) : viewMode === 'list' ? (
+        <div className="expense-list">
+          {expenses.map(expense => (
+            <div
+              key={expense.id}
+              className={`expense-list-row ${deletingExpenseIds.has(expense.id) ? 'deleting' : ''}`}
+              onClick={() => setSelectedExpense(expense)}
+            >
+              <div className="expense-list-thumb">
+                {expense.photo ? <img src={expense.photo} alt="" /> : <CategoryIcon category={expense.category} />}
+              </div>
+              <div className="expense-list-main">
+                <div className="expense-list-title">
+                  <span className="category"><CategoryIcon category={expense.category} />{getCategoryLabel(categories, expense.category)}</span>
+                  {expense.isAiProcessed && <Sparkles size={14} className="list-ai-icon" />}
+                </div>
+                {expense.note && expense.note !== 'MDaily AI processed' && <p className="note">{expense.note}</p>}
+              </div>
+              <span className="expense-list-date">{formatDate(expense.date)}</span>
+              <strong className="expense-list-amount">{formatCurrency(expense.amount)}</strong>
+              <button
+                className="btn-icon list-delete-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (confirm(t('delete_expense_confirm', lang))) handleDelete(expense.id)
+                }}
+                title={t('delete', lang)}
+                disabled={deletingExpenseIds.has(expense.id)}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="expense-grid">

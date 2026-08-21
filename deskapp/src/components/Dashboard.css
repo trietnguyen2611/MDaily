@@ -4,6 +4,34 @@
   gap: var(--spacing-xl);
 }
 
+.view-toggle {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--divider-soft);
+  border-radius: var(--radius-sm);
+  background: var(--canvas);
+}
+
+.view-toggle button {
+  width: 32px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--body-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.view-toggle button:hover,
+.view-toggle button.active {
+  color: var(--ink);
+  background: var(--surface);
+}
+
 .dashboard-header {
   text-align: left;
 }
@@ -24,6 +52,119 @@
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--spacing-lg);
   padding-bottom: 100px; /* Space for floating buttons */
+}
+
+.expense-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 100px;
+}
+
+.expense-list-row {
+  display: grid;
+  grid-template-columns: 44px minmax(180px, 1fr) 110px minmax(130px, auto) 36px;
+  align-items: center;
+  gap: 14px;
+  min-height: 68px;
+  padding: 10px 14px 10px 10px;
+  background: var(--canvas);
+  border: 1px solid var(--divider-soft);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.expense-list-row:hover {
+  background: var(--surface);
+  transform: translateX(2px);
+}
+
+.expense-list-row.deleting {
+  pointer-events: none;
+  animation: expenseCardDisappear 240ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.expense-list-thumb {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: var(--body-muted);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+.expense-list-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.expense-list-main {
+  min-width: 0;
+}
+
+.expense-list-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.list-ai-icon {
+  color: var(--primary);
+}
+
+.expense-list-main .note {
+  overflow: hidden;
+  margin-top: 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expense-list-date {
+  color: var(--body-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.expense-list-amount {
+  color: var(--ink);
+  font-size: 16px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.list-delete-btn {
+  position: static;
+  opacity: 0;
+}
+
+.expense-list-row:hover .list-delete-btn,
+.list-delete-btn:focus-visible {
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  .expense-list-row {
+    grid-template-columns: 40px minmax(0, 1fr) auto 34px;
+    gap: 10px;
+  }
+
+  .expense-list-thumb {
+    width: 40px;
+    height: 40px;
+  }
+
+  .expense-list-date {
+    display: none;
+  }
+
+  .expense-list-amount {
+    font-size: 14px;
+  }
 }
 
 .expense-card {

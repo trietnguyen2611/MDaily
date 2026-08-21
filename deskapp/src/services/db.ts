@@ -2,12 +2,35 @@ import localforage from 'localforage'
 import type { Expense } from '../types'
 
 const DB_KEY = 'mdaily_expenses'
+const DELETED_IDS_KEY = 'mdaily_deleted_expense_ids'
 
 // Configure localforage to use IndexedDB explicitly
 localforage.config({
   name: 'MDailyApp',
   storeName: 'expenses_store'
 })
+
+const notifyDeskappMutation = () => {
+  if (typeof window !== 'undefined' && window.ipcRenderer) {
+    window.ipcRenderer.send('broadcast-sync-event', { type: 'expense_changed', timestamp: Date.now() })
+  }
+}
+
+export const getDeletedExpenseIds = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(DELETED_IDS_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+
+export const saveDeletedExpenseIds = (ids: string[]) => {
+  localStorage.setItem(DELETED_IDS_KEY, JSON.stringify([...new Set(ids)]))
+}
+
+const removeDeletedExpenseId = (id: string) => {
+  saveDeletedExpenseIds(getDeletedExpenseIds().filter(deletedId => deletedId !== id))
+}
 
 export const getExpenses = async (): Promise<Expense[]> => {
   try {
@@ -23,6 +46,8 @@ export const saveExpense = async (expense: Expense): Promise<Expense[]> => {
   const expenses = await getExpenses()
   expenses.unshift(expense) // newest first
   await localforage.setItem(DB_KEY, expenses)
+  removeDeletedExpenseId(expense.id)
+  notifyDeskappMutation()
   return expenses
 }
 
@@ -30,6 +55,8 @@ export const deleteExpense = async (id: string): Promise<Expense[]> => {
   const expenses = await getExpenses()
   const updated = expenses.filter(e => e.id !== id)
   await localforage.setItem(DB_KEY, updated)
+  saveDeletedExpenseIds([...getDeletedExpenseIds(), id])
+  notifyDeskappMutation()
   return updated
 }
 
@@ -37,6 +64,8 @@ export const updateExpense = async (updatedExpense: Expense): Promise<Expense[]>
   const expenses = await getExpenses()
   const updatedList = expenses.map(e => e.id === updatedExpense.id ? updatedExpense : e)
   await localforage.setItem(DB_KEY, updatedList)
+  removeDeletedExpenseId(updatedExpense.id)
+  notifyDeskappMutation()
   return updatedList
 }
 
@@ -46,5 +75,8 @@ export const saveExpensesBatch = async (newExpenses: Expense[]): Promise<Expense
 }
 
 export const clearExpenses = async () => {
+  const expenses = await getExpenses()
+  saveDeletedExpenseIds([...getDeletedExpenseIds(), ...expenses.map(expense => expense.id)])
   await localforage.removeItem(DB_KEY)
+  notifyDeskappMutation()
 }

@@ -15,6 +15,12 @@ const DEFAULT_CATEGORIES: CategoryItem[] = [
   { value: 'transport', label: 'Di chuyển' },
 ]
 
+const notifyDeskappMutation = () => {
+  if (typeof window !== 'undefined' && window.ipcRenderer) {
+    window.ipcRenderer.send('broadcast-sync-event', { type: 'category_changed', timestamp: Date.now() })
+  }
+}
+
 export const getCategories = async (): Promise<CategoryItem[]> => {
   try {
     const data = await localforage.getItem<CategoryItem[]>(CATEGORIES_KEY)
@@ -48,6 +54,7 @@ export const addCategory = async (label: string): Promise<CategoryItem[]> => {
 
   const updated = [...categories, { value, label }]
   await localforage.setItem(CATEGORIES_KEY, updated)
+  notifyDeskappMutation()
   return updated
 }
 
@@ -55,6 +62,7 @@ export const deleteCategory = async (value: string): Promise<CategoryItem[]> => 
   const categories = await getCategories()
   const updated = categories.filter(c => c.value !== value)
   await localforage.setItem(CATEGORIES_KEY, updated)
+  notifyDeskappMutation()
   return updated
 }
 
@@ -67,6 +75,7 @@ export const updateCategory = async (oldValue: string, newLabel: string): Promis
     return c
   })
   await localforage.setItem(CATEGORIES_KEY, updated)
+  notifyDeskappMutation()
   return updated
 }
 

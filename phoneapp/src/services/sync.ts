@@ -1,4 +1,4 @@
-import { getExpenses, saveExpensesBatch } from './db'
+import { getExpenses, saveExpensesBatch, getDeletedExpenseIds, saveDeletedExpenseIds } from './db'
 import { getCategories, saveCategoriesBatch } from './categories'
 
 const LAST_SYNC_KEY = 'mdaily_last_sync_server'
@@ -35,10 +35,15 @@ export function saveLastSyncServer(config: SyncServerConfig) {
     ...config,
     lastSyncTime: Date.now()
   }))
+  window.dispatchEvent(new CustomEvent('mdaily_sync_server_changed'))
 }
 
 export function clearLastSyncServer() {
   localStorage.removeItem(LAST_SYNC_KEY)
+  if (activeEventSource) {
+    activeEventSource.close()
+    activeEventSource = null
+  }
 }
 
 // Check connection to Desktop Sync Server with 4s timeout
@@ -79,7 +84,8 @@ export async function performTwoWayMerge(config: SyncServerConfig): Promise<Sync
     body: JSON.stringify({
       token: config.token,
       expenses: localExpenses,
-      categories: localCategories
+      categories: localCategories,
+      deletedExpenseIds: getDeletedExpenseIds()
     })
   })
 
@@ -96,6 +102,9 @@ export async function performTwoWayMerge(config: SyncServerConfig): Promise<Sync
   // Update phone's local storage with the merged results
   if (data.expenses) {
     await saveExpensesBatch(data.expenses)
+  }
+  if (data.deletedExpenseIds) {
+    saveDeletedExpenseIds(data.deletedExpenseIds)
   }
   if (data.categories) {
     await saveCategoriesBatch(data.categories)
@@ -131,7 +140,8 @@ export async function performPushToDesktop(config: SyncServerConfig): Promise<Sy
     body: JSON.stringify({
       token: config.token,
       expenses: localExpenses,
-      categories: localCategories
+      categories: localCategories,
+      deletedExpenseIds: getDeletedExpenseIds()
     })
   })
 
@@ -179,6 +189,9 @@ export async function performPullFromDesktop(config: SyncServerConfig): Promise<
   if (data.expenses) {
     await saveExpensesBatch(data.expenses)
   }
+  if (data.deletedExpenseIds) {
+    saveDeletedExpenseIds(data.deletedExpenseIds)
+  }
   if (data.categories) {
     await saveCategoriesBatch(data.categories)
   }
@@ -192,5 +205,66 @@ export async function performPullFromDesktop(config: SyncServerConfig): Promise<
   return {
     success: true,
     message: `Đã tải về ${data.expenses?.length || 0} chi tiêu từ máy tính thành công!`
+  }
+}
+
+// =========================================================
+// Real-time Automatic 2-Way Sync Engine
+// =========================================================
+let autoSyncTimer: any = null
+let activeEventSource: EventSource | null = null
+
+export function triggerAutoSync(delay = 250) {
+  const config = getLastSyncServer()
+  if (!config) return
+
+  if (autoSyncTimer) clearTimeout(autoSyncTimer)
+  autoSyncTimer = setTimeout(async () => {
+    try {
+      await performTwoWayMerge(config)
+      console.log('[MDaily Auto-Sync] Background 2-way sync completed')
+    } catch (err) {
+      console.warn('[MDaily Auto-Sync] Skipped (Desktop may be offline):', err)
+    }
+  }, delay)
+}
+
+export function startRealtimeSyncListener(): () => void {
+  const config = getLastSyncServer()
+  if (!config) return () => {}
+
+  if (activeEventSource) {
+    activeEventSource.close()
+    activeEventSource = null
+  }
+
+  try {
+    const url = `http://${config.ip}:${config.port}/api/sync/stream?token=${encodeURIComponent(config.token)}`
+    const es = new EventSource(url)
+    activeEventSource = es
+
+    es.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data)
+        if (payload.event === 'data_changed') {
+          console.log('[MDaily SSE] Change detected on Desktop, merging in background...')
+          triggerAutoSync(100)
+        }
+      } catch (err) {
+        console.error('[MDaily SSE Parse Error]', err)
+      }
+    }
+
+    es.onerror = () => {
+      // EventSource reconnects automatically
+    }
+
+    return () => {
+      es.close()
+      if (activeEventSource === es) activeEventSource = null
+    }
+  } catch (err) {
+    console.error('Failed to start SSE sync listener', err)
+    return () => {}
   }
 }

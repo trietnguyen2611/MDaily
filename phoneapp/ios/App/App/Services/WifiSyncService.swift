@@ -30,6 +30,7 @@ public struct SyncResponseDTO: Codable {
     public var success: Bool
     public var expenses: [RemoteExpenseDTO]?
     public var categories: [RemoteCategoryDTO]?
+    public var deletedExpenseIds: [String]?
     public var error: String?
 }
 
@@ -43,6 +44,9 @@ public final class WifiSyncService: ObservableObject {
     @Published public var pairedServer: SyncServerPayload?
 
     private let lastServerKey = "mdaily_last_sync_server_ios"
+    private let deletedExpenseIdsKey = "mdaily_deleted_expense_ids_ios"
+    private var autoSyncTask: Task<Void, Never>?
+    private var sseTask: Task<Void, Never>?
 
     public init() {
         loadSavedServer()
@@ -62,9 +66,69 @@ public final class WifiSyncService: ObservableObject {
         }
     }
 
+    public func deletedExpenseIds() -> Set<String> {
+        Set(UserDefaults.standard.stringArray(forKey: deletedExpenseIdsKey) ?? [])
+    }
+
+    public func markDeletedExpense(_ id: UUID) {
+        var ids = deletedExpenseIds()
+        ids.insert(id.uuidString)
+        UserDefaults.standard.set(Array(ids), forKey: deletedExpenseIdsKey)
+    }
+
     public func disconnect() {
         self.pairedServer = nil
         UserDefaults.standard.removeObject(forKey: lastServerKey)
+        autoSyncTask?.cancel()
+        sseTask?.cancel()
+    }
+
+    // Trigger debounced automatic 2-way sync
+    public func triggerAutoSync(store: ExpenseStore, delay: Double = 0.25) {
+        guard let server = pairedServer else { return }
+        autoSyncTask?.cancel()
+        autoSyncTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            do {
+                try await performMerge(store: store, ip: server.ip, port: server.port, token: server.token)
+                print("[iOS Auto-Sync] Background 2-way sync completed")
+            } catch {
+                print("[iOS Auto-Sync] Skipped (Desktop may be offline):", error)
+            }
+        }
+    }
+
+    // Real-time SSE background stream listener
+    public func startRealtimeListener(store: ExpenseStore) {
+        guard let server = pairedServer else { return }
+        sseTask?.cancel()
+        sseTask = Task { @MainActor in
+            guard let url = URL(string: "http://\(server.ip):\(server.port)/api/sync/stream?token=\(server.token)") else { return }
+
+            while !Task.isCancelled {
+                do {
+                    let (bytes, response) = try await URLSession.shared.bytes(from: url)
+                    guard let httpRes = response as? HTTPURLResponse, httpRes.statusCode == 200 else {
+                        try await Task.sleep(nanoseconds: 3_000_000_000)
+                        continue
+                    }
+                    for try await line in bytes.lines {
+                        if Task.isCancelled { break }
+                        if line.hasPrefix("data:") {
+                            let jsonStr = line.replacingOccurrences(of: "data:", with: "").trimmingCharacters(in: .whitespaces)
+                            if jsonStr.contains("data_changed") {
+                                print("[iOS SSE] Desktop mutation detected, auto-syncing in background...")
+                                triggerAutoSync(store: store, delay: 0.1)
+                            }
+                        }
+                    }
+                } catch {
+                    // Retry with 3s backoff
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                }
+            }
+        }
     }
 
     // Ping check
@@ -135,7 +199,8 @@ public final class WifiSyncService: ObservableObject {
             "categories": localCatDTOs.map { [
                 "value": $0.value,
                 "label": $0.label
-            ] }
+            ] },
+            "deletedExpenseIds": Array(deletedExpenseIds())
         ]
 
         var req = URLRequest(url: url)
@@ -183,6 +248,10 @@ public final class WifiSyncService: ObservableObject {
         // Sort descending
         newExpenses.sort { $0.date > $1.date }
         store.expenses = newExpenses
+
+        if let returnedDeletedIds = resDTO.deletedExpenseIds {
+            UserDefaults.standard.set(returnedDeletedIds, forKey: deletedExpenseIdsKey)
+        }
 
         // Categories
         if let returnedCats = resDTO.categories {

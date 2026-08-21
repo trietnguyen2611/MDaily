@@ -1,237 +1,237 @@
-import { BrowserWindow, app, ipcMain, nativeTheme } from "electron";
-import { spawn } from "node:child_process";
-import http from "node:http";
-import os from "node:os";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { BrowserWindow as e, app as t, ipcMain as n, nativeTheme as r } from "electron";
+import { spawn as i } from "node:child_process";
+import a from "node:http";
+import o from "node:os";
+import s from "node:fs";
+import c from "node:path";
+import { fileURLToPath as l } from "node:url";
 //#region electron/main.ts
-var __dirname = path.dirname(fileURLToPath(import.meta.url));
-process.env.DIST = path.join(__dirname, "../dist");
-process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, "../public");
-var win = null;
-var VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-var syncPort = 18321;
-var syncToken = generateSyncPin();
-var syncServer = null;
-var syncServerActive = false;
-function generateSyncPin() {
-	const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-	let pin = "";
-	for (let i = 0; i < 6; i++) pin += chars.charAt(Math.floor(Math.random() * 32));
-	return pin;
+var u = c.dirname(l(import.meta.url));
+process.env.DIST = c.join(u, "../dist"), process.env.VITE_PUBLIC = t.isPackaged ? process.env.DIST : c.join(process.env.DIST, "../public");
+var d = null, f = process.env.VITE_DEV_SERVER_URL, p = 18321, m = v(), h = null, g = !1, _ = /* @__PURE__ */ new Set();
+function v() {
+	let e = "";
+	for (let t = 0; t < 6; t++) e += "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".charAt(Math.floor(Math.random() * 32));
+	return e;
 }
-function getLocalIps() {
-	const interfaces = os.networkInterfaces();
-	const ips = [];
-	for (const name of Object.keys(interfaces)) for (const iface of interfaces[name] || []) if (iface.family === "IPv4" && !iface.internal) ips.push(iface.address);
-	return ips.length > 0 ? ips : ["127.0.0.1"];
+function y() {
+	let e = o.networkInterfaces(), t = [];
+	for (let n of Object.keys(e)) for (let r of e[n] || []) r.family === "IPv4" && !r.internal && t.push(r.address);
+	return t.length > 0 ? t : ["127.0.0.1"];
 }
-function getPrimaryIp() {
-	const ips = getLocalIps();
-	return ips.find((ip) => ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.")) || ips[0] || "127.0.0.1";
+function b() {
+	let e = y();
+	return e.find((e) => e.startsWith("192.168.") || e.startsWith("10.") || e.startsWith("172.")) || e[0] || "127.0.0.1";
 }
-function getSyncServerInfo() {
-	const ip = getPrimaryIp();
-	const allIps = getLocalIps();
-	const qrPayload = JSON.stringify({
+function x() {
+	let e = b(), t = y(), n = JSON.stringify({
 		app: "MDaily",
 		v: "2.4",
-		ip,
-		port: syncPort,
-		token: syncToken,
-		name: os.hostname()
+		ip: e,
+		port: p,
+		token: m,
+		name: o.hostname()
 	});
 	return {
-		active: syncServerActive,
-		ip,
-		port: syncPort,
-		token: syncToken,
-		url: `http://${ip}:${syncPort}`,
-		qrPayload,
-		deviceName: os.hostname(),
-		allIps
+		active: g,
+		ip: e,
+		port: p,
+		token: m,
+		url: `http://${e}:${p}`,
+		qrPayload: n,
+		deviceName: o.hostname(),
+		allIps: t,
+		connectedClients: _.size
 	};
 }
-var pendingSyncRequests = /* @__PURE__ */ new Map();
-function sendRendererSyncRequest(type, payload) {
-	return new Promise((resolve, reject) => {
-		if (!win || win.isDestroyed()) return reject(/* @__PURE__ */ new Error("Window not available"));
-		const requestId = `sync_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-		const timeout = setTimeout(() => {
-			pendingSyncRequests.delete(requestId);
-			reject(/* @__PURE__ */ new Error("Sync request to renderer timed out"));
+function S(e = "data_changed", t) {
+	let n = JSON.stringify({
+		event: e,
+		timestamp: Date.now(),
+		...t || {}
+	});
+	for (let e of _) try {
+		e.write(`data: ${n}\n\n`);
+	} catch {
+		_.delete(e);
+	}
+}
+setInterval(() => {
+	for (let e of _) try {
+		e.write(": ping\n\n");
+	} catch {
+		_.delete(e);
+	}
+}, 25e3);
+var C = /* @__PURE__ */ new Map();
+function w(e, t) {
+	return new Promise((n, r) => {
+		if (!d || d.isDestroyed()) return r(/* @__PURE__ */ Error("Window not available"));
+		let i = `sync_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, a = setTimeout(() => {
+			C.delete(i), r(/* @__PURE__ */ Error("Sync request to renderer timed out"));
 		}, 15e3);
-		pendingSyncRequests.set(requestId, {
-			resolve,
-			reject,
-			timeout
-		});
-		win.webContents.send("sync-bridge-request", {
-			requestId,
-			type,
-			payload
+		C.set(i, {
+			resolve: n,
+			reject: r,
+			timeout: a
+		}), d.webContents.send("sync-bridge-request", {
+			requestId: i,
+			type: e,
+			payload: t
 		});
 	});
 }
-function startSyncServer(portToTry = 18321) {
-	if (syncServer) try {
-		syncServer.close();
+function T(e = 18321) {
+	if (h) try {
+		h.close();
 	} catch {}
-	const server = http.createServer(async (req, res) => {
-		res.setHeader("Access-Control-Allow-Origin", "*");
-		res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-		res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-sync-token");
-		if (req.method === "OPTIONS") {
-			res.writeHead(204);
-			res.end();
+	let t = a.createServer(async (e, t) => {
+		if (t.setHeader("Access-Control-Allow-Origin", "*"), t.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS"), t.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-sync-token"), e.method === "OPTIONS") {
+			t.writeHead(204), t.end();
 			return;
 		}
-		const urlObj = new URL(req.url || "/", `http://localhost:${syncPort}`);
-		const pathname = urlObj.pathname;
-		if (pathname === "/api/ping" && req.method === "GET") {
-			res.writeHead(200, { "Content-Type": "application/json" });
-			res.end(JSON.stringify({
+		let n = new URL(e.url || "/", `http://localhost:${p}`), r = n.pathname, i = (t) => {
+			let r = e.headers.authorization || "", i = r.startsWith("Bearer ") ? r.substring(7) : "", a = e.headers["x-sync-token"] || "", o = n.searchParams.get("token") || "";
+			return (i || a || o || t || "").trim().toUpperCase() === m.toUpperCase();
+		};
+		if (r === "/api/ping" && e.method === "GET") {
+			t.writeHead(200, { "Content-Type": "application/json" }), t.end(JSON.stringify({
 				app: "MDaily",
 				version: "2.4.0",
-				deviceName: os.hostname(),
+				deviceName: o.hostname(),
 				status: "ready",
 				timestamp: Date.now()
 			}));
 			return;
 		}
-		const readBody = async () => {
-			return new Promise((resolve, reject) => {
-				let body = "";
-				req.on("data", (chunk) => {
-					body += chunk.toString();
-				});
-				req.on("end", () => {
-					try {
-						resolve(body ? JSON.parse(body) : {});
-					} catch {
-						resolve({});
-					}
-				});
-				req.on("error", reject);
+		if (r === "/api/sync/stream" && e.method === "GET") {
+			if (!i()) {
+				t.writeHead(401, { "Content-Type": "application/json" }), t.end(JSON.stringify({
+					success: !1,
+					error: "Unauthorized: Invalid token"
+				}));
+				return;
+			}
+			t.writeHead(200, {
+				"Content-Type": "text/event-stream",
+				"Cache-Control": "no-cache",
+				Connection: "keep-alive"
+			}), t.write(`data: ${JSON.stringify({
+				event: "connected",
+				timestamp: Date.now()
+			})}\n\n`), _.add(t), e.on("close", () => {
+				_.delete(t);
 			});
-		};
-		const checkAuth = (bodyToken) => {
-			const authHeader = req.headers["authorization"] || "";
-			const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
-			const customHeader = req.headers["x-sync-token"] || "";
-			const queryToken = urlObj.searchParams.get("token") || "";
-			return (bearerToken || customHeader || queryToken || bodyToken || "").trim().toUpperCase() === syncToken.toUpperCase();
-		};
+			return;
+		}
+		let a = async () => new Promise((t, n) => {
+			let r = "";
+			e.on("data", (e) => {
+				r += e.toString();
+			}), e.on("end", () => {
+				try {
+					t(r ? JSON.parse(r) : {});
+				} catch {
+					t({});
+				}
+			}), e.on("error", n);
+		});
 		try {
-			if (pathname === "/api/sync/pull" && req.method === "POST") {
-				if (!checkAuth((await readBody()).token)) {
-					res.writeHead(401, { "Content-Type": "application/json" });
-					res.end(JSON.stringify({
-						success: false,
+			if (r === "/api/sync/pull" && e.method === "POST") {
+				if (!i((await a()).token)) {
+					t.writeHead(401, { "Content-Type": "application/json" }), t.end(JSON.stringify({
+						success: !1,
 						error: "Unauthorized: Invalid token"
 					}));
 					return;
 				}
-				const data = await sendRendererSyncRequest("export");
-				if (win && !win.isDestroyed()) win.webContents.send("sync-event-notification", {
+				let e = await w("export");
+				d && !d.isDestroyed() && d.webContents.send("sync-event-notification", {
 					type: "pull",
 					source: "phone",
 					message: "Đã gửi dữ liệu chi tiêu sang Điện thoại",
 					timestamp: Date.now()
-				});
-				res.writeHead(200, { "Content-Type": "application/json" });
-				res.end(JSON.stringify({
-					success: true,
-					expenses: data.expenses || [],
-					categories: data.categories || [],
+				}), t.writeHead(200, { "Content-Type": "application/json" }), t.end(JSON.stringify({
+					success: !0,
+					expenses: e.expenses || [],
+					categories: e.categories || [],
+					deletedExpenseIds: e.deletedExpenseIds || [],
 					timestamp: Date.now()
 				}));
 				return;
 			}
-			if (pathname === "/api/sync/push" && req.method === "POST") {
-				const body = await readBody();
-				if (!checkAuth(body.token)) {
-					res.writeHead(401, { "Content-Type": "application/json" });
-					res.end(JSON.stringify({
-						success: false,
+			if (r === "/api/sync/push" && e.method === "POST") {
+				let e = await a();
+				if (!i(e.token)) {
+					t.writeHead(401, { "Content-Type": "application/json" }), t.end(JSON.stringify({
+						success: !1,
 						error: "Unauthorized: Invalid token"
 					}));
 					return;
 				}
-				const result = await sendRendererSyncRequest("import", {
-					expenses: body.expenses || [],
-					categories: body.categories || []
+				let n = await w("import", {
+					expenses: e.expenses || [],
+					categories: e.categories || [],
+					deletedExpenseIds: e.deletedExpenseIds || []
 				});
-				if (win && !win.isDestroyed()) win.webContents.send("sync-event-notification", {
+				d && !d.isDestroyed() && d.webContents.send("sync-event-notification", {
 					type: "push",
 					source: "phone",
-					message: `Đã nhận ${body.expenses?.length || 0} chi tiêu từ Điện thoại`,
+					message: `Đã nhận ${e.expenses?.length || 0} chi tiêu từ Điện thoại`,
 					timestamp: Date.now()
-				});
-				res.writeHead(200, { "Content-Type": "application/json" });
-				res.end(JSON.stringify({
-					success: true,
-					count: body.expenses?.length || 0,
-					details: result,
+				}), S("data_changed", { source: "phone_push" }), t.writeHead(200, { "Content-Type": "application/json" }), t.end(JSON.stringify({
+					success: !0,
+					count: e.expenses?.length || 0,
+					details: n,
 					timestamp: Date.now()
 				}));
 				return;
 			}
-			if (pathname === "/api/sync/merge" && req.method === "POST") {
-				const body = await readBody();
-				if (!checkAuth(body.token)) {
-					res.writeHead(401, { "Content-Type": "application/json" });
-					res.end(JSON.stringify({
-						success: false,
+			if (r === "/api/sync/merge" && e.method === "POST") {
+				let e = await a();
+				if (!i(e.token)) {
+					t.writeHead(401, { "Content-Type": "application/json" }), t.end(JSON.stringify({
+						success: !1,
 						error: "Unauthorized: Invalid token"
 					}));
 					return;
 				}
-				const mergeResult = await sendRendererSyncRequest("merge", {
-					expenses: body.expenses || [],
-					categories: body.categories || []
+				let n = await w("merge", {
+					expenses: e.expenses || [],
+					categories: e.categories || [],
+					deletedExpenseIds: e.deletedExpenseIds || []
 				});
-				if (win && !win.isDestroyed()) win.webContents.send("sync-event-notification", {
+				d && !d.isDestroyed() && d.webContents.send("sync-event-notification", {
 					type: "merge",
 					source: "phone",
-					message: `Đồng bộ 2 chiều thành công (${mergeResult.expenses?.length || 0} chi tiêu)`,
+					message: `Đồng bộ 2 chiều tự động (${n.expenses?.length || 0} chi tiêu)`,
 					timestamp: Date.now()
-				});
-				res.writeHead(200, { "Content-Type": "application/json" });
-				res.end(JSON.stringify({
-					success: true,
-					expenses: mergeResult.expenses || [],
-					categories: mergeResult.categories || [],
-					stats: mergeResult.stats,
+				}), S("data_changed", { source: "phone_merge" }), t.writeHead(200, { "Content-Type": "application/json" }), t.end(JSON.stringify({
+					success: !0,
+					expenses: n.expenses || [],
+					categories: n.categories || [],
+					deletedExpenseIds: n.deletedExpenseIds || [],
 					timestamp: Date.now()
 				}));
 				return;
 			}
-			res.writeHead(404, { "Content-Type": "application/json" });
-			res.end(JSON.stringify({ error: "Endpoint not found" }));
-		} catch (err) {
-			res.writeHead(500, { "Content-Type": "application/json" });
-			res.end(JSON.stringify({
-				success: false,
-				error: err?.message || "Internal Server Error"
+			t.writeHead(404, { "Content-Type": "application/json" }), t.end(JSON.stringify({ error: "Endpoint not found" }));
+		} catch (e) {
+			console.error("Sync Server Error:", e), t.writeHead(500, { "Content-Type": "application/json" }), t.end(JSON.stringify({
+				success: !1,
+				error: e?.message || "Internal server error"
 			}));
 		}
 	});
-	server.on("error", (err) => {
-		if (err.code === "EADDRINUSE" && portToTry < 18330) startSyncServer(portToTry + 1);
-		else syncServerActive = false;
-	});
-	server.listen(portToTry, "0.0.0.0", () => {
-		syncPort = portToTry;
-		syncServer = server;
-		syncServerActive = true;
-		if (win && !win.isDestroyed()) win.webContents.send("sync-server-status-changed", getSyncServerInfo());
+	t.listen(e, "0.0.0.0", () => {
+		p = e, g = !0, h = t, console.log(`[MDaily Sync Server] Running at http://${b()}:${p}`), d && !d.isDestroyed() && d.webContents.send("sync-server-status-changed", x());
+	}), t.on("error", (t) => {
+		t.code === "EADDRINUSE" ? (console.warn(`Port ${e} in use, trying ${e + 1}...`), T(e + 1)) : (console.error("[MDaily Sync Server Error]", t), g = !1, d && !d.isDestroyed() && d.webContents.send("sync-server-status-changed", x()));
 	});
 }
-function createWindow() {
-	win = new BrowserWindow({
-		icon: path.join(process.env.VITE_PUBLIC, "icon.png"),
+function E() {
+	d = new e({
+		icon: c.join(process.env.VITE_PUBLIC, "icon.png"),
 		title: "MDaily Desktop v2.4",
 		width: 1e3,
 		height: 700,
@@ -240,86 +240,56 @@ function createWindow() {
 		titleBarStyle: "hiddenInset",
 		vibrancy: "under-window",
 		visualEffectState: "active",
-		transparent: true,
+		transparent: !0,
 		backgroundColor: "#00000000",
 		webPreferences: {
-			preload: path.join(__dirname, "preload.js"),
-			nodeIntegration: true,
-			contextIsolation: false,
-			webSecurity: false
+			preload: c.join(u, "preload.js"),
+			nodeIntegration: !0,
+			contextIsolation: !1,
+			webSecurity: !1
 		}
-	});
-	win.webContents.on("did-finish-load", () => {
-		win?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-		win?.webContents.send("sync-server-status-changed", getSyncServerInfo());
-	});
-	if (VITE_DEV_SERVER_URL) win.loadURL(VITE_DEV_SERVER_URL);
-	else win.loadFile(path.join(process.env.DIST, "index.html"));
-	nativeTheme.on("updated", () => {
-		win?.webContents.send("theme-changed", nativeTheme.shouldUseDarkColors ? "dark" : "light");
+	}), d.webContents.on("did-finish-load", () => {
+		d?.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString()), d?.webContents.send("sync-server-status-changed", x());
+	}), f ? d.loadURL(f) : d.loadFile(c.join(process.env.DIST, "index.html")), r.on("updated", () => {
+		d?.webContents.send("theme-changed", r.shouldUseDarkColors ? "dark" : "light");
 	});
 }
-app.on("window-all-closed", () => {
-	if (syncServer) try {
-		syncServer.close();
+t.on("window-all-closed", () => {
+	if (h) try {
+		h.close();
 	} catch {}
-	if (process.platform !== "darwin") {
-		app.quit();
-		win = null;
-	}
-});
-app.on("activate", () => {
-	if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
-app.whenReady().then(() => {
-	startSyncServer();
-	createWindow();
-});
-ipcMain.handle("analyze-receipt-native", async (_event, imageBase64) => {
-	const helperPath = app.isPackaged ? path.join(process.resourcesPath, "receipt-analyzer") : path.join(__dirname, "../build/native/receipt-analyzer");
-	if (!fs.existsSync(helperPath)) return null;
-	return new Promise((resolve) => {
-		const helper = spawn(helperPath, [], { stdio: [
+	process.platform !== "darwin" && (t.quit(), d = null);
+}), t.on("activate", () => {
+	e.getAllWindows().length === 0 && E();
+}), t.whenReady().then(() => {
+	T(), E();
+}), n.handle("analyze-receipt-native", async (e, n) => {
+	let r = t.isPackaged ? c.join(process.resourcesPath, "receipt-analyzer") : c.join(u, "../build/native/receipt-analyzer");
+	return s.existsSync(r) ? new Promise((e) => {
+		let t = i(r, [], { stdio: [
 			"pipe",
 			"pipe",
 			"ignore"
-		] });
-		let output = "";
-		helper.stdout.on("data", (chunk) => {
-			output += chunk.toString();
-		});
-		helper.once("error", () => resolve(null));
-		helper.once("close", () => {
+		] }), a = "";
+		t.stdout.on("data", (e) => {
+			a += e.toString();
+		}), t.once("error", () => e(null)), t.once("close", () => {
 			try {
-				resolve(JSON.parse(output.trim()));
+				e(JSON.parse(a.trim()));
 			} catch {
-				resolve(null);
+				e(null);
 			}
-		});
-		helper.stdin.write(`${JSON.stringify({ imageBase64 })}\n`);
-		helper.stdin.end();
-	});
-});
-ipcMain.handle("get-sync-server-info", () => {
-	return getSyncServerInfo();
-});
-ipcMain.handle("refresh-sync-token", () => {
-	syncToken = generateSyncPin();
-	const info = getSyncServerInfo();
-	if (win && !win.isDestroyed()) win.webContents.send("sync-server-status-changed", info);
-	return info;
-});
-ipcMain.on("sync-bridge-response", (_event, { requestId, error, data }) => {
-	const pending = pendingSyncRequests.get(requestId);
-	if (pending) {
-		clearTimeout(pending.timeout);
-		pendingSyncRequests.delete(requestId);
-		if (error) pending.reject(new Error(error));
-		else pending.resolve(data);
-	}
-});
-ipcMain.handle("get-system-theme", () => {
-	return nativeTheme.shouldUseDarkColors ? "dark" : "light";
-});
+		}), t.stdin.write(`${JSON.stringify({ imageBase64: n })}\n`), t.stdin.end();
+	}) : null;
+}), n.handle("get-sync-server-info", () => x()), n.handle("refresh-sync-token", () => {
+	m = v();
+	let e = x();
+	return d && !d.isDestroyed() && d.webContents.send("sync-server-status-changed", e), e;
+}), n.on("broadcast-sync-event", (e, t) => {
+	S("data_changed", t);
+}), n.on("sync-bridge-response", (e, { requestId: t, error: n, data: r }) => {
+	let i = C.get(t);
+	i && (clearTimeout(i.timeout), C.delete(t), n ? i.reject(Error(n)) : i.resolve(r));
+}), n.handle("get-system-theme", () => r.shouldUseDarkColors ? "dark" : "light");
 //#endregion
 export {};

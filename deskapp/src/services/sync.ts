@@ -1,4 +1,4 @@
-import { getExpenses, saveExpensesBatch } from './db'
+import { getExpenses, saveExpensesBatch, getDeletedExpenseIds, saveDeletedExpenseIds } from './db'
 import { getCategories, saveCategoriesBatch, addCategory } from './categories'
 import type { Expense } from '../types'
 import type { CategoryItem } from './categories'
@@ -12,10 +12,12 @@ export interface SyncStats {
 // 2-Way Smart Merge Algorithm
 export async function mergeExpensesAndCategories(
   incomingExpenses: Expense[],
-  incomingCategories: CategoryItem[]
+  incomingCategories: CategoryItem[],
+  incomingDeletedExpenseIds: string[] = []
 ): Promise<{
   mergedExpenses: Expense[]
   mergedCategories: CategoryItem[]
+  deletedExpenseIds: string[]
   stats: SyncStats
 }> {
   const [localExpenses, localCategories] = await Promise.all([
@@ -39,14 +41,16 @@ export async function mergeExpensesAndCategories(
 
   // 2. Merge Expenses
   const expenseMap = new Map<string, Expense>()
+  const deletedExpenseIds = new Set([...getDeletedExpenseIds(), ...incomingDeletedExpenseIds])
   let added = 0
   let updated = 0
 
   for (const ex of localExpenses) {
-    expenseMap.set(ex.id, { ...ex })
+    if (!deletedExpenseIds.has(ex.id)) expenseMap.set(ex.id, { ...ex })
   }
 
   for (const inEx of incomingExpenses) {
+    if (deletedExpenseIds.has(inEx.id)) continue
     if (expenseMap.has(inEx.id)) {
       const existing = expenseMap.get(inEx.id)!
       // Merge properties: keep photo if existing doesn't have it or incoming has it
@@ -89,6 +93,7 @@ export async function mergeExpensesAndCategories(
     saveExpensesBatch(mergedExpenses),
     saveCategoriesBatch(mergedCategories)
   ])
+  saveDeletedExpenseIds(Array.from(deletedExpenseIds))
 
   // Dispatch event so UI instantly updates
   window.dispatchEvent(new CustomEvent('mdaily_data_synced', {
@@ -98,6 +103,7 @@ export async function mergeExpensesAndCategories(
   return {
     mergedExpenses,
     mergedCategories,
+    deletedExpenseIds: Array.from(deletedExpenseIds),
     stats: {
       added,
       updated,
@@ -121,16 +127,15 @@ export function initDeskappSyncBridge() {
         const [expenses, categories] = await Promise.all([getExpenses(), getCategories()])
         window.ipcRenderer?.send('sync-bridge-response', {
           requestId,
-          data: { expenses, categories }
+          data: { expenses, categories, deletedExpenseIds: getDeletedExpenseIds() }
         })
       } else if (type === 'import') {
-        const { expenses = [], categories = [] } = reqData || {}
+        const { expenses = [], categories = [], deletedExpenseIds = [] } = reqData || {}
         if (categories.length > 0) {
           await saveCategoriesBatch(categories)
         }
-        if (expenses.length > 0) {
-          await saveExpensesBatch(expenses)
-        }
+        await saveExpensesBatch(expenses)
+        saveDeletedExpenseIds(deletedExpenseIds)
         window.dispatchEvent(new CustomEvent('mdaily_data_synced', {
           detail: { expenses, categories }
         }))
@@ -139,14 +144,15 @@ export function initDeskappSyncBridge() {
           data: { success: true, count: expenses.length }
         })
       } else if (type === 'merge') {
-        const { expenses = [], categories = [] } = reqData || {}
-        const result = await mergeExpensesAndCategories(expenses, categories)
+        const { expenses = [], categories = [], deletedExpenseIds = [] } = reqData || {}
+        const result = await mergeExpensesAndCategories(expenses, categories, deletedExpenseIds)
         window.ipcRenderer?.send('sync-bridge-response', {
           requestId,
           data: {
             success: true,
             expenses: result.mergedExpenses,
             categories: result.mergedCategories,
+            deletedExpenseIds: result.deletedExpenseIds,
             stats: result.stats
           }
         })

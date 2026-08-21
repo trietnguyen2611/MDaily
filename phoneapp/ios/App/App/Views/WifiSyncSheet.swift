@@ -75,7 +75,7 @@ public struct WifiSyncSheet: View {
                             // Actions
                             VStack(spacing: 10) {
                                 Button {
-                                    Task {
+                                    Task { @MainActor in
                                         await executeMerge(paired)
                                     }
                                 } label: {
@@ -127,7 +127,6 @@ public struct WifiSyncSheet: View {
 
                                     // Viewfinder Aim Box & Laser
                                     ZStack {
-                                        // Corner brackets
                                         VStack {
                                             HStack {
                                                 Image(systemName: "viewfinder")
@@ -136,7 +135,6 @@ public struct WifiSyncSheet: View {
                                             }
                                         }
 
-                                        // Scanning laser
                                         Rectangle()
                                             .fill(
                                                 LinearGradient(
@@ -178,7 +176,7 @@ public struct WifiSyncSheet: View {
                                     .cornerRadius(12)
                                 }
                                 .onChange(of: selectedPhotoItem) { _, newItem in
-                                    Task {
+                                    Task { @MainActor in
                                         if let item = newItem,
                                            let data = try? await item.loadTransferable(type: Data.self),
                                            let image = UIImage(data: data),
@@ -216,7 +214,7 @@ public struct WifiSyncSheet: View {
                                     }
 
                                     Button {
-                                        Task {
+                                        Task { @MainActor in
                                             await connectManual()
                                         }
                                     } label: {
@@ -279,6 +277,7 @@ public struct WifiSyncSheet: View {
         }
     }
 
+    @MainActor
     private func handleScannedPayload(_ qrText: String) {
         var ip = ""
         var port = 18321
@@ -316,13 +315,15 @@ public struct WifiSyncSheet: View {
         )
 
         syncService.saveServer(payload)
+        syncService.startRealtimeListener(store: store)
         statusMsg = "Đã nhận diện: \(name)"
 
-        Task {
+        Task { @MainActor in
             await executeMerge(payload)
         }
     }
 
+    @MainActor
     private func connectManual() async {
         isConnecting = true
         errorMsg = nil
@@ -343,6 +344,7 @@ public struct WifiSyncSheet: View {
                 name: name
             )
             syncService.saveServer(payload)
+            syncService.startRealtimeListener(store: store)
             statusMsg = "Đã kết nối với \(name)"
             try await syncService.performMerge(store: store, ip: cleanIp, port: cleanPort, token: cleanToken)
         } catch {
@@ -351,6 +353,7 @@ public struct WifiSyncSheet: View {
         isConnecting = false
     }
 
+    @MainActor
     private func executeMerge(_ server: SyncServerPayload) async {
         errorMsg = nil
         statusMsg = nil

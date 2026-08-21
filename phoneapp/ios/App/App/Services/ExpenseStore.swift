@@ -44,6 +44,8 @@ public final class ExpenseStore: ObservableObject {
         loadCategories()
         loadExpenses()
         loadRecurringExpenses()
+        WifiSyncService.shared.startRealtimeListener(store: self)
+        WifiSyncService.shared.triggerAutoSync(store: self, delay: 0.5)
     }
 
     // MARK: - Translations Helper
@@ -69,17 +71,20 @@ public final class ExpenseStore: ObservableObject {
     public func addExpense(_ expense: Expense) {
         expenses.insert(expense, at: 0)
         saveExpenses()
+        WifiSyncService.shared.triggerAutoSync(store: self)
     }
 
     public func updateExpense(_ expense: Expense) {
         if let idx = expenses.firstIndex(where: { $0.id == expense.id }) {
             expenses[idx] = expense
             saveExpenses()
+            WifiSyncService.shared.triggerAutoSync(store: self)
         }
     }
 
     public func deleteExpense(id: UUID) {
         expenses.removeAll(where: { $0.id == id })
+        WifiSyncService.shared.markDeletedExpense(id)
         saveExpenses()
         // Also remove linked recurring expenses
         if let recurringIdx = recurringExpenses.firstIndex(where: { $0.linkedExpenseId == id }) {
@@ -88,14 +93,19 @@ public final class ExpenseStore: ObservableObject {
             recurringExpenses.remove(at: recurringIdx)
             saveRecurringExpenses()
         }
+        WifiSyncService.shared.triggerAutoSync(store: self)
     }
 
     public func clearAllData() {
+        for expense in expenses {
+            WifiSyncService.shared.markDeletedExpense(expense.id)
+        }
         expenses.removeAll()
         saveExpenses()
         recurringExpenses.removeAll()
         saveRecurringExpenses()
         NotificationService.shared.cancelAllNotifications()
+        WifiSyncService.shared.triggerAutoSync(store: self)
     }
 
     // MARK: - Recurring Expense CRUD
@@ -142,12 +152,14 @@ public final class ExpenseStore: ObservableObject {
         let item = CategoryItem(id: cleanId.isEmpty ? UUID().uuidString : cleanId, label: label, isDefault: false)
         categories.append(item)
         saveCategories()
+        WifiSyncService.shared.triggerAutoSync(store: self)
     }
 
     public func updateCategory(id: String, newLabel: String) {
         if let idx = categories.firstIndex(where: { $0.id == id }) {
             categories[idx].label = newLabel
             saveCategories()
+            WifiSyncService.shared.triggerAutoSync(store: self)
         }
     }
 
@@ -158,6 +170,7 @@ public final class ExpenseStore: ObservableObject {
     public func deleteCategory(id: String) {
         categories.removeAll(where: { $0.id == id })
         saveCategories()
+        WifiSyncService.shared.triggerAutoSync(store: self)
     }
 
     // MARK: - Settings Updaters

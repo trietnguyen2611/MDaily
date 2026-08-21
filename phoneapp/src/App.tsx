@@ -14,6 +14,7 @@ import { getCategories, addCategory, deleteCategory, updateCategory, categoriesT
 import { checkAFMStatus, getAutoExtractEnabled, getAiChatEnabled } from './services/ai'
 import { getLanguage, getCurrency, t } from './services/i18n'
 import type { Language, Currency } from './services/i18n'
+import { triggerAutoSync, startRealtimeSyncListener } from './services/sync'
 import type { CategoryItem } from './services/categories'
 import type { Expense } from './types'
 import './App.css'
@@ -53,9 +54,23 @@ function App() {
     }
     window.addEventListener('mdaily_settings_change', handleSettingEvent)
     window.addEventListener('mdaily_data_synced', reloadData)
+
+    let stopListener = startRealtimeSyncListener()
+    const restartSyncListener = () => {
+      stopListener()
+      stopListener = startRealtimeSyncListener()
+      triggerAutoSync(0)
+    }
+    const handleLocalExpenseChange = () => triggerAutoSync()
+    window.addEventListener('mdaily_sync_server_changed', restartSyncListener)
+    window.addEventListener('mdaily_expense_changed', handleLocalExpenseChange)
+
     return () => {
       window.removeEventListener('mdaily_settings_change', handleSettingEvent)
       window.removeEventListener('mdaily_data_synced', reloadData)
+      window.removeEventListener('mdaily_sync_server_changed', restartSyncListener)
+      window.removeEventListener('mdaily_expense_changed', handleLocalExpenseChange)
+      stopListener()
     }
   }, [reloadData])
 
@@ -72,7 +87,13 @@ function App() {
   // Check AFM on mount
   useEffect(() => {
     checkAFMStatus().then(status => setIsAFMAvailable(status.available))
-  }, [])
+    const handleSettingsChange = () => {
+      refreshAiSettings()
+      checkAFMStatus().then(status => setIsAFMAvailable(status.available))
+    }
+    window.addEventListener('mdaily_settings_change', handleSettingsChange)
+    return () => window.removeEventListener('mdaily_settings_change', handleSettingsChange)
+  }, [refreshAiSettings])
 
   // Listen to keyboard show/hide events
   useEffect(() => {
@@ -167,16 +188,19 @@ function App() {
   const handleAddCategory = async (label: string) => {
     const updated = await addCategory(label)
     setCategories([...updated])
+    triggerAutoSync()
   }
 
   const handleDeleteCategory = async (value: string) => {
     const updated = await deleteCategory(value)
     setCategories([...updated])
+    triggerAutoSync()
   }
 
   const handleUpdateCategory = async (oldValue: string, newLabel: string) => {
     const updated = await updateCategory(oldValue, newLabel)
     setCategories([...updated])
+    triggerAutoSync()
   }
 
   const categoryOptions = categoriesToSelectOptions(categories)

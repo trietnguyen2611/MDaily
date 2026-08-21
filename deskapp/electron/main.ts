@@ -19,6 +19,7 @@ let syncPort = 18321
 let syncToken = generateSyncPin()
 let syncServer: http.Server | null = null
 let syncServerActive = false
+const sseClients = new Set<http.ServerResponse>()
 
 function generateSyncPin(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -68,9 +69,32 @@ function getSyncServerInfo() {
     url: `http://${ip}:${syncPort}`,
     qrPayload,
     deviceName: os.hostname(),
-    allIps
+    allIps,
+    connectedClients: sseClients.size
   }
 }
+
+function broadcastSyncEvent(event = 'data_changed', meta?: any) {
+  const payload = JSON.stringify({ event, timestamp: Date.now(), ...(meta || {}) })
+  for (const client of sseClients) {
+    try {
+      client.write(`data: ${payload}\n\n`)
+    } catch {
+      sseClients.delete(client)
+    }
+  }
+}
+
+// Heartbeat for SSE streams
+setInterval(() => {
+  for (const client of sseClients) {
+    try {
+      client.write(`: ping\n\n`)
+    } catch {
+      sseClients.delete(client)
+    }
+  }
+}, 25000)
 
 // Pending IPC requests map for renderer sync responses
 const pendingSyncRequests = new Map<string, { resolve: (val: any) => void; reject: (err: any) => void; timeout: NodeJS.Timeout }>()
@@ -111,6 +135,15 @@ function startSyncServer(portToTry = 18321) {
     const urlObj = new URL(req.url || '/', `http://localhost:${syncPort}`)
     const pathname = urlObj.pathname
 
+    const checkAuth = (bodyToken?: string): boolean => {
+      const authHeader = req.headers['authorization'] || ''
+      const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : ''
+      const customHeader = (req.headers['x-sync-token'] as string) || ''
+      const queryToken = urlObj.searchParams.get('token') || ''
+      const received = (bearerToken || customHeader || queryToken || bodyToken || '').trim().toUpperCase()
+      return received === syncToken.toUpperCase()
+    }
+
     // 1. Health check / Ping
     if (pathname === '/api/ping' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' })
@@ -121,6 +154,28 @@ function startSyncServer(portToTry = 18321) {
         status: 'ready',
         timestamp: Date.now()
       }))
+      return
+    }
+
+    // 2. Real-time Event Stream (SSE) for Auto-Sync
+    if (pathname === '/api/sync/stream' && req.method === 'GET') {
+      if (!checkAuth()) {
+        res.writeHead(401, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ success: false, error: 'Unauthorized: Invalid token' }))
+        return
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+      })
+      res.write(`data: ${JSON.stringify({ event: 'connected', timestamp: Date.now() })}\n\n`)
+      sseClients.add(res)
+
+      req.on('close', () => {
+        sseClients.delete(res)
+      })
       return
     }
 
@@ -140,17 +195,8 @@ function startSyncServer(portToTry = 18321) {
       })
     }
 
-    const checkAuth = (bodyToken?: string): boolean => {
-      const authHeader = req.headers['authorization'] || ''
-      const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : ''
-      const customHeader = (req.headers['x-sync-token'] as string) || ''
-      const queryToken = urlObj.searchParams.get('token') || ''
-      const received = (bearerToken || customHeader || queryToken || bodyToken || '').trim().toUpperCase()
-      return received === syncToken.toUpperCase()
-    }
-
     try {
-      // 2. Pull from Desktop -> Phone
+      // 3. Pull from Desktop -> Phone
       if (pathname === '/api/sync/pull' && req.method === 'POST') {
         const body = await readBody()
         if (!checkAuth(body.token)) {
@@ -173,12 +219,13 @@ function startSyncServer(portToTry = 18321) {
           success: true,
           expenses: data.expenses || [],
           categories: data.categories || [],
+          deletedExpenseIds: data.deletedExpenseIds || [],
           timestamp: Date.now()
         }))
         return
       }
 
-      // 3. Push from Phone -> Desktop
+      // 4. Push from Phone -> Desktop
       if (pathname === '/api/sync/push' && req.method === 'POST') {
         const body = await readBody()
         if (!checkAuth(body.token)) {
@@ -189,7 +236,8 @@ function startSyncServer(portToTry = 18321) {
 
         const result = await sendRendererSyncRequest('import', {
           expenses: body.expenses || [],
-          categories: body.categories || []
+          categories: body.categories || [],
+          deletedExpenseIds: body.deletedExpenseIds || []
         })
 
         if (win && !win.isDestroyed()) {
@@ -201,6 +249,9 @@ function startSyncServer(portToTry = 18321) {
           })
         }
 
+        // Notify other clients
+        broadcastSyncEvent('data_changed', { source: 'phone_push' })
+
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({
           success: true,
@@ -211,7 +262,7 @@ function startSyncServer(portToTry = 18321) {
         return
       }
 
-      // 4. Two-Way Smart Merge
+      // 5. Two-Way Smart Merge
       if (pathname === '/api/sync/merge' && req.method === 'POST') {
         const body = await readBody()
         if (!checkAuth(body.token)) {
@@ -222,52 +273,63 @@ function startSyncServer(portToTry = 18321) {
 
         const mergeResult = await sendRendererSyncRequest('merge', {
           expenses: body.expenses || [],
-          categories: body.categories || []
+          categories: body.categories || [],
+          deletedExpenseIds: body.deletedExpenseIds || []
         })
 
         if (win && !win.isDestroyed()) {
           win.webContents.send('sync-event-notification', {
             type: 'merge',
             source: 'phone',
-            message: `Đồng bộ 2 chiều thành công (${mergeResult.expenses?.length || 0} chi tiêu)`,
+            message: `Đồng bộ 2 chiều tự động (${mergeResult.expenses?.length || 0} chi tiêu)`,
             timestamp: Date.now()
           })
         }
+
+        // Broadcast data change event
+        broadcastSyncEvent('data_changed', { source: 'phone_merge' })
 
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({
           success: true,
           expenses: mergeResult.expenses || [],
           categories: mergeResult.categories || [],
-          stats: mergeResult.stats,
+          deletedExpenseIds: mergeResult.deletedExpenseIds || [],
           timestamp: Date.now()
         }))
         return
       }
 
-      // 404 for other paths
+      // 404 for other routes
       res.writeHead(404, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ error: 'Endpoint not found' }))
     } catch (err: any) {
+      console.error('Sync Server Error:', err)
       res.writeHead(500, { 'Content-Type': 'application/json' })
-      res.end(JSON.stringify({ success: false, error: err?.message || 'Internal Server Error' }))
-    }
-  })
-
-  server.on('error', (err: any) => {
-    if (err.code === 'EADDRINUSE' && portToTry < 18330) {
-      startSyncServer(portToTry + 1)
-    } else {
-      syncServerActive = false
+      res.end(JSON.stringify({ success: false, error: err?.message || 'Internal server error' }))
     }
   })
 
   server.listen(portToTry, '0.0.0.0', () => {
     syncPort = portToTry
-    syncServer = server
     syncServerActive = true
+    syncServer = server
+    console.log(`[MDaily Sync Server] Running at http://${getPrimaryIp()}:${syncPort}`)
     if (win && !win.isDestroyed()) {
       win.webContents.send('sync-server-status-changed', getSyncServerInfo())
+    }
+  })
+
+  server.on('error', (err: any) => {
+    if (err.code === 'EADDRINUSE') {
+      console.warn(`Port ${portToTry} in use, trying ${portToTry + 1}...`)
+      startSyncServer(portToTry + 1)
+    } else {
+      console.error('[MDaily Sync Server Error]', err)
+      syncServerActive = false
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('sync-server-status-changed', getSyncServerInfo())
+      }
     }
   })
 }
@@ -372,6 +434,11 @@ ipcMain.handle('refresh-sync-token', () => {
     win.webContents.send('sync-server-status-changed', info)
   }
   return info
+})
+
+// Broadcast data mutation event to mobile clients
+ipcMain.on('broadcast-sync-event', (_event, data) => {
+  broadcastSyncEvent('data_changed', data)
 })
 
 // Renderer sends back response for a pending sync request

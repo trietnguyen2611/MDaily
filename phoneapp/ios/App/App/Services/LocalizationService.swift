@@ -211,7 +211,7 @@ public struct LocalizationService {
 
             // Wi-Fi Sync
             "wifi_sync": [.vi: "Đồng bộ Wi-Fi", .en: "Wi-Fi Sync"],
-            "wifi_sync_desc": [.vi: "Kết nối & đồng bộ dữ liệu với MDaily Desktop qua mạng Wi-Fi", .en: "Pair & sync data with MDaily Desktop over Wi-Fi"],
+            "wifi_sync_desc": [.vi: "Kết nối & đồng bộ dữ liệu với MDaily Desktop", .en: "Pair & sync data with MDaily Desktop over Wi-Fi"],
             "scan_qr": [.vi: "Quét mã QR", .en: "Scan QR Code"],
             "sync_connected": [.vi: "Đã kết nối", .en: "Connected"],
             "sync_two_way": [.vi: "Đồng bộ 2 chiều (Hợp nhất)", .en: "2-Way Merge (Recommended)"],
