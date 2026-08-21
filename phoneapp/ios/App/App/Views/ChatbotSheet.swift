@@ -22,6 +22,7 @@ public struct ChatbotSheet: View {
     @State private var inputText: String = ""
     @State private var isLoading: Bool = false
     @State private var afmStatus: AFMStatus = AFMService.shared.checkStatus()
+    @State private var sendButtonRotation: Double = 0
 
     public init(store: ExpenseStore, onClose: @escaping () -> Void) {
         self.store = store
@@ -31,7 +32,6 @@ public struct ChatbotSheet: View {
     public var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Top spacing removed
                 // Messages List
                 ScrollViewReader { proxy in
                     ScrollView(showsIndicators: false) {
@@ -106,26 +106,8 @@ public struct ChatbotSheet: View {
                     }
                 }
 
-                // Input Bar
-                HStack(spacing: 10) {
-                    TextField(store.t("type_message"), text: $inputText)
-                        .font(.appFont(size: 15, weight: .regular))
-                        .padding(12)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 22))
-
-                    Button {
-                        sendMessage(inputText)
-                    } label: {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 34))
-                            .foregroundColor(inputText.trimmingCharacters(in: .whitespaces).isEmpty ? .secondary.opacity(0.4) : .blue)
-                    }
-                    .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Color(.systemBackground))
+                // Liquid Glass Input Bar
+                liquidGlassInputBar
             }
             .scrollDismissesKeyboard(.interactively)
             .hideKeyboardOnTap()
@@ -154,6 +136,75 @@ public struct ChatbotSheet: View {
                 }
             }
         }
+    }
+
+    // MARK: - Liquid Glass Input Bar
+    private var liquidGlassInputBar: some View {
+        HStack(spacing: 10) {
+            // Text input with liquid glass background
+            TextField(store.t("type_message"), text: $inputText)
+                .font(.appFont(size: 15, weight: .regular))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                        RoundedRectangle(cornerRadius: 22, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: Color.white.opacity(0.35), location: 0.0),
+                                        .init(color: Color.white.opacity(0.10), location: 0.5),
+                                        .init(color: Color.white.opacity(0.04), location: 1.0)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.75
+                            )
+                    }
+                    .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 3)
+                }
+
+            // Send button with liquid glass effect
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                    sendButtonRotation += 360
+                }
+                sendMessage(inputText)
+            } label: {
+                let isEmpty = inputText.trimmingCharacters(in: .whitespaces).isEmpty
+                ZStack {
+                    if isEmpty {
+                        Circle()
+                            .fill(Color.secondary.opacity(0.15))
+                    } else {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.blue, Color(red: 0.3, green: 0.1, blue: 0.9)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .shadow(color: Color.blue.opacity(0.35), radius: 6, x: 0, y: 2)
+                    }
+
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(isEmpty ? .secondary.opacity(0.5) : .white)
+                        .rotationEffect(.degrees(sendButtonRotation))
+                }
+                .frame(width: 40, height: 40)
+                .animation(.spring(response: 0.35, dampingFraction: 0.75), value: isEmpty)
+            }
+            .disabled(inputText.trimmingCharacters(in: .whitespaces).isEmpty || isLoading)
+            .liquidGlassButton()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
     }
 
     private func resetChat() {
@@ -207,6 +258,7 @@ public struct TypewriterText: View {
     @Binding var message: ChatMessageSwift
     @State private var displayedText: String = ""
     @State private var isFinished: Bool = false
+    @State private var typewriterTimer: Timer? = nil
     
     public var body: some View {
         Text(isFinished || !message.animate ? message.content : displayedText)
@@ -225,12 +277,18 @@ public struct TypewriterText: View {
                     typeText()
                 }
             }
+            .onDisappear {
+                // Battery optimization: invalidate timer when view disappears
+                typewriterTimer?.invalidate()
+                typewriterTimer = nil
+            }
     }
     
     private func typeText() {
+        typewriterTimer?.invalidate()
         let characters = Array(message.content)
         var currentIndex = 0
-        Timer.scheduledTimer(withTimeInterval: 0.015, repeats: true) { timer in
+        typewriterTimer = Timer.scheduledTimer(withTimeInterval: 0.015, repeats: true) { timer in
             DispatchQueue.main.async {
                 if currentIndex < characters.count {
                     displayedText.append(characters[currentIndex])
@@ -238,6 +296,7 @@ public struct TypewriterText: View {
                 } else {
                     isFinished = true
                     timer.invalidate()
+                    typewriterTimer = nil
                     message.animate = false
                 }
             }

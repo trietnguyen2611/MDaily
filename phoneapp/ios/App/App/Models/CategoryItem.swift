@@ -18,6 +18,7 @@ public struct CategoryItem: Identifiable, Codable, Sendable, Hashable {
         case "shopping": return "bag.fill"
         case "food": return "fork.knife"
         case "transport": return "car.fill"
+        case "health": return "cross.case.fill"
         default: return "tag.fill"
         }
     }
@@ -31,6 +32,7 @@ public struct CategoryItem: Identifiable, Codable, Sendable, Hashable {
         case "food": return lang == .en ? "Food & Dining" : "Ăn uống"
         case "bills": return lang == .en ? "Bills" : "Hoá đơn"
         case "transport": return lang == .en ? "Transport" : "Di chuyển"
+        case "health": return lang == .en ? "Health" : "Sức khoẻ"
         default: return label
         }
     }
@@ -41,6 +43,7 @@ public extension CategoryItem {
         CategoryItem(id: "shopping", label: "Mua sắm", isDefault: true),
         CategoryItem(id: "food", label: "Ăn uống", isDefault: true),
         CategoryItem(id: "bills", label: "Hoá đơn", isDefault: true),
-        CategoryItem(id: "transport", label: "Di chuyển", isDefault: true)
+        CategoryItem(id: "transport", label: "Di chuyển", isDefault: true),
+        CategoryItem(id: "health", label: "Sức khoẻ", isDefault: true)
     ]
 }

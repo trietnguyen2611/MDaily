@@ -5,10 +5,13 @@ public struct DashboardView: View {
     @ObservedObject public var store: ExpenseStore
     public var expenses: [Expense]
     public var onSelectExpense: (Expense) -> Void
+    public var onEditExpense: ((Expense) -> Void)?
+    public var onShareExpense: ((Expense) -> Void)?
 
     @State private var expenseToDelete: Expense? = nil
     @State private var showDeleteConfirmation: Bool = false
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
 
     // Computed amount range for dynamic card sizing
     private var amountRange: (min: Double, max: Double) {
@@ -185,29 +188,45 @@ public struct DashboardView: View {
 
     @ViewBuilder
     private func expenseCard(for expense: Expense) -> some View {
+        let isRecurring = store.recurringExpenses.contains(where: { $0.linkedExpenseId == expense.id && $0.isActive })
+
         if let photoData = expense.photoData, let uiImage = UIImage(data: photoData) {
             ExpensePhotoCard(
                 expense: expense,
                 uiImage: uiImage,
                 store: store,
+                isRecurring: isRecurring,
                 onSelect: {
                     onSelectExpense(expense)
                 },
                 onDelete: {
                     expenseToDelete = expense
                     showDeleteConfirmation = true
+                },
+                onEdit: {
+                    onEditExpense?(expense)
+                },
+                onShare: {
+                    onShareExpense?(expense)
                 }
             )
         } else {
             ExpenseTextCard(
                 expense: expense,
                 store: store,
+                isRecurring: isRecurring,
                 onSelect: {
                     onSelectExpense(expense)
                 },
                 onDelete: {
                     expenseToDelete = expense
                     showDeleteConfirmation = true
+                },
+                onEdit: {
+                    onEditExpense?(expense)
+                },
+                onShare: {
+                    onShareExpense?(expense)
                 }
             )
         }
@@ -219,8 +238,11 @@ private struct ExpensePhotoCard: View {
     let expense: Expense
     let uiImage: UIImage
     let store: ExpenseStore
+    let isRecurring: Bool
     let onSelect: () -> Void
     let onDelete: () -> Void
+    let onEdit: () -> Void
+    let onShare: () -> Void
 
     private func formatTime(_ date: Date) -> String {
         let formatter = DateFormatter()
@@ -234,6 +256,7 @@ private struct ExpensePhotoCard: View {
         case "shopping": return "bag.fill"
         case "food": return "fork.knife"
         case "transport": return "car.fill"
+        case "health": return "cross.case.fill"
         default: return "tag.fill"
         }
     }
@@ -263,10 +286,25 @@ private struct ExpensePhotoCard: View {
                 endPoint: .bottom
             )
 
-            // 3. Category icon at top-right corner (always visible)
+            // 3. Top-right badges
             VStack {
-                HStack {
+                HStack(spacing: 6) {
                     Spacer()
+
+                    // Recurring badge
+                    if isRecurring {
+                        Image(systemName: "bell.badge.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.yellow)
+                            .frame(width: 26, height: 26)
+                            .background(
+                                Circle()
+                                    .fill(Color.black.opacity(0.50))
+                                    .overlay(Circle().strokeBorder(Color.yellow.opacity(0.40), lineWidth: 0.5))
+                            )
+                    }
+
+                    // Category icon
                     Image(systemName: categoryIconName(for: expense.category))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.white)
@@ -306,7 +344,7 @@ private struct ExpensePhotoCard: View {
 
                 Spacer(minLength: 16)
 
-                // Bottom: Amount Pill & Delete Button
+                // Bottom: Amount Pill
                 HStack(spacing: 8) {
                     Text(store.formatCurrency(expense.amount))
                         .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -321,20 +359,6 @@ private struct ExpensePhotoCard: View {
                         )
 
                     Spacer(minLength: 4)
-
-                    Button {
-                        onDelete()
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.red)
-                            .frame(width: 32, height: 32)
-                            .background(
-                                Circle()
-                                    .fill(Color.black.opacity(0.62))
-                            )
-                    }
-                    .buttonStyle(.plain)
                 }
             }
             .padding(14)
@@ -342,6 +366,33 @@ private struct ExpensePhotoCard: View {
         .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .onTapGesture {
             onSelect()
+        }
+        .contextMenu {
+            Button {
+                onSelect()
+            } label: {
+                Label(store.t("view_details"), systemImage: "eye")
+            }
+
+            Button {
+                onEdit()
+            } label: {
+                Label(store.t("edit"), systemImage: "pencil")
+            }
+
+            Button {
+                onShare()
+            } label: {
+                Label(store.t("share_image"), systemImage: "square.and.arrow.up")
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label(store.t("delete"), systemImage: "trash")
+            }
         }
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
@@ -356,8 +407,11 @@ private struct ExpensePhotoCard: View {
 private struct ExpenseTextCard: View {
     let expense: Expense
     let store: ExpenseStore
+    let isRecurring: Bool
     let onSelect: () -> Void
     let onDelete: () -> Void
+    let onEdit: () -> Void
+    let onShare: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -373,6 +427,7 @@ private struct ExpenseTextCard: View {
         case "shopping": return "bag.fill"
         case "food": return "fork.knife"
         case "transport": return "car.fill"
+        case "health": return "cross.case.fill"
         default: return "tag.fill"
         }
     }
@@ -383,13 +438,21 @@ private struct ExpenseTextCard: View {
         let hasNote = (expense.note?.isEmpty == false) && expense.note != "MDaily AI processed"
 
         VStack(alignment: .leading, spacing: 0) {
-            // Top: Time & Category Icon (always visible)
+            // Top: Time & badges
             HStack(spacing: 4) {
                 Text(timeStr)
                     .font(.system(size: 11, weight: .medium, design: .rounded))
                     .foregroundColor(.secondary)
 
                 Spacer()
+
+                if isRecurring {
+                    Image(systemName: "bell.badge.fill")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.orange)
+                        .frame(width: 22, height: 22)
+                        .background(Circle().fill(Color.orange.opacity(0.14)))
+                }
 
                 Image(systemName: categoryIconName(for: expense.category))
                     .font(.system(size: 12, weight: .semibold))
@@ -419,7 +482,7 @@ private struct ExpenseTextCard: View {
 
             Spacer(minLength: 18)
 
-            // Bottom: Amount & Delete Button
+            // Bottom: Amount
             HStack(spacing: 6) {
                 Text(store.formatCurrency(expense.amount))
                     .font(.system(size: 14, weight: .bold, design: .rounded))
@@ -428,21 +491,6 @@ private struct ExpenseTextCard: View {
                     .minimumScaleFactor(0.70)
 
                 Spacer(minLength: 4)
-
-                Button {
-                    onDelete()
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.red)
-                        .frame(width: 32, height: 32)
-                        .background(
-                            Circle()
-                                .fill(Color.red.opacity(colorScheme == .dark ? 0.15 : 0.08))
-                                .overlay(Circle().strokeBorder(Color.red.opacity(0.25), lineWidth: 0.5))
-                        )
-                }
-                .buttonStyle(.plain)
             }
         }
         .padding(16)
@@ -458,6 +506,33 @@ private struct ExpenseTextCard: View {
         .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .onTapGesture {
             onSelect()
+        }
+        .contextMenu {
+            Button {
+                onSelect()
+            } label: {
+                Label(store.t("view_details"), systemImage: "eye")
+            }
+
+            Button {
+                onEdit()
+            } label: {
+                Label(store.t("edit"), systemImage: "pencil")
+            }
+
+            Button {
+                onShare()
+            } label: {
+                Label(store.t("share_image"), systemImage: "square.and.arrow.up")
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label(store.t("delete"), systemImage: "trash")
+            }
         }
     }
 }

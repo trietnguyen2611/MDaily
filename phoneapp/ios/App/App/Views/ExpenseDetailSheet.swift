@@ -15,6 +15,11 @@ public struct ExpenseDetailSheet: View {
     @State private var isFullscreenImage: Bool = false
     @State private var showDeleteModal: Bool = false
 
+    private enum EditField: Hashable {
+        case amount, note
+    }
+    @FocusState private var focusedEditField: EditField?
+
     private static func formatAmountString(_ input: String) -> String {
         let cleanDigits = input.filter { $0.isNumber }
         guard !cleanDigits.isEmpty, let num = Double(cleanDigits) else { return "" }
@@ -119,6 +124,7 @@ public struct ExpenseDetailSheet: View {
                                             .keyboardType(.numberPad)
                                             .font(.appFont(size: 32, weight: .bold))
                                             .multilineTextAlignment(.center)
+                                            .focused($focusedEditField, equals: .amount)
                                             .onChange(of: editAmountText) { _, newValue in
                                                 let formatted = ExpenseDetailSheet.formatAmountString(newValue)
                                                 if formatted != newValue {
@@ -129,16 +135,20 @@ public struct ExpenseDetailSheet: View {
                                             .font(.appFont(size: 24, weight: .bold))
                                             .foregroundColor(.secondary)
                                     }
+                                    .id(EditField.amount)
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                                 } else {
                                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                                         Text(store.formatCurrency(currentExpense.amount))
                                             .font(.appFont(size: 34, weight: .bold))
                                             .foregroundColor(.primary)
                                     }
+                                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
                                 }
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
+                            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isEditing)
 
                             // Inset Grouped Section
                             VStack(spacing: 0) {
@@ -161,14 +171,17 @@ public struct ExpenseDetailSheet: View {
                                             }
                                         }
                                         .pickerStyle(.menu)
+                                        .transition(.opacity)
                                     } else {
                                         Text(store.categoryLabel(for: currentExpense.category))
                                             .font(.appFont(size: 16, weight: .semibold))
                                             .foregroundColor(.primary)
+                                            .transition(.opacity)
                                     }
                                 }
                                 .padding(.vertical, 14)
                                 .padding(.horizontal, 16)
+                                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isEditing)
 
                                 Divider()
                                     .padding(.leading, 44)
@@ -193,14 +206,17 @@ public struct ExpenseDetailSheet: View {
                                         )
                                         .datePickerStyle(.compact)
                                         .labelsHidden()
+                                        .transition(.opacity)
                                     } else {
                                         Text(formatDate(currentExpense.date))
                                             .font(.appFont(size: 15, weight: .regular))
                                             .foregroundColor(.secondary)
+                                            .transition(.opacity)
                                     }
                                 }
                                 .padding(.vertical, 14)
                                 .padding(.horizontal, 16)
+                                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isEditing)
 
                                 Divider()
                                     .padding(.leading, 44)
@@ -249,16 +265,20 @@ public struct ExpenseDetailSheet: View {
                                         TextField(store.t("note_placeholder"), text: $editNote)
                                             .font(.appFont(size: 15, weight: .regular))
                                             .multilineTextAlignment(.trailing)
-                                            .id("editNoteField")
+                                            .focused($focusedEditField, equals: .note)
+                                            .transition(.opacity)
                                     } else {
                                         Text(currentExpense.note ?? store.t("no_note"))
                                             .font(.appFont(size: 15, weight: .medium))
                                             .foregroundColor(.secondary)
                                             .lineLimit(2)
+                                            .transition(.opacity)
                                     }
                                 }
                                 .padding(.vertical, 14)
                                 .padding(.horizontal, 16)
+                                .id(EditField.note)
+                                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isEditing)
                             }
                             .liquidGlass(cornerRadius: 24)
 
@@ -280,7 +300,7 @@ public struct ExpenseDetailSheet: View {
                             .padding(.top, 10)
 
                             // Extra bottom padding for keyboard
-                            Color.clear.frame(height: 40)
+                            Color.clear.frame(height: 120)
                                 .id("bottomAnchor")
                         }
                         .padding(16)
@@ -313,10 +333,11 @@ public struct ExpenseDetailSheet: View {
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .hideKeyboardOnTap()
-                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            withAnimation(.easeOut(duration: 0.25)) {
-                                scrollProxy.scrollTo("editNoteField", anchor: .center)
+                    .onChange(of: focusedEditField) { _, newField in
+                        guard let field = newField else { return }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                scrollProxy.scrollTo(field, anchor: .center)
                             }
                         }
                     }
@@ -338,13 +359,18 @@ public struct ExpenseDetailSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     if isEditing {
                         Button(store.t("cancel")) {
-                            syncState(from: currentExpense)
-                            isEditing = false
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                focusedEditField = nil
+                                syncState(from: currentExpense)
+                                isEditing = false
+                            }
                         }
                         .font(.appFont(size: 16, weight: .regular))
                     } else {
                         Button(store.t("edit")) {
-                            isEditing = true
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                isEditing = true
+                            }
                         }
                         .font(.appFont(size: 16, weight: .semibold))
                         .foregroundColor(.blue)
@@ -363,8 +389,11 @@ public struct ExpenseDetailSheet: View {
                                 updated.note = editNote.trimmingCharacters(in: .whitespaces).isEmpty ? nil : editNote.trimmingCharacters(in: .whitespaces)
                                 updated.date = editDate
                                 store.updateExpense(updated)
-                                currentExpense = updated
-                                isEditing = false
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                    focusedEditField = nil
+                                    currentExpense = updated
+                                    isEditing = false
+                                }
                             }
                         }
                         .font(.appFont(size: 16, weight: .bold))

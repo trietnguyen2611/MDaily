@@ -51,7 +51,7 @@ public struct LiquidGlassDock: View {
                     cameraButton
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 12)
+                .padding(.bottom, 2)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }

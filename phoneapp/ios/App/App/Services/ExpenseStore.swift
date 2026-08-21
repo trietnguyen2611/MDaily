@@ -12,6 +12,7 @@ public final class ExpenseStore: ObservableObject {
     @Published public var aiChatEnabled: Bool = true
     @Published public var appearanceMode: AppearanceMode = .system
     @Published public var chatMessages: [ChatMessageSwift] = []
+    @Published public var recurringExpenses: [RecurringExpense] = []
 
     private let expensesKey = "mdaily_expenses_json"
     private let categoriesKey = "mdaily_categories_json"
@@ -20,11 +21,13 @@ public final class ExpenseStore: ObservableObject {
     private let autoExtractKey = "mdaily_auto_extract_bool"
     private let aiChatKey = "mdaily_ai_chat_bool"
     private let appearanceKey = "mdaily_appearance_str"
+    private let recurringKey = "mdaily_recurring_json"
 
     public init() {
         loadSettings()
         loadCategories()
         loadExpenses()
+        loadRecurringExpenses()
     }
 
     // MARK: - Translations Helper
@@ -62,11 +65,54 @@ public final class ExpenseStore: ObservableObject {
     public func deleteExpense(id: UUID) {
         expenses.removeAll(where: { $0.id == id })
         saveExpenses()
+        // Also remove linked recurring expenses
+        if let recurringIdx = recurringExpenses.firstIndex(where: { $0.linkedExpenseId == id }) {
+            let recurringId = recurringExpenses[recurringIdx].id
+            NotificationService.shared.cancelNotification(for: recurringId)
+            recurringExpenses.remove(at: recurringIdx)
+            saveRecurringExpenses()
+        }
     }
 
     public func clearAllData() {
         expenses.removeAll()
         saveExpenses()
+        recurringExpenses.removeAll()
+        saveRecurringExpenses()
+        NotificationService.shared.cancelAllNotifications()
+    }
+
+    // MARK: - Recurring Expense CRUD
+    public func addRecurringExpense(_ recurring: RecurringExpense) {
+        recurringExpenses.append(recurring)
+        saveRecurringExpenses()
+        NotificationService.shared.scheduleRecurringNotification(
+            for: recurring,
+            currencySymbol: currencySymbol,
+            isEnglish: language == .en
+        )
+    }
+
+    public func updateRecurringExpense(_ recurring: RecurringExpense) {
+        if let idx = recurringExpenses.firstIndex(where: { $0.id == recurring.id }) {
+            recurringExpenses[idx] = recurring
+            saveRecurringExpenses()
+            if recurring.isActive {
+                NotificationService.shared.scheduleRecurringNotification(
+                    for: recurring,
+                    currencySymbol: currencySymbol,
+                    isEnglish: language == .en
+                )
+            } else {
+                NotificationService.shared.cancelNotification(for: recurring.id)
+            }
+        }
+    }
+
+    public func deleteRecurringExpense(id: UUID) {
+        NotificationService.shared.cancelNotification(for: id)
+        recurringExpenses.removeAll(where: { $0.id == id })
+        saveRecurringExpenses()
     }
 
     // MARK: - Category CRUD
@@ -193,6 +239,19 @@ public final class ExpenseStore: ObservableObject {
     private func saveExpenses() {
         if let encoded = try? JSONEncoder().encode(expenses) {
             UserDefaults.standard.set(encoded, forKey: expensesKey)
+        }
+    }
+
+    private func loadRecurringExpenses() {
+        if let data = UserDefaults.standard.data(forKey: recurringKey),
+           let decoded = try? JSONDecoder().decode([RecurringExpense].self, from: data) {
+            self.recurringExpenses = decoded
+        }
+    }
+
+    private func saveRecurringExpenses() {
+        if let encoded = try? JSONEncoder().encode(recurringExpenses) {
+            UserDefaults.standard.set(encoded, forKey: recurringKey)
         }
     }
 }
