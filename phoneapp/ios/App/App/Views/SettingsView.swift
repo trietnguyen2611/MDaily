@@ -251,7 +251,7 @@ public struct SettingsView: View {
                     Text(store.t("app_title"))
                         .font(.appFont(size: 14, weight: .bold))
                         .foregroundColor(.primary)
-                    Text("v2.2")
+                    Text("v2.3.0")
                         .font(.appFont(size: 12, weight: .regular))
                         .foregroundColor(.secondary)
                 }

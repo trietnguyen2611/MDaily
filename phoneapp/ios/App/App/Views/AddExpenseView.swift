@@ -555,23 +555,10 @@ public struct AddExpenseView: View {
 
                 // 5. AI Extraction Loading Status
                 if isExtracting {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 22, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                            .background(Color.black.opacity(0.35))
-
-                        HStack(spacing: 8) {
-                            ProgressView()
-                                .tint(.white)
-                            Text(store.t("ai_recognizing"))
-                                .font(.appFont(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(Capsule().fill(Color.black.opacity(0.65)))
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                    AIExtractionOverlayView(
+                        previewHeight: previewHeight,
+                        text: store.t("ai_recognizing")
+                    )
                 }
             }
             .frame(maxWidth: .infinity)
@@ -630,5 +617,84 @@ public struct AddExpenseView: View {
             .liquidGlass(cornerRadius: 24)
         }
         .liquidGlassButton()
+    }
+}
+
+// MARK: - Animated AI Extraction Overlay View
+struct AIExtractionOverlayView: View {
+    let previewHeight: CGFloat
+    let text: String
+
+    @State private var scanOffset: CGFloat = -1.0
+    @State private var animateGradient: Bool = false
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            // 1. Moving scan backdrop gradient overlay
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.15), Color.purple.opacity(0.15), Color.cyan.opacity(0.10)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .hueRotation(.degrees(animateGradient ? 360 : 0))
+                .animation(.linear(duration: 4.0).repeatForever(autoreverses: false), value: animateGradient)
+                .background(.ultraThinMaterial.opacity(0.85))
+
+            // 2. Horizontal scan line
+            GeometryReader { geo in
+                let startY = 12.0
+                let endY = geo.size.height - 12.0
+                let currentY = startY + (endY - startY) * (scanOffset + 1.0) / 2.0
+
+                ZStack {
+                    // Glow bar
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.clear, Color.cyan, Color.blue, Color.cyan, Color.clear],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 4)
+                        .shadow(color: Color.blue.opacity(0.8), radius: 6, x: 0, y: 0)
+                        .position(x: geo.size.width / 2.0, y: currentY)
+                }
+            }
+
+            // 3. Central HUD Card
+            VStack {
+                Spacer()
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .tint(.white)
+                        .scaleEffect(1.1)
+                    Text(text)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule()
+                        .fill(Color.black.opacity(0.75))
+                        .overlay(
+                            Capsule().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
+                        )
+                )
+                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+                Spacer()
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .onAppear {
+            animateGradient = true
+            withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
+                scanOffset = 1.0
+            }
+        }
     }
 }
