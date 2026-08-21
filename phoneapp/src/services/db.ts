@@ -40,6 +40,11 @@ export const updateExpense = async (updatedExpense: Expense): Promise<Expense[]>
   return updatedList
 }
 
+export const saveExpensesBatch = async (newExpenses: Expense[]): Promise<Expense[]> => {
+  await localforage.setItem(DB_KEY, newExpenses)
+  return newExpenses
+}
+
 export const clearExpenses = async () => {
   await localforage.removeItem(DB_KEY)
 }

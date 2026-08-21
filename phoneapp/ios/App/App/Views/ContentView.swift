@@ -59,7 +59,6 @@ public struct ContentView: View {
     @State private var editingExpense: Expense? = nil
     @State private var capturedPhotoData: Data? = nil
     @State private var showCameraPicker: Bool = false
-    @State private var showSplash: Bool = true
     @State private var isKeyboardVisible: Bool = false
 
     @Environment(\.colorScheme) private var colorScheme
@@ -120,11 +119,9 @@ public struct ContentView: View {
     }
 
     public var body: some View {
-        ZStack {
-            // Main App Content
-            ZStack(alignment: .bottom) {
-                // 1. Pitch Black / Grouped System Background Canvas
-                AmbientBackgroundView()
+        ZStack(alignment: .bottom) {
+            // 1. Pitch Black / Grouped System Background Canvas
+            AmbientBackgroundView()
 
             // 2. Main Content
             VStack(spacing: 0) {
@@ -214,22 +211,6 @@ public struct ContentView: View {
                     }
                 )
                 .zIndex(10)
-            }
-            }
-            .opacity(showSplash ? 0.0001 : 1.0)
-            
-            // Splash Screen Overlay
-            if showSplash {
-                SplashScreenView()
-                    .transition(AnyTransition.opacity.combined(with: AnyTransition.scale(scale: 1.05)))
-                    .zIndex(2)
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-                            withAnimation(.easeInOut(duration: 0.5)) {
-                                showSplash = false
-                            }
-                        }
-                    }
             }
         }
         .preferredColorScheme(preferredColorScheme)

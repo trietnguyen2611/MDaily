@@ -29,6 +29,8 @@ export const saveCategories = async (categories: CategoryItem[]): Promise<Catego
   return categories
 }
 
+export const saveCategoriesBatch = saveCategories
+
 export const addCategory = async (label: string): Promise<CategoryItem[]> => {
   const categories = await getCategories()
   const value = label

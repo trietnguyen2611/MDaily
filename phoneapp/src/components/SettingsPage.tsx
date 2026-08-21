@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Globe, Trash2, Info, Sparkles, ScanLine, MessageCircle, CheckCircle2, XCircle, Languages } from 'lucide-react'
+import { Globe, Trash2, Info, Sparkles, ScanLine, MessageCircle, CheckCircle2, XCircle, Languages, Wifi, QrCode } from 'lucide-react'
 import { clearExpenses } from '../services/db'
 import { checkAFMStatus, getAutoExtractEnabled, setAutoExtractEnabled, getAiChatEnabled, setAiChatEnabled } from '../services/ai'
 import { getLanguage, setLanguage, getCurrency, setCurrency, t } from '../services/i18n'
@@ -25,12 +25,14 @@ interface SettingsPageProps {
   onDataCleared?: () => void
   onAiSettingsChanged?: () => void
   onSettingsChanged?: () => void
+  onOpenWifiSync?: () => void
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({
   onDataCleared,
   onAiSettingsChanged,
-  onSettingsChanged
+  onSettingsChanged,
+  onOpenWifiSync
 }) => {
   const [currentLang, setCurrentLang] = useState<Language>(getLanguage())
   const [currentCurrency, setCurrentCurrency] = useState<Currency>(getCurrency())
@@ -85,7 +87,33 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   return (
     <div className="settings-container">
-      {/* Apple Intelligence Section */}
+      {/* 1. Wi-Fi Sync Section */}
+      <div className="settings-section">
+        <h3>{t('wifi_sync', currentLang)}</h3>
+        <div className="settings-group">
+          <div className="settings-item">
+            <div className="settings-item-left">
+              <div className="settings-icon-wrapper" style={{ background: 'linear-gradient(135deg, #0a84ff, #0056b3)' }}>
+                <Wifi size={18} />
+              </div>
+              <div className="settings-item-info">
+                <span className="settings-item-label">{t('wifi_sync', currentLang)}</span>
+                <span className="settings-item-desc">{t('wifi_sync_desc', currentLang)}</span>
+              </div>
+            </div>
+            <button
+              className="btn-utility"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              onClick={onOpenWifiSync}
+            >
+              <QrCode size={16} />
+              <span>{t('scan_qr', currentLang)}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Apple Intelligence Section */}
       <div className="settings-section">
         <h3>{t('apple_intelligence', currentLang)}</h3>
         <div className="settings-group">
@@ -164,7 +192,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         </div>
       </div>
 
-      {/* UI & Options: Language & Currency */}
+      {/* 3. UI & Options: Language & Currency */}
       <div className="settings-section">
         <h3>{t('ui_options', currentLang)}</h3>
         <div className="settings-group">
@@ -210,7 +238,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         </div>
       </div>
 
-      {/* Data Management */}
+      {/* 4. Data Management */}
       <div className="settings-section">
         <h3>{t('data_management', currentLang)}</h3>
         <div className="settings-group">
@@ -235,7 +263,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         </div>
       </div>
 
-      {/* App Info */}
+      {/* 5. App Info */}
       <div className="settings-section">
         <h3>{t('app_info', currentLang)}</h3>
         <div className="settings-group">
@@ -249,7 +277,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <span className="settings-item-desc">{t('app_version_desc', currentLang)}</span>
               </div>
             </div>
-            <span className="settings-badge">iOS · v1.2</span>
+            <span className="settings-badge">v2.4.0</span>
           </div>
         </div>
       </div>

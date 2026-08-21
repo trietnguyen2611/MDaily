@@ -10,8 +10,8 @@ public enum CameraLayoutMode: String, Codable, CaseIterable, Identifiable, Senda
 
     public func title(lang: Language) -> String {
         switch self {
-        case .default: return lang == .en ? "Default Full Screen" : "Mặc định (Toàn màn hình)"
-        case .dynamicIsland: return lang == .en ? "Dynamic Island" : "Dynamic Island (Widget)"
+        case .default: return lang == .en ? "Default" : "Mặc định"
+        case .dynamicIsland: return lang == .en ? "Dynamic" : "Dynamic"
         }
     }
 }
@@ -291,10 +291,17 @@ public final class ExpenseStore: ObservableObject {
 // MARK: - UIDevice Dynamic Island Detection
 public extension UIDevice {
     var hasDynamicIsland: Bool {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first else {
-            return false
+        let maxDim = Int(max(UIScreen.main.bounds.height, UIScreen.main.bounds.width))
+        // Known Dynamic Island screen heights: 852 (14 Pro, 15, 15 Pro, 16), 874 (16 Pro), 932 (14 Pro Max, 15 Plus, 15 Pro Max, 16 Plus), 956 (16 Pro Max)
+        if maxDim == 852 || maxDim == 874 || maxDim == 932 || maxDim == 956 {
+            return true
         }
-        return window.safeAreaInsets.top >= 51
+
+        // Secondary fallback: Safe area top inset >= 51pt
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first(where: { $0.isKeyWindow }) ?? windowScene.windows.first {
+            return window.safeAreaInsets.top >= 51
+        }
+        return false
     }
 }

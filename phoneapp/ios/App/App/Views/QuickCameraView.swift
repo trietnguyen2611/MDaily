@@ -12,8 +12,8 @@ public struct QuickCameraView: View {
     @State private var isExpanded: Bool = false
     @State private var dragOffset: CGSize = .zero
 
-    public init(store: ExpenseStore, onPhotoCaptured: @escaping (Data) -> Void, onDismiss: @escaping () -> Void) {
-        self.store = store
+    public init(store: ExpenseStore? = nil, onPhotoCaptured: @escaping (Data) -> Void, onDismiss: @escaping () -> Void) {
+        self.store = store ?? ExpenseStore()
         self.onPhotoCaptured = onPhotoCaptured
         self.onDismiss = onDismiss
     }

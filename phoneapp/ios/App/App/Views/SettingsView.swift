@@ -8,12 +8,50 @@ public struct SettingsView: View {
     @State private var showDeleteAllAlert: Bool = false
     @State private var showDeletedNotice: Bool = false
     @State private var showAiChatSheet: Bool = false
+    @State private var showWifiSyncSheet: Bool = false
 
     public var body: some View {
         ScrollView(showsIndicators: false) {
             ScrollOffsetTracker()
 
             VStack(spacing: 24) {
+                // 0. Wi-Fi Sync Section
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(store.t("wifi_sync"))
+                        .font(.appFont(size: 14, weight: .bold))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+
+                    VStack(spacing: 0) {
+                        Button {
+                            showWifiSyncSheet = true
+                        } label: {
+                            HStack {
+                                settingsIcon(name: "wifi", color: .blue)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(store.t("wifi_sync"))
+                                        .font(.appFont(size: 16, weight: .medium))
+                                        .foregroundColor(.primary)
+                                    Text(store.t("wifi_sync_desc"))
+                                        .font(.appFont(size: 12, weight: .regular))
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.leading, 6)
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                        }
+                    }
+                    .liquidGlass(cornerRadius: 20)
+                }
+
                 // 1. MDaily AI / Smart Financial AI Section
                 VStack(alignment: .leading, spacing: 10) {
                     Text(store.t("apple_intelligence"))
@@ -296,7 +334,7 @@ public struct SettingsView: View {
                     Text(store.t("app_title"))
                         .font(.appFont(size: 14, weight: .bold))
                         .foregroundColor(.primary)
-                    Text("v2.3.0")
+                    Text("v2.4.0")
                         .font(.appFont(size: 12, weight: .regular))
                         .foregroundColor(.secondary)
                 }
@@ -353,6 +391,12 @@ public struct SettingsView: View {
             ChatbotSheet(
                 store: store,
                 onClose: { showAiChatSheet = false }
+            )
+        }
+        .sheet(isPresented: $showWifiSyncSheet) {
+            WifiSyncSheet(
+                store: store,
+                onClose: { showWifiSyncSheet = false }
             )
         }
     }

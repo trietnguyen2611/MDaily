@@ -1,15 +1,17 @@
 import React, { useState } from 'react'
 import { Home, Settings, Tag, Plus, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { APP_VERSION_LABEL } from '../constants'
+import { t, getLanguage } from '../services/i18n'
 import './Sidebar.css'
 
 interface SidebarProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
+  activeTab: string
+  onTabChange: (tab: string) => void
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const lang = getLanguage()
 
   return (
     <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
@@ -17,58 +19,58 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
         {!isCollapsed && (
           <div className="sidebar-logo">
             <h1>MDaily</h1>
-            <p>Quản lý tài chính · {APP_VERSION_LABEL}</p>
+            <p>macOS · {APP_VERSION_LABEL}</p>
           </div>
         )}
-        <button 
-          className="collapse-btn" 
+        <button
+          className="collapse-btn"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          title={isCollapsed ? "Mở rộng" : "Thu gọn"}
+          title={isCollapsed ? (lang === 'vi' ? 'Mở rộng' : 'Expand') : (lang === 'vi' ? 'Thu gọn' : 'Collapse')}
         >
           {isCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
         </button>
       </div>
-      
+
       <div className="sidebar-primary-action">
-        <button 
-          className="btn-primary sidebar-add-btn" 
+        <button
+          className="btn-primary sidebar-add-btn"
           onClick={() => onTabChange('add-expense')}
-          title="Thêm chi tiêu"
+          title={t('tab_add_expense', lang)}
         >
           <Plus size={20} />
-          {!isCollapsed && <span>Thêm chi tiêu</span>}
+          {!isCollapsed && <span>{t('tab_add_expense', lang)}</span>}
         </button>
       </div>
 
       <nav className="sidebar-nav">
-        <button 
+        <button
           className={`nav-item ${activeTab === 'dashboard' ? 'active' : ''}`}
           onClick={() => onTabChange('dashboard')}
-          title="Tổng quan"
+          title={t('tab_dashboard', lang)}
         >
           <Home size={20} />
-          {!isCollapsed && <span>Tổng quan</span>}
+          {!isCollapsed && <span>{t('tab_dashboard', lang)}</span>}
         </button>
-        <button 
+        <button
           className={`nav-item ${activeTab === 'reports' ? 'active' : ''}`}
           onClick={() => onTabChange('reports')}
-          title="Phân loại"
+          title={t('tab_reports', lang)}
         >
           <Tag size={20} />
-          {!isCollapsed && <span>Phân loại</span>}
+          {!isCollapsed && <span>{t('tab_reports', lang)}</span>}
         </button>
-        <button 
+        <button
           className={`nav-item ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => onTabChange('settings')}
-          title="Cài đặt"
+          title={t('tab_settings', lang)}
         >
           <Settings size={20} />
-          {!isCollapsed && <span>Cài đặt</span>}
+          {!isCollapsed && <span>{t('tab_settings', lang)}</span>}
         </button>
       </nav>
 
       <div className="sidebar-footer">
-        {/* Footer content if needed */}
+        {/* Footer content */}
       </div>
     </div>
   )

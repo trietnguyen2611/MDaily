@@ -163,218 +163,10 @@ public struct AddExpenseView: View {
                     }
 
                     // Inset Grouped Form
-                    VStack(spacing: 16) {
-                        // Amount Field
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text("\(store.t("amount")) (\(store.currencySymbol))")
-                                    .font(.appFont(size: 14, weight: .medium))
-                                    .foregroundColor(.secondary)
-
-                                Spacer()
-
-                                if showAmountError {
-                                    Text(store.t("invalid_amount"))
-                                        .font(.appFont(size: 12, weight: .medium))
-                                        .foregroundColor(.red)
-                                }
-                            }
-
-                            HStack {
-                                TextField("0", text: $amountText)
-                                    .keyboardType(.numberPad)
-                                    .font(.appFont(size: 24, weight: .bold))
-                                    .onChange(of: amountText) { _, newValue in
-                                        showAmountError = false
-                                        let formatted = formatAmountString(newValue)
-                                        if formatted != newValue {
-                                            amountText = formatted
-                                        }
-                                    }
-                                    .focused($focusedField, equals: .amount)
-                                    .id(FormField.amount)
-
-                                Text(store.currencySymbol)
-                                    .font(.appFont(size: 20, weight: .bold))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(14)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        }
-
-                        // Category Field
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(store.t("category"))
-                                .font(.appFont(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
-
-                            Picker("Category", selection: $selectedCategory) {
-                                ForEach(store.categories) { cat in
-                                    Text(cat.localizedLabel(lang: store.language)).tag(cat.id)
-                                }
-                            }
-                            .font(.appFont(size: 15, weight: .medium))
-                            .pickerStyle(.menu)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
-                            .background(Color(.secondarySystemBackground))
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                            if !isAddingCategory {
-                                Button {
-                                    isAddingCategory = true
-                                } label: {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "plus.circle.fill")
-                                        Text(store.t("add_new_category"))
-                                    }
-                                    .font(.appFont(size: 13, weight: .semibold))
-                                    .foregroundColor(.blue)
-                                }
-                                .padding(.top, 2)
-                            } else {
-                                HStack {
-                                    TextField(store.t("new_cat_placeholder"), text: $newCategoryName)
-                                        .font(.appFont(size: 14, weight: .regular))
-                                        .padding(10)
-                                        .background(Color(.tertiarySystemBackground))
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                                        .focused($focusedField, equals: .newCategory)
-                                        .id(FormField.newCategory)
-
-                                    Button(store.t("save")) {
-                                        let trimmed = newCategoryName.trimmingCharacters(in: .whitespaces)
-                                        if !trimmed.isEmpty {
-                                            store.addCategory(label: trimmed)
-                                            if let last = store.categories.last {
-                                                selectedCategory = last.id
-                                            }
-                                            newCategoryName = ""
-                                            isAddingCategory = false
-                                        }
-                                    }
-                                    .font(.appFont(size: 14, weight: .semibold))
-                                    .buttonStyle(.borderedProminent)
-
-                                    LiquidGlassCloseButton(size: 28) {
-                                        isAddingCategory = false
-                                        newCategoryName = ""
-                                    }
-                                }
-                                .padding(.top, 4)
-                            }
-                        }
-
-                        // Note Field
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(store.t("note"))
-                                .font(.appFont(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
-
-                            TextField(store.t("note_placeholder"), text: $noteText)
-                                .font(.appFont(size: 15, weight: .regular))
-                                .padding(14)
-                                .background(Color(.secondarySystemBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .focused($focusedField, equals: .note)
-                                .id(FormField.note)
-                        }
-
-                        // Recurring Payment Toggle
-                        VStack(alignment: .leading, spacing: 10) {
-                            Toggle(isOn: $isRecurring.animation(.spring(response: 0.36, dampingFraction: 0.85))) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "bell.badge.fill")
-                                        .foregroundColor(.orange)
-                                        .font(.system(size: 16))
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(store.t("recurring_reminder"))
-                                            .font(.appFont(size: 15, weight: .medium))
-                                        Text(store.t("recurring_reminder_desc"))
-                                            .font(.appFont(size: 11, weight: .regular))
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                            .tint(.orange)
-
-                            if isRecurring {
-                                VStack(spacing: 10) {
-                                    // Reminder Date
-                                    HStack {
-                                        Text(store.t("reminder_date"))
-                                            .font(.appFont(size: 14, weight: .medium))
-                                            .foregroundColor(.secondary)
-                                        Spacer()
-                                        DatePicker("", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
-                                            .datePickerStyle(.compact)
-                                            .labelsHidden()
-                                            .environment(\.locale, Locale(identifier: store.language == .en ? "en_US" : "vi_VN"))
-                                    }
-                                    .padding(12)
-                                    .background(Color(.tertiarySystemBackground))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                                    // Repeat Interval
-                                    HStack {
-                                        Text(store.t("repeat_interval"))
-                                            .font(.appFont(size: 14, weight: .medium))
-                                            .foregroundColor(.secondary)
-                                        Spacer()
-                                        Picker("", selection: $repeatInterval) {
-                                            ForEach(RepeatInterval.allCases) { interval in
-                                                Text(interval.title(lang: store.language)).tag(interval)
-                                            }
-                                        }
-                                        .pickerStyle(.menu)
-                                    }
-                                    .padding(12)
-                                    .background(Color(.tertiarySystemBackground))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                }
-                                .transition(.asymmetric(
-                                    insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
-                                    removal: .opacity
-                                ))
-                            }
-                        }
-                        .padding(.top, 4)
-                    }
-                    .padding(20)
-                    .liquidGlass(cornerRadius: 28)
+                    formSection
 
                     // Action Buttons
-                    HStack(spacing: 12) {
-                        Button(store.t("cancel")) {
-                            resetForm()
-                            onCancel()
-                        }
-                        .font(.appFont(size: 16, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .liquidGlass(cornerRadius: 22)
-                        .liquidGlassButton()
-
-                        Button(store.t("save_expense")) {
-                            saveExpense()
-                        }
-                        .font(.appFont(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.blue, Color(red: 0, green: 0.45, blue: 0.95)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                        .shadow(color: Color.blue.opacity(0.35), radius: 10, x: 0, y: 4)
-                        .liquidGlassButton()
-                    }
+                    actionButtonsSection
 
                     // Extra bottom padding for keyboard
                     Color.clear.frame(height: 40)
@@ -438,6 +230,7 @@ public struct AddExpenseView: View {
         }
         .fullScreenCover(isPresented: $showCameraPicker) {
             QuickCameraView(
+                store: store,
                 onPhotoCaptured: { data in
                     processPhoto(data)
                 },
@@ -473,6 +266,238 @@ public struct AddExpenseView: View {
             if let newData {
                 processPhoto(newData)
             }
+        }
+    }
+
+    // MARK: - Form Subsections
+    @ViewBuilder
+    private var formSection: some View {
+        VStack(spacing: 16) {
+            amountFieldSection
+            categoryFieldSection
+            noteFieldSection
+            recurringSection
+        }
+        .padding(20)
+        .liquidGlass(cornerRadius: 28)
+    }
+
+    @ViewBuilder
+    private var amountFieldSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("\(store.t("amount")) (\(store.currencySymbol))")
+                    .font(.appFont(size: 14, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                if showAmountError {
+                    Text(store.t("invalid_amount"))
+                        .font(.appFont(size: 12, weight: .medium))
+                        .foregroundColor(.red)
+                }
+            }
+
+            HStack {
+                TextField("0", text: $amountText)
+                    .keyboardType(.numberPad)
+                    .font(.appFont(size: 24, weight: .bold))
+                    .onChange(of: amountText) { _, newValue in
+                        showAmountError = false
+                        let formatted = formatAmountString(newValue)
+                        if formatted != newValue {
+                            amountText = formatted
+                        }
+                    }
+                    .focused($focusedField, equals: .amount)
+                    .id(FormField.amount)
+
+                Text(store.currencySymbol)
+                    .font(.appFont(size: 20, weight: .bold))
+                    .foregroundColor(.secondary)
+            }
+            .padding(14)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+    }
+
+    @ViewBuilder
+    private var categoryFieldSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(store.t("category"))
+                .font(.appFont(size: 14, weight: .medium))
+                .foregroundColor(.secondary)
+
+            Picker("Category", selection: $selectedCategory) {
+                ForEach(store.categories) { cat in
+                    Text(cat.localizedLabel(lang: store.language)).tag(cat.id)
+                }
+            }
+            .font(.appFont(size: 15, weight: .medium))
+            .pickerStyle(.menu)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            if !isAddingCategory {
+                Button {
+                    isAddingCategory = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle.fill")
+                        Text(store.t("add_new_category"))
+                    }
+                    .font(.appFont(size: 13, weight: .semibold))
+                    .foregroundColor(.blue)
+                }
+                .padding(.top, 2)
+            } else {
+                HStack {
+                    TextField(store.t("new_cat_placeholder"), text: $newCategoryName)
+                        .font(.appFont(size: 14, weight: .regular))
+                        .padding(10)
+                        .background(Color(.tertiarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .focused($focusedField, equals: .newCategory)
+                        .id(FormField.newCategory)
+
+                    Button(store.t("save")) {
+                        let trimmed = newCategoryName.trimmingCharacters(in: .whitespaces)
+                        if !trimmed.isEmpty {
+                            store.addCategory(label: trimmed)
+                            if let last = store.categories.last {
+                                selectedCategory = last.id
+                            }
+                            newCategoryName = ""
+                            isAddingCategory = false
+                        }
+                    }
+                    .font(.appFont(size: 14, weight: .semibold))
+                    .buttonStyle(.borderedProminent)
+
+                    LiquidGlassCloseButton(size: 28) {
+                        isAddingCategory = false
+                        newCategoryName = ""
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var noteFieldSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(store.t("note"))
+                .font(.appFont(size: 14, weight: .medium))
+                .foregroundColor(.secondary)
+
+            TextField(store.t("note_placeholder"), text: $noteText)
+                .font(.appFont(size: 15, weight: .regular))
+                .padding(14)
+                .background(Color(.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .focused($focusedField, equals: .note)
+                .id(FormField.note)
+        }
+    }
+
+    @ViewBuilder
+    private var recurringSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle(isOn: $isRecurring.animation(.spring(response: 0.36, dampingFraction: 0.85))) {
+                HStack(spacing: 8) {
+                    Image(systemName: "bell.badge.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 16))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(store.t("recurring_reminder"))
+                            .font(.appFont(size: 15, weight: .medium))
+                        Text(store.t("recurring_reminder_desc"))
+                            .font(.appFont(size: 11, weight: .regular))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .tint(.orange)
+
+            if isRecurring {
+                VStack(spacing: 10) {
+                    // Reminder Date
+                    HStack {
+                        Text(store.t("reminder_date"))
+                            .font(.appFont(size: 14, weight: .medium))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        DatePicker("", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
+                            .datePickerStyle(.compact)
+                            .labelsHidden()
+                            .environment(\.locale, Locale(identifier: store.language == .en ? "en_US" : "vi_VN"))
+                    }
+                    .padding(12)
+                    .background(Color(.tertiarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                    // Repeat Interval
+                    HStack {
+                        Text(store.t("repeat_interval"))
+                            .font(.appFont(size: 14, weight: .medium))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Picker("", selection: $repeatInterval) {
+                            ForEach(RepeatInterval.allCases) { interval in
+                                Text(interval.title(lang: store.language)).tag(interval)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    .padding(12)
+                    .background(Color(.tertiarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+                    removal: .opacity
+                ))
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    @ViewBuilder
+    private var actionButtonsSection: some View {
+        HStack(spacing: 12) {
+            Button(store.t("cancel")) {
+                resetForm()
+                onCancel()
+            }
+            .font(.appFont(size: 16, weight: .semibold))
+            .foregroundColor(.primary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .liquidGlass(cornerRadius: 22)
+            .liquidGlassButton()
+
+            Button(store.t("save_expense")) {
+                saveExpense()
+            }
+            .font(.appFont(size: 16, weight: .semibold))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(
+                LinearGradient(
+                    colors: [Color.blue, Color(red: 0, green: 0.45, blue: 0.95)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .shadow(color: Color.blue.opacity(0.35), radius: 10, x: 0, y: 4)
+            .liquidGlassButton()
         }
     }
 

@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import type { Expense } from '../types'
-import { FileText, ShoppingBag, Utensils, Car, Trash2, Tag } from 'lucide-react'
+import { FileText, ShoppingBag, Utensils, Car, Trash2, Tag, Sparkles } from 'lucide-react'
 import { ExpenseDetailModal } from './ExpenseDetailModal'
 import { getCategoryLabel } from '../services/categories'
 import type { CategoryItem } from '../services/categories'
 import type { SelectOption } from './CustomSelect'
+import { formatCurrency, t, getLanguage } from '../services/i18n'
 import './Dashboard.css'
 
 interface DashboardProps {
@@ -36,9 +37,16 @@ const formatDate = (dateStr: string) => {
 
 const DELETE_ANIMATION_DURATION = 240
 
-export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpdate, categories, categoryOptions }) => {
+export const Dashboard: React.FC<DashboardProps> = ({
+  expenses,
+  onDelete,
+  onUpdate,
+  categories,
+  categoryOptions
+}) => {
   const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null)
   const [deletingExpenseIds, setDeletingExpenseIds] = useState<Set<string>>(new Set())
+  const lang = getLanguage()
 
   const handleDelete = (id: string) => {
     if (deletingExpenseIds.has(id)) return
@@ -51,7 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpda
     <div className="dashboard">
       {expenses.length === 0 ? (
         <div className="empty-state">
-          <p>Chưa có chi tiêu nào. Bấm "Thêm chi tiêu" để thêm mới.</p>
+          <p>{t('no_expenses', lang)}</p>
         </div>
       ) : (
         <div className="expense-grid">
@@ -67,11 +75,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpda
                 ) : (
                   <div className="expense-photo-placeholder">
                     <FileText size={32} />
-                    <span>Không có hình ảnh</span>
+                    <span>{lang === 'vi' ? 'Không có hình ảnh' : 'No photo'}</span>
                   </div>
                 )}
                 {expense.isAiProcessed && (
-                  <div className="ai-badge">MDaily AI</div>
+                  <div className="ai-badge" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Sparkles size={11} />
+                    <span>{t('ai_badge', lang)}</span>
+                  </div>
                 )}
               </div>
               <div className="expense-info">
@@ -82,18 +93,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ expenses, onDelete, onUpda
                   </span>
                   <span className="date">{formatDate(expense.date)}</span>
                 </div>
-                <h3>{expense.amount.toLocaleString('vi-VN')} đ</h3>
+                <h3>{formatCurrency(expense.amount)}</h3>
                 {expense.note && expense.note !== 'MDaily AI processed' && <p className="note">{expense.note}</p>}
               </div>
               <button
                 className="btn-icon delete-btn"
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (confirm('Xoá chi tiêu này?')) {
+                  if (confirm(t('delete_expense_confirm', lang))) {
                     handleDelete(expense.id)
                   }
                 }}
-                title="Xoá chi tiêu"
+                title={t('delete', lang)}
                 disabled={deletingExpenseIds.has(expense.id)}
               >
                 <Trash2 size={16} />

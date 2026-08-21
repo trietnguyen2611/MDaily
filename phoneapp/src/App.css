@@ -129,6 +129,37 @@
   }
 }
 
+.wifi-sync-trigger-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--liquid-glass-bg);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  backdrop-filter: var(--liquid-glass-blur);
+  color: var(--ink);
+  border: var(--liquid-glass-border);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow:
+    var(--liquid-glass-shadow),
+    var(--liquid-glass-inner-glow);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wifi-sync-trigger-btn:hover {
+  transform: translateY(-1px);
+  color: #0a84ff;
+  border-color: rgba(10, 132, 255, 0.3);
+}
+
+.wifi-sync-trigger-btn:active {
+  transform: scale(0.95);
+}
+
 .top-actions {
   display: flex;
   align-items: center;

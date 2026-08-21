@@ -37,6 +37,9 @@
 		AA0100202FE993A700000002 /* QuickCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100202FE993A700000001 /* QuickCameraView.swift */; };
 		AA0100212FE993A700000002 /* RecurringExpense.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100212FE993A700000001 /* RecurringExpense.swift */; };
 		AA0100222FE993A700000002 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100222FE993A700000001 /* NotificationService.swift */; };
+		AA0100232FE993A700000002 /* WifiSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100232FE993A700000001 /* WifiSyncService.swift */; };
+		AA0100242FE993A700000002 /* WifiSyncSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100242FE993A700000001 /* WifiSyncSheet.swift */; };
+		AA0100252FE993A700000002 /* QRCodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100252FE993A700000001 /* QRCodeScannerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -72,6 +75,9 @@
 		AA0100202FE993A700000001 /* QuickCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/QuickCameraView.swift; sourceTree = "<group>"; };
 		AA0100212FE993A700000001 /* RecurringExpense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/RecurringExpense.swift; sourceTree = "<group>"; };
 		AA0100222FE993A700000001 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/NotificationService.swift; sourceTree = "<group>"; };
+		AA0100232FE993A700000001 /* WifiSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/WifiSyncService.swift; sourceTree = "<group>"; };
+		AA0100242FE993A700000001 /* WifiSyncSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/WifiSyncSheet.swift; sourceTree = "<group>"; };
+		AA0100252FE993A700000001 /* QRCodeScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/QRCodeScannerView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,6 +132,9 @@
 				AA0100202FE993A700000001 /* QuickCameraView.swift */,
 				AA0100212FE993A700000001 /* RecurringExpense.swift */,
 				AA0100222FE993A700000001 /* NotificationService.swift */,
+				AA0100232FE993A700000001 /* WifiSyncService.swift */,
+				AA0100242FE993A700000001 /* WifiSyncSheet.swift */,
+				AA0100252FE993A700000001 /* QRCodeScannerView.swift */,
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				9582B6842FE993A70072D4E9 /* AFMPlugin.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -241,6 +250,9 @@
 				AA0100202FE993A700000002 /* QuickCameraView.swift in Sources */,
 				AA0100212FE993A700000002 /* RecurringExpense.swift in Sources */,
 				AA0100222FE993A700000002 /* NotificationService.swift in Sources */,
+				AA0100232FE993A700000002 /* WifiSyncService.swift in Sources */,
+				AA0100242FE993A700000002 /* WifiSyncSheet.swift in Sources */,
+				AA0100252FE993A700000002 /* QRCodeScannerView.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				9582B6852FE993A70072D4E9 /* AFMPlugin.swift in Sources */,
@@ -392,7 +404,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.3;
+				MARKETING_VERSION = 2.4;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = org.mdaily.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -417,7 +429,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.3;
+				MARKETING_VERSION = 2.4;
 				PRODUCT_BUNDLE_IDENTIFIER = org.mdaily.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";

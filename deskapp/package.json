@@ -1,7 +1,7 @@
 {
   "name": "deskapp",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.4.0",
   "type": "module",
   "scripts": {
     "native:build": "mkdir -p build/native && swiftc -parse-as-library -O -framework Vision -framework ImageIO native/ReceiptAnalyzer.swift -o build/native/receipt-analyzer",
@@ -11,10 +11,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/qrcode": "^1.5.6",
     "heic-decode": "^2.1.0",
     "heic2any": "^0.0.4",
     "localforage": "^1.10.0",
     "lucide-react": "^1.31.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tesseract.js": "^7.0.0"

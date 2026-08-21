@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, Wifi } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { AddExpense } from './components/AddExpense'
 import { Reports } from './components/Reports'
@@ -8,6 +8,7 @@ import { BottomTabBar } from './components/BottomTabBar'
 import { Chatbot } from './components/Chatbot'
 import { CustomSelect } from './components/CustomSelect'
 import { SplashScreen } from './components/SplashScreen'
+import { WifiSyncModal } from './components/WifiSyncModal'
 import { getExpenses, saveExpense, deleteExpense, updateExpense } from './services/db'
 import { getCategories, addCategory, deleteCategory, updateCategory, categoriesToSelectOptions } from './services/categories'
 import { checkAFMStatus, getAutoExtractEnabled, getAiChatEnabled } from './services/ai'
@@ -22,6 +23,7 @@ function App() {
   const [categories, setCategories] = useState<CategoryItem[]>([])
   const [activeTab, setActiveTab] = useState<string>('dashboard')
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false)
   const [timeFilter, setTimeFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
@@ -37,15 +39,25 @@ function App() {
     setCurr(getCurrency())
   }, [])
 
-  // Listen to cross-window or internal settings events
+  const reloadData = useCallback(async () => {
+    const [expData, catData] = await Promise.all([getExpenses(), getCategories()])
+    setExpenses(expData)
+    setCategories(catData)
+  }, [])
+
+  // Listen to cross-window or internal settings events & sync events
   useEffect(() => {
     const handleSettingEvent = () => {
       setLang(getLanguage())
       setCurr(getCurrency())
     }
     window.addEventListener('mdaily_settings_change', handleSettingEvent)
-    return () => window.removeEventListener('mdaily_settings_change', handleSettingEvent)
-  }, [])
+    window.addEventListener('mdaily_data_synced', reloadData)
+    return () => {
+      window.removeEventListener('mdaily_settings_change', handleSettingEvent)
+      window.removeEventListener('mdaily_data_synced', reloadData)
+    }
+  }, [reloadData])
 
   // AI state
   const [isAFMAvailable, setIsAFMAvailable] = useState(false)
@@ -239,6 +251,14 @@ function App() {
         <div className="top-bar">
           <h2 className="page-header-title">{getPageTitle(activeTab)}</h2>
           <div className="top-bar-right">
+            <button
+              className="wifi-sync-trigger-btn"
+              onClick={() => setIsSyncModalOpen(true)}
+              title={t('wifi_sync', lang)}
+            >
+              <Wifi size={16} />
+              <span>{t('wifi_sync', lang)}</span>
+            </button>
             {showAiChat && (
               <button
                 className="ai-chat-trigger-btn"
@@ -331,6 +351,7 @@ function App() {
               onDataCleared={() => setExpenses([])}
               onAiSettingsChanged={refreshAiSettings}
               onSettingsChanged={handleSettingsChanged}
+              onOpenWifiSync={() => setIsSyncModalOpen(true)}
             />
           </div>
         )}
@@ -351,6 +372,12 @@ function App() {
           onClose={() => setIsChatOpen(false)}
         />
       )}
+
+      <WifiSyncModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        onSyncCompleted={reloadData}
+      />
     </div>
   )
 }

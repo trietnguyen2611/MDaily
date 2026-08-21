@@ -207,7 +207,28 @@ public struct LocalizationService {
             "reminder_date": [.vi: "Ngày nhắc", .en: "Reminder Date"],
             "repeat_interval": [.vi: "Lặp lại", .en: "Repeat"],
             "view_details": [.vi: "Xem chi tiết", .en: "View Details"],
-            "share_image": [.vi: "Chia sẻ ảnh", .en: "Share Image"]
+            "share_image": [.vi: "Chia sẻ ảnh", .en: "Share Image"],
+
+            // Wi-Fi Sync
+            "wifi_sync": [.vi: "Đồng bộ Wi-Fi", .en: "Wi-Fi Sync"],
+            "wifi_sync_desc": [.vi: "Kết nối & đồng bộ dữ liệu với MDaily Desktop qua mạng Wi-Fi", .en: "Pair & sync data with MDaily Desktop over Wi-Fi"],
+            "scan_qr": [.vi: "Quét mã QR", .en: "Scan QR Code"],
+            "sync_connected": [.vi: "Đã kết nối", .en: "Connected"],
+            "sync_two_way": [.vi: "Đồng bộ 2 chiều (Hợp nhất)", .en: "2-Way Merge (Recommended)"],
+            "sync_two_way_desc": [.vi: "Hợp nhất chi tiêu & danh mục giữa 2 thiết bị", .en: "Merge expenses & categories across both devices"],
+            "sync_push": [.vi: "Gửi lên máy tính", .en: "Push to Desktop"],
+            "sync_push_desc": [.vi: "Gửi toàn bộ chi tiêu sang máy tính", .en: "Upload all expenses to desktop"],
+            "sync_pull": [.vi: "Tải về điện thoại", .en: "Pull to Phone"],
+            "sync_pull_desc": [.vi: "Tải toàn bộ chi tiêu từ máy tính về điện thoại", .en: "Download all expenses from desktop"],
+            "sync_now": [.vi: "Đồng bộ ngay", .en: "Sync Now"],
+            "syncing": [.vi: "Đang đồng bộ...", .en: "Syncing..."],
+            "sync_success": [.vi: "Đồng bộ thành công!", .en: "Sync successful!"],
+            "sync_error": [.vi: "Lỗi kết nối đồng bộ", .en: "Sync connection failed"],
+            "manual_ip_input": [.vi: "Nhập IP thủ công", .en: "Manual IP Input"],
+            "ip_address": [.vi: "Địa chỉ IP", .en: "IP Address"],
+            "port": [.vi: "Cổng", .en: "Port"],
+            "token": [.vi: "Mã PIN", .en: "PIN Code"],
+            "disconnect": [.vi: "Ngắt kết nối", .en: "Disconnect"]
         ]
 
         return dict[key]?[lang] ?? dict[key]?[.vi] ?? key

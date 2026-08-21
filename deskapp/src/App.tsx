@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { MessageCircle } from 'lucide-react'
+import { MessageCircle, Sparkles } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { AddExpense } from './components/AddExpense'
 import { Reports } from './components/Reports'
@@ -11,6 +11,9 @@ import { CustomSelect } from './components/CustomSelect'
 import { checkAiAvailability, getAiChatEnabled, getAutoExtractEnabled } from './services/ai'
 import { getExpenses, saveExpense, deleteExpense, updateExpense } from './services/db'
 import { getCategories, addCategory, deleteCategory, updateCategory, categoriesToSelectOptions } from './services/categories'
+import { getLanguage, getCurrency, t } from './services/i18n'
+import type { Language, Currency } from './services/i18n'
+import { initDeskappSyncBridge } from './services/sync'
 import type { CategoryItem } from './services/categories'
 import type { Expense } from './types'
 import './App.css'
@@ -28,35 +31,55 @@ function App() {
   const [autoExtractEnabled, setAutoExtractEnabledState] = useState(getAutoExtractEnabled())
   const [aiChatEnabled, setAiChatEnabledState] = useState(getAiChatEnabled())
   
+  // Language & Currency state
+  const [lang, setLang] = useState<Language>(getLanguage())
+  const [, setCurr] = useState<Currency>(getCurrency())
+
   const [customDate, setCustomDate] = useState('')
   const [customMonth, setCustomMonth] = useState('')
   const [customYear, setCustomYear] = useState(new Date().getFullYear().toString())
   const [customStartDate, setCustomStartDate] = useState('')
   const [customEndDate, setCustomEndDate] = useState('')
 
+  const handleSettingsChanged = useCallback(() => {
+    setLang(getLanguage())
+    setCurr(getCurrency())
+  }, [])
+
   const refreshAiSettings = useCallback(() => {
     setAutoExtractEnabledState(getAutoExtractEnabled())
     setAiChatEnabledState(getAiChatEnabled())
+  }, [])
+
+  const reloadData = useCallback(async () => {
+    const [expData, catData] = await Promise.all([getExpenses(), getCategories()])
+    setExpenses(expData)
+    setCategories(catData)
+  }, [])
+
+  // Initialize Desktop Sync IPC listener on mount
+  useEffect(() => {
+    initDeskappSyncBridge()
   }, [])
 
   useEffect(() => {
     checkAiAvailability().then(status => setIsAiAvailable(status.available))
     const handleSettingsChange = () => {
       refreshAiSettings()
+      handleSettingsChanged()
       checkAiAvailability().then(status => setIsAiAvailable(status.available))
     }
     window.addEventListener('mdaily_settings_change', handleSettingsChange)
-    return () => window.removeEventListener('mdaily_settings_change', handleSettingsChange)
-  }, [refreshAiSettings])
+    window.addEventListener('mdaily_data_synced', reloadData)
+    return () => {
+      window.removeEventListener('mdaily_settings_change', handleSettingsChange)
+      window.removeEventListener('mdaily_data_synced', reloadData)
+    }
+  }, [refreshAiSettings, handleSettingsChanged, reloadData])
 
   useEffect(() => {
-    const loadData = async () => {
-      const [expData, catData] = await Promise.all([getExpenses(), getCategories()])
-      setExpenses(expData)
-      setCategories(catData)
-    }
-    loadData()
-  }, [])
+    reloadData()
+  }, [reloadData])
 
   const handleSaveExpense = async (newExpenseData: Omit<Expense, 'id' | 'date'>) => {
     const expense: Expense = {
@@ -96,18 +119,18 @@ function App() {
   }
 
   const categoryOptions = categoriesToSelectOptions(categories)
-  const allCategoryOptions = [{ value: 'all', label: 'Tất cả danh mục' }, ...categoryOptions]
+  const allCategoryOptions = [{ value: 'all', label: t('all_categories', lang) }, ...categoryOptions]
 
   const timeOptions = [
-    { value: 'all', label: 'Tất cả thời gian' },
-    { value: 'today', label: 'Hôm nay' },
-    { value: 'this_week', label: 'Tuần này' },
-    { value: 'this_month', label: 'Tháng này' },
-    { value: 'this_year', label: 'Năm nay' },
-    { value: 'custom_day', label: 'Chọn ngày cụ thể...' },
-    { value: 'custom_month', label: 'Chọn tháng cụ thể...' },
-    { value: 'custom_year', label: 'Chọn năm cụ thể...' },
-    { value: 'custom_range', label: 'Khoảng thời gian...' }
+    { value: 'all', label: t('all_time', lang) },
+    { value: 'today', label: t('today', lang) },
+    { value: 'this_week', label: t('this_week', lang) },
+    { value: 'this_month', label: t('this_month', lang) },
+    { value: 'this_year', label: t('this_year', lang) },
+    { value: 'custom_day', label: t('custom_day', lang) },
+    { value: 'custom_month', label: t('custom_month', lang) },
+    { value: 'custom_year', label: t('custom_year', lang) },
+    { value: 'custom_range', label: t('custom_range', lang) }
   ]
 
   const getLocalYYYYMMDD = (d: Date) => {
@@ -166,10 +189,10 @@ function App() {
 
   const getPageTitle = (tab: string) => {
     switch (tab) {
-      case 'dashboard': return 'Tổng quan'
-      case 'add-expense': return 'Thêm chi tiêu'
-      case 'reports': return 'Phân loại'
-      case 'settings': return 'Cài đặt'
+      case 'dashboard': return t('tab_dashboard', lang)
+      case 'add-expense': return t('tab_add_expense', lang)
+      case 'reports': return t('tab_reports', lang)
+      case 'settings': return t('tab_settings', lang)
       default: return ''
     }
   }
@@ -186,9 +209,15 @@ function App() {
           <div className="top-bar-right">
             <SearchBar value={searchQuery} onChange={setSearchQuery} />
             <div className="top-actions">
-              {isAiAvailable && aiChatEnabled && <button className="circular-btn" onClick={() => setIsChatOpen(!isChatOpen)} title="Mở MDaily AI">
-                <MessageCircle size={20} />
-              </button>}
+              {isAiAvailable && aiChatEnabled && (
+                <button
+                  className="circular-btn"
+                  onClick={() => setIsChatOpen(!isChatOpen)}
+                  title={t('mdaily_ai', lang)}
+                >
+                  <Sparkles size={20} />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -209,13 +238,13 @@ function App() {
                 <input type="month" className="custom-filter-input" value={customMonth} onChange={e => setCustomMonth(e.target.value)} />
               )}
               {timeFilter === 'custom_year' && (
-                <input type="number" min="2000" max="2100" className="custom-filter-input" value={customYear} onChange={e => setCustomYear(e.target.value)} placeholder="Năm" />
+                <input type="number" min="2000" max="2100" className="custom-filter-input" value={customYear} onChange={e => setCustomYear(e.target.value)} placeholder={t('year_placeholder', lang)} />
               )}
               {timeFilter === 'custom_range' && (
                 <div className="custom-range-group">
-                  <input type="date" className="custom-filter-input" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} title="Từ ngày" />
+                  <input type="date" className="custom-filter-input" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} title={t('from_date', lang)} />
                   <span className="range-separator">-</span>
-                  <input type="date" className="custom-filter-input" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} title="Đến ngày" />
+                  <input type="date" className="custom-filter-input" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} title={t('to_date', lang)} />
                 </div>
               )}
 
@@ -267,17 +296,23 @@ function App() {
 
         {activeTab === 'settings' && (
           <div className="scroll-container">
-            <SettingsPage onDataCleared={() => setExpenses([])} onAiSettingsChanged={refreshAiSettings} />
+            <SettingsPage
+              onDataCleared={() => setExpenses([])}
+              onAiSettingsChanged={refreshAiSettings}
+              onSettingsChanged={handleSettingsChanged}
+            />
           </div>
         )}
       </main>
 
-      {isAiAvailable && aiChatEnabled && <Chatbot
-        expenses={expenses}
-        categories={categories}
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-      />}
+      {isAiAvailable && aiChatEnabled && (
+        <Chatbot
+          expenses={expenses}
+          categories={categories}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import type { Expense } from '../types'
 import { analyzeReceiptWithMacModel, extractTextFromImage, processReceiptWithAI } from '../services/ai'
 import { CustomSelect } from './CustomSelect'
 import type { SelectOption } from './CustomSelect'
+import { getCurrencySymbol, t, getLanguage } from '../services/i18n'
 import './AddExpense.css'
 
 interface AddExpenseProps {
@@ -15,13 +16,21 @@ interface AddExpenseProps {
   autoExtractEnabled?: boolean
 }
 
-export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, categoryOptions, onAddCategory, initialPhoto, autoExtractEnabled = false }) => {
+export const AddExpense: React.FC<AddExpenseProps> = ({
+  onCancel,
+  onSave,
+  categoryOptions,
+  onAddCategory,
+  initialPhoto,
+  autoExtractEnabled = false
+}) => {
   const [isAddingCategory, setIsAddingCategory] = useState(false)
   const [newCategoryLabel, setNewCategoryLabel] = useState('')
   const [amount, setAmount] = useState<string>('')
   const [category, setCategory] = useState<string>('shopping')
   const [note, setNote] = useState<string>('')
   const [photoPreview, setPhotoPreview] = useState<string | null>(initialPhoto || null)
+  const lang = getLanguage()
 
   const [isAiProcessed, setIsAiProcessed] = useState(false)
   const [isAiProcessing, setIsAiProcessing] = useState(false)
@@ -137,7 +146,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
     const isHeic = file.type.toLowerCase().includes('heic') ||
       file.type.toLowerCase().includes('heif') ||
       file.name.toLowerCase().endsWith('.heic') ||
-      file.name.toLowerCase().endsWith('.heif');
+      file.name.toLowerCase().endsWith('.heif')
 
     if (isHeic) {
       let convertedSuccess = false
@@ -166,7 +175,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
         console.warn('heic2any failed, trying heic-decode pixel pipeline:', error)
       }
 
-      // 2. Try heic-decode (decodes raw RGBA pixels directly, supports iPhone HEVC format)
+      // 2. Try heic-decode
       if (!convertedSuccess) {
         try {
           const jpegBlob = await decodeHeicWithHeicDecode(file)
@@ -189,7 +198,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
       }
 
       if (!convertedSuccess) {
-        alert('Không thể chuyển đổi định dạng ảnh HEIC này. Vui lòng thử lại hoặc chọn tệp JPG/PNG.')
+        alert(t('heic_error', lang))
         setIsConverting(false)
         return
       }
@@ -254,7 +263,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
   const handleSave = () => {
     const rawNumeric = parseFloat(amount.replace(/,/g, ''))
     if (isNaN(rawNumeric) || rawNumeric <= 0) {
-      alert('Vui lòng nhập số tiền hợp lệ')
+      alert(t('amount_invalid', lang))
       return
     }
     onSave({
@@ -266,6 +275,8 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
     })
   }
 
+  const currSymbol = getCurrencySymbol()
+
   return (
     <div className="add-expense-container">
       <div className="add-expense-body">
@@ -275,12 +286,12 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
               {isConverting ? (
                 <>
                   <Loader2 size={48} className="spinner" />
-                  <p>Đang xử lý ảnh...</p>
+                  <p>{t('processing', lang)}</p>
                 </>
               ) : (
                 <>
                   <Upload size={48} />
-                  <p>Chọn hoặc chụp ảnh đồ vật / hoá đơn</p>
+                  <p>{t('take_photo_sub', lang)}</p>
                 </>
               )}
             </div>
@@ -288,7 +299,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
             <>
               <div className="preview-area">
                 <img src={photoPreview} alt="Preview" className="preview-image" />
-                <button type="button" className="btn-icon change-photo" onClick={() => setPhotoPreview(null)} title="Bỏ ảnh này">
+                <button type="button" className="btn-icon change-photo" onClick={() => setPhotoPreview(null)} title={t('cancel', lang)}>
                   <X size={20} />
                 </button>
               </div>
@@ -299,7 +310,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
                 disabled={isAiProcessing}
               >
                 {isAiProcessing ? <Loader2 className="spinner" size={20} /> : <Wand2 size={20} />}
-                <span>{isAiProcessing ? 'Đang trích xuất dữ liệu...' : 'Tự động trích xuất'}</span>
+                <span>{isAiProcessing ? t('ai_extracting', lang) : (lang === 'vi' ? 'Tự động trích xuất' : 'Auto Extract')}</span>
               </button>
             </>
           )}
@@ -308,17 +319,17 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
 
         <div className="add-expense-right">
           <div className="form-group">
-            <label>Số tiền (VNĐ)</label>
+            <label>{t('amount_label', lang)} ({currSymbol})</label>
             <input
               type="text"
               value={amount}
               onChange={e => setAmount(formatAmountInput(e.target.value))}
-              placeholder="Ví dụ: 50,000"
+              placeholder={t('amount_placeholder', lang)}
             />
           </div>
 
           <div className="form-group">
-            <label>Danh mục</label>
+            <label>{t('category_label', lang)}</label>
             <CustomSelect
               options={categoryOptions}
               value={category}
@@ -330,7 +341,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
                 className="btn-add-category"
                 onClick={() => setIsAddingCategory(true)}
               >
-                <Plus size={14} /> Thêm danh mục mới
+                <Plus size={14} /> {t('add_category_btn', lang)}
               </button>
             ) : (
               <div className="add-category-inline">
@@ -338,7 +349,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
                   type="text"
                   value={newCategoryLabel}
                   onChange={e => setNewCategoryLabel(e.target.value)}
-                  placeholder="Tên danh mục mới..."
+                  placeholder={t('new_cat_placeholder', lang)}
                   autoFocus
                   onKeyDown={e => {
                     if (e.key === 'Enter' && newCategoryLabel.trim()) {
@@ -361,7 +372,7 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
                     }
                   }}
                 >
-                  Thêm
+                  {t('add_btn', lang)}
                 </button>
                 <button
                   type="button"
@@ -375,18 +386,18 @@ export const AddExpense: React.FC<AddExpenseProps> = ({ onCancel, onSave, catego
           </div>
 
           <div className="form-group">
-            <label>Ghi chú (Tùy chọn)</label>
+            <label>{t('note_label', lang)}</label>
             <input
               type="text"
               value={note}
               onChange={e => setNote(e.target.value)}
-              placeholder="Nhập ghi chú..."
+              placeholder={t('note_placeholder', lang)}
             />
           </div>
 
           <div className="form-actions">
-            <button className="btn-utility" onClick={onCancel}>Huỷ</button>
-            <button className="btn-primary" onClick={handleSave}>Lưu chi tiêu</button>
+            <button className="btn-utility" onClick={onCancel}>{t('cancel', lang)}</button>
+            <button className="btn-primary" onClick={handleSave}>{t('save_expense', lang)}</button>
           </div>
         </div>
       </div>
