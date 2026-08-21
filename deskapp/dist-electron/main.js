@@ -158,7 +158,25 @@ t.on("window-all-closed", () => {
 	m = x(), b();
 	let e = w();
 	return d && !d.isDestroyed() && d.webContents.send("sync-server-status-changed", e), e;
-}), r.handle("choose-cloud-sync-file", async () => {
+});
+var O = null, k = null;
+function A(e) {
+	if (!(!e || O === e)) {
+		if (O) try {
+			s.unwatchFile(O);
+		} catch {}
+		if (O = e, s.existsSync(e)) try {
+			s.watchFile(e, { interval: 1e3 }, (e, t) => {
+				e.mtimeMs !== t.mtimeMs && (k && clearTimeout(k), k = setTimeout(() => {
+					d && !d.isDestroyed() && d.webContents.send("cloud-sync-file-changed");
+				}, 300));
+			});
+		} catch (e) {
+			console.warn("[MDaily Watcher] Failed to watch file:", e);
+		}
+	}
+}
+r.handle("choose-cloud-sync-file", async () => {
 	let e = await n.showOpenDialog(d || void 0, {
 		title: "Choose MDaily iCloud sync file",
 		properties: ["openFile", "createDirectory"],
@@ -169,12 +187,12 @@ t.on("window-all-closed", () => {
 	});
 	if (e.canceled || e.filePaths.length === 0) return { configured: !1 };
 	let r = e.filePaths[0];
-	return s.writeFileSync(c.join(t.getPath("userData"), "cloud-sync-path.json"), JSON.stringify({ filePath: r })), {
+	return s.writeFileSync(c.join(t.getPath("userData"), "cloud-sync-path.json"), JSON.stringify({ filePath: r })), A(r), {
 		configured: !0,
 		name: c.basename(r)
 	};
 });
-function O() {
+function j() {
 	if (process.platform === "darwin") return c.join(o.homedir(), "Library/Mobile Documents/com~apple~CloudDocs/MDaily.sync.json");
 	if (process.platform === "win32") {
 		let e = c.join(o.homedir(), "iCloudDrive", "MDaily.sync.json");
@@ -182,8 +200,8 @@ function O() {
 	}
 	return c.join(o.homedir(), "MDaily.sync.json");
 }
-function k() {
-	let e = O();
+function M() {
+	let e = j();
 	try {
 		if (s.existsSync(c.dirname(e))) return s.existsSync(e) || s.writeFileSync(e, JSON.stringify({
 			version: 1,
@@ -192,7 +210,7 @@ function k() {
 			categories: [],
 			deletedExpenseIds: [],
 			deletedCategoryValues: []
-		}), "utf8"), s.writeFileSync(c.join(t.getPath("userData"), "cloud-sync-path.json"), JSON.stringify({ filePath: e })), e;
+		}), "utf8"), s.writeFileSync(c.join(t.getPath("userData"), "cloud-sync-path.json"), JSON.stringify({ filePath: e })), A(e), e;
 	} catch (e) {
 		console.warn("[MDaily Cloud Sync] Could not create default iCloud file:", e);
 	}
@@ -201,9 +219,9 @@ function k() {
 r.handle("read-cloud-sync-file", () => {
 	try {
 		let e = c.join(t.getPath("userData"), "cloud-sync-path.json");
-		s.existsSync(e) || k();
+		s.existsSync(e) || M();
 		let n = JSON.parse(s.readFileSync(e, "utf8"));
-		return {
+		return n.filePath && A(n.filePath), {
 			configured: !0,
 			contents: s.readFileSync(n.filePath, "utf8"),
 			name: c.basename(n.filePath)
@@ -214,7 +232,7 @@ r.handle("read-cloud-sync-file", () => {
 }), r.handle("write-cloud-sync-file", (e, n) => {
 	try {
 		let e = JSON.parse(s.readFileSync(c.join(t.getPath("userData"), "cloud-sync-path.json"), "utf8"));
-		return s.writeFileSync(e.filePath, n, "utf8"), {
+		return s.writeFileSync(e.filePath, n, "utf8"), e.filePath && A(e.filePath), {
 			configured: !0,
 			success: !0
 		};

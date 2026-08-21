@@ -1,0 +1,12 @@
+{
+  "swift.disableAutoResolve": true,
+  "swift.autoGenerateTasks": false,
+  "swift.backgroundCompilation": false,
+  "swift.diagnosticsCollection": "never",
+  "swift.searchSubfoldersForPackages": false,
+  "swift.autoMigrate": false,
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true
+  }
+}

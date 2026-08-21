@@ -285,10 +285,7 @@ public struct ContentView: View {
                 self.selectedExpense = expense
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            WifiSyncService.shared.startRealtimeListener(store: store)
-            WifiSyncService.shared.triggerAutoSync(store: store, delay: 0.1)
-        }
+
     }
 
     // MARK: - Share Expense Card
@@ -455,10 +452,7 @@ public struct ContentView: View {
                 .padding(.bottom, 8)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            WifiSyncService.shared.startRealtimeListener(store: store)
-            WifiSyncService.shared.triggerAutoSync(store: store, delay: 0.1)
-        }
+
     }
 }
 

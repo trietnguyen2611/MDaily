@@ -14,7 +14,6 @@ import { getCategories, addCategory, deleteCategory, updateCategory, categoriesT
 import { getLanguage, getCurrency, t } from './services/i18n'
 import type { Language, Currency } from './services/i18n'
 import { initDeskappSyncBridge, requestDeskappSync } from './services/sync'
-import { syncLocalDataWithCloudFile, triggerCloudSync } from './services/cloudFileSync'
 import { getEffectiveDarkMode, getThemeMode, type ThemeMode } from './services/theme'
 import type { CategoryItem } from './services/categories'
 import type { Expense } from './types'
@@ -66,15 +65,6 @@ function App() {
   // Initialize Desktop Sync IPC listener on mount
   useEffect(() => {
     initDeskappSyncBridge()
-    void syncLocalDataWithCloudFile().catch(error => console.warn('[MDaily Cloud Sync]', error))
-
-    const handleLocalExpenseChange = () => {
-      triggerCloudSync()
-    }
-    window.addEventListener('mdaily_expense_changed', handleLocalExpenseChange)
-    return () => {
-      window.removeEventListener('mdaily_expense_changed', handleLocalExpenseChange)
-    }
   }, [])
 
   useEffect(() => {

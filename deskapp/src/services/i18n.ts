@@ -178,8 +178,7 @@ export const TRANSLATIONS = {
     sync_refresh_token: 'Đổi mã kết nối mới',
     sync_last_event: 'Trạng thái đồng bộ gần nhất',
     sync_ready_waiting: 'Đang chờ điện thoại quét mã QR để kết nối...',
-    cloud_sync: 'Đồng bộ iCloud Drive',
-    cloud_sync_desc: 'Chọn cùng file MDaily.sync.json trên iCloud Drive',
+
     choose_sync_file: 'Chọn file đồng bộ',
 
     // Chatbot
@@ -310,8 +309,7 @@ export const TRANSLATIONS = {
     sync_refresh_token: 'Generate New PIN',
     sync_last_event: 'Last Sync Status',
     sync_ready_waiting: 'Waiting for phone to scan QR code and connect...',
-    cloud_sync: 'iCloud Drive Sync',
-    cloud_sync_desc: 'Choose the same MDaily.sync.json file in iCloud Drive',
+
     choose_sync_file: 'Choose sync file',
 
     // Chatbot

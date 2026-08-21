@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Globe, Trash2, Info, Sparkles, ScanLine, MessageCircle, CheckCircle2, XCircle, Languages, Cloud } from 'lucide-react'
+import { Globe, Trash2, Info, Sparkles, ScanLine, MessageCircle, CheckCircle2, XCircle, Languages } from 'lucide-react'
 import { clearExpenses } from '../services/db'
 import { checkAFMStatus, getAutoExtractEnabled, setAutoExtractEnabled, getAiChatEnabled, setAiChatEnabled } from '../services/ai'
 import { getLanguage, setLanguage, getCurrency, setCurrency, t } from '../services/i18n'
-import { chooseCloudSyncFile, getCloudSyncFileName } from '../services/cloudFileSync'
 import type { Language, Currency } from '../services/i18n'
 import { CustomSelect } from './CustomSelect'
 import type { SelectOption } from './CustomSelect'
@@ -39,13 +38,9 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [afmStatus, setAfmStatus] = useState<{ available: boolean; model: string; canExtractImage: boolean; message: string } | null>(null)
   const [autoExtract, setAutoExtract] = useState(getAutoExtractEnabled())
   const [aiChatOn, setAiChatOn] = useState(getAiChatEnabled())
-  const [cloudFileName, setCloudFileName] = useState('')
 
   useEffect(() => {
     checkAFMStatus().then(setAfmStatus)
-    getCloudSyncFileName().then(name => {
-      if (name) setCloudFileName(name)
-    })
   }, [])
 
   const handleLanguageChange = (newLangVal: string) => {
@@ -86,37 +81,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     onAiSettingsChanged?.()
   }
 
-  const handleChooseCloudFile = async () => {
-    try {
-      const result = await chooseCloudSyncFile()
-      if (result?.configured) setCloudFileName(result.name || t('sync_file_selected', currentLang))
-    } catch (error) {
-      console.error('Cloud file selection failed', error)
-    }
-  }
+
 
   const isAFMAvailable = afmStatus?.available ?? false
 
   return (
     <div className="settings-container">
-      {/* 1. Wi-Fi Sync Section */}
-      <div className="settings-section">
-        <h3>{t('cloud_sync', currentLang)}</h3>
-        <div className="settings-group">
-          <div className="settings-item">
-            <div className="settings-item-left">
-              <div className="settings-icon-wrapper" style={{ background: 'linear-gradient(135deg, #5e5ce6, #af52de)' }}>
-                <Cloud size={18} />
-              </div>
-              <div className="settings-item-info">
-                <span className="settings-item-label">{t('cloud_sync', currentLang)}</span>
-                <span className="settings-item-desc">{cloudFileName || t('cloud_sync_desc', currentLang)}</span>
-              </div>
-            </div>
-            <button className="btn-utility" onClick={handleChooseCloudFile}>{t('choose_sync_file', currentLang)}</button>
-          </div>
-        </div>
-      </div>
 
       {/* 2. Apple Intelligence Section */}
       <div className="settings-section">

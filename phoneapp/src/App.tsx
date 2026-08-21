@@ -14,7 +14,6 @@ import { checkAFMStatus, getAutoExtractEnabled, getAiChatEnabled } from './servi
 import { getLanguage, getCurrency, t } from './services/i18n'
 import type { Language, Currency } from './services/i18n'
 import { triggerAutoSync } from './services/sync'
-import { syncLocalDataWithCloudFile, triggerCloudSync } from './services/cloudFileSync'
 import type { CategoryItem } from './services/categories'
 import type { Expense } from './types'
 import './App.css'
@@ -48,7 +47,6 @@ function App() {
 
   // Listen to cross-window or internal settings events & sync events
   useEffect(() => {
-    syncLocalDataWithCloudFile().catch(error => console.warn('[MDaily Cloud Sync] Startup sync skipped:', error))
     const handleSettingEvent = () => {
       setLang(getLanguage())
       setCurr(getCurrency())
@@ -57,11 +55,10 @@ function App() {
     window.addEventListener('mdaily_data_synced', reloadData)
 
     triggerAutoSync(0)
-    triggerCloudSync(0)
     const handleLocalExpenseChange = () => {
       triggerAutoSync()
-      triggerCloudSync()
     }
+
     window.addEventListener('mdaily_expense_changed', handleLocalExpenseChange)
 
     return () => {

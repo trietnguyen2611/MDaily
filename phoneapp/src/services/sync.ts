@@ -1,6 +1,6 @@
 import { getExpenses, saveExpensesBatch, removeExpensesByIds, getDeletedExpenseIds, saveDeletedExpenseIds } from './db'
 import { getCategories, saveCategoriesBatch, getDeletedCategoryValues, saveDeletedCategoryValues } from './categories'
-import { syncLocalDataWithCloudFile } from './cloudFileSync'
+
 
 const LAST_SYNC_KEY = 'mdaily_last_sync_server'
 
@@ -288,7 +288,7 @@ export function triggerAutoSync(delay = 250) {
 
     autoSyncInFlight = (async () => {
       try {
-        await syncLocalDataWithCloudFile()
+        await performTwoWayMerge(config)
         console.log('[MDaily Auto-Sync] Background 2-way sync completed')
       } catch (err) {
         console.warn('[MDaily Auto-Sync] Skipped (Desktop may be offline):', err)

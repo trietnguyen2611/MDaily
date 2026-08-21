@@ -136,7 +136,7 @@ export const TRANSLATIONS = {
 
     // Settings
     apple_intelligence: 'Apple Intelligence',
-    status: 'Trạng thái',
+    status: 'Mô hình',
     available: 'Khả dụng',
     unavailable: 'Không khả dụng',
     auto_extract: 'Tự động nhận diện ảnh',
@@ -157,7 +157,7 @@ export const TRANSLATIONS = {
     deleted_success: 'Đã xoá toàn bộ dữ liệu chi tiêu.',
     delete_confirm_all: 'Bạn chắc chắn muốn xoá toàn bộ dữ liệu chi tiêu?',
     app_info: 'Thông tin ứng dụng',
-    app_version_desc: 'v2.4 — Apple Intelligence & Wi-Fi Sync',
+    app_version_desc: 'v2.4',
 
     // Wi-Fi Sync
     wifi_sync: 'Đồng bộ Wi-Fi',
@@ -176,8 +176,7 @@ export const TRANSLATIONS = {
     syncing: 'Đang đồng bộ...',
     sync_success: 'Đồng bộ thành công!',
     sync_error: 'Không thể kết nối với máy tính. Hãy chắc chắn cả 2 thiết bị chung mạng Wi-Fi.',
-    cloud_sync: 'Đồng bộ iCloud Drive',
-    cloud_sync_desc: 'Chọn cùng file MDaily.sync.json trên iCloud Drive',
+
     choose_sync_file: 'Chọn file đồng bộ',
     sync_file_selected: 'Đã chọn file đồng bộ',
     manual_ip_input: 'Nhập IP/Port thủ công',
@@ -317,8 +316,7 @@ export const TRANSLATIONS = {
     syncing: 'Syncing...',
     sync_success: 'Sync completed successfully!',
     sync_error: 'Unable to connect to Desktop. Make sure both devices are on the same Wi-Fi.',
-    cloud_sync: 'iCloud Drive Sync',
-    cloud_sync_desc: 'Choose the same MDaily.sync.json file in iCloud Drive',
+
     choose_sync_file: 'Choose sync file',
     sync_file_selected: 'Sync file selected',
     manual_ip_input: 'Enter IP/Port Manually',

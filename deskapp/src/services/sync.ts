@@ -2,11 +2,8 @@ import { getExpenses, saveExpensesBatch, removeExpensesByIds, getDeletedExpenseI
 import { getCategories, saveCategoriesBatch, getDeletedCategoryValues, saveDeletedCategoryValues } from './categories'
 import type { Expense } from '../types'
 import type { CategoryItem } from './categories'
-import { syncLocalDataWithCloudFile } from './cloudFileSync'
-
 export function requestDeskappSync() {
   window.ipcRenderer?.send('request-sync-now')
-  void syncLocalDataWithCloudFile().catch(error => console.warn('[MDaily Cloud Sync]', error))
 }
 
 export interface SyncStats {

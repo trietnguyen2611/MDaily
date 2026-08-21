@@ -13,10 +13,6 @@ export interface AFMPluginInterface {
     engine?: string
     error?: string
   }>
-  chooseSyncFile(): Promise<{ configured: boolean; name?: string }>
-  ensureSyncFile(): Promise<{ configured: boolean; name?: string }>
-  readSyncFile(): Promise<{ configured: boolean; contents?: string; name?: string }>
-  writeSyncFile(options: { contents: string }): Promise<{ success: boolean; configured: boolean }>
 }
 
 export const AFMPlugin = registerPlugin<AFMPluginInterface>('AFMPlugin')

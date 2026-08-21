@@ -13,8 +13,7 @@ import {
   Wifi,
   Languages,
   CheckCircle2,
-  Sun,
-  Cloud
+  Sun
 } from 'lucide-react'
 import { clearExpenses } from '../services/db'
 import {
@@ -40,7 +39,6 @@ import type { SelectOption } from './CustomSelect'
 import { APP_NAME, APP_VERSION_LABEL } from '../constants'
 import { getThemeMode, setThemeMode, type ThemeMode } from '../services/theme'
 import './SettingsPage.css'
-import { chooseCloudSyncFile, getCloudSyncFileName } from '../services/cloudFileSync'
 
 const CURRENCY_OPTIONS: SelectOption[] = [
   { value: 'vnd', label: 'VNĐ (₫)' },
@@ -76,7 +74,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [aiAvailable, setAiAvailable] = useState(false)
   const [autoExtract, setAutoExtract] = useState(getAutoExtractEnabled())
   const [aiChatOn, setAiChatOn] = useState(getAiChatEnabled())
-  const [cloudFileName, setCloudFileName] = useState('')
   const [themeMode, setThemeModeState] = useState<ThemeMode>(getThemeMode())
 
   const themeOptions: SelectOption[] = [
@@ -85,15 +82,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     { value: 'dark', label: t('theme_dark', currentLang) }
   ]
 
-
   useEffect(() => {
     const saved = getCustomAiUrl()
     if (saved) setAiUrl(saved)
     else setAiUrl('http://127.0.0.1:1337/v1')
-
-    getCloudSyncFileName().then(name => {
-      if (name) setCloudFileName(name)
-    })
   }, [])
 
 
@@ -136,10 +128,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     window.dispatchEvent(new CustomEvent('mdaily_theme_change'))
   }
 
-  const handleChooseCloudFile = async () => {
-    const result = await chooseCloudSyncFile()
-    if (result?.configured) setCloudFileName(result.name || t('choose_sync_file', currentLang))
-  }
+
 
   const handleCheckConnection = async (urlToCheck: string) => {
     setAiStatus('checking')
@@ -186,23 +175,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
   return (
     <div className="settings-container">
-      <div className="settings-section">
-        <h3>{t('cloud_sync', currentLang)}</h3>
-        <div className="settings-group">
-          <div className="settings-item">
-            <div className="settings-item-left">
-              <div className="settings-icon-wrapper" style={{ background: 'linear-gradient(135deg, #5e5ce6, #af52de)' }}>
-                <Cloud size={18} />
-              </div>
-              <div className="settings-item-info">
-                <span className="settings-item-label">{t('cloud_sync', currentLang)}</span>
-                <span className="settings-item-desc">{cloudFileName || t('cloud_sync_desc', currentLang)}</span>
-              </div>
-            </div>
-            <button className="btn-utility" onClick={handleChooseCloudFile}>{t('choose_sync_file', currentLang)}</button>
-          </div>
-        </div>
-      </div>
 
       {/* 2. Local AI Configuration Section */}
       <div className="settings-section">

@@ -154,7 +154,7 @@ public struct LocalizationService {
 
             // Settings
             "apple_intelligence": [.vi: "MDaily AI", .en: "MDaily AI"],
-            "status": [.vi: "Trạng thái", .en: "Status"],
+            "status": [.vi: "Mô hình", .en: "Model"],
             "available": [.vi: "Khả dụng", .en: "Available"],
             "unavailable": [.vi: "Không khả dụng", .en: "Unavailable"],
             "auto_extract": [.vi: "Tự động nhận diện ảnh", .en: "Auto Image Recognition"],
@@ -212,6 +212,8 @@ public struct LocalizationService {
             // Wi-Fi Sync
             "wifi_sync": [.vi: "Đồng bộ Wi-Fi", .en: "Wi-Fi Sync"],
             "wifi_sync_desc": [.vi: "Kết nối & đồng bộ dữ liệu với MDaily Desktop", .en: "Pair & sync data with MDaily Desktop over Wi-Fi"],
+            "cloud_sync": [.vi: "Đồng bộ iCloud Drive", .en: "iCloud Drive Sync"],
+            "cloud_sync_desc": [.vi: "Chọn cùng file MDaily.sync.json trên iCloud Drive", .en: "Choose the same MDaily.sync.json file in iCloud Drive"],
             "scan_qr": [.vi: "Quét mã QR", .en: "Scan QR Code"],
             "sync_connected": [.vi: "Đã kết nối", .en: "Connected"],
             "sync_two_way": [.vi: "Đồng bộ 2 chiều (Hợp nhất)", .en: "2-Way Merge (Recommended)"],
