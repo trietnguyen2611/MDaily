@@ -11,6 +11,7 @@ public final class ExpenseStore: ObservableObject {
     @Published public var autoExtractEnabled: Bool = true
     @Published public var aiChatEnabled: Bool = true
     @Published public var appearanceMode: AppearanceMode = .system
+    @Published public var cameraLayoutMode: CameraLayoutMode = .dynamicIsland
     @Published public var chatMessages: [ChatMessageSwift] = []
     @Published public var recurringExpenses: [RecurringExpense] = []
 
@@ -22,6 +23,7 @@ public final class ExpenseStore: ObservableObject {
     private let aiChatKey = "mdaily_ai_chat_bool"
     private let appearanceKey = "mdaily_appearance_str"
     private let recurringKey = "mdaily_recurring_json"
+    private let cameraLayoutKey = "mdaily_camera_layout_str"
 
     public init() {
         loadSettings()
@@ -172,6 +174,15 @@ public final class ExpenseStore: ObservableObject {
         applyAppearance(mode)
     }
 
+    public func setCameraLayoutMode(_ mode: CameraLayoutMode) {
+        if !UIDevice.current.hasDynamicIsland {
+            self.cameraLayoutMode = .default
+        } else {
+            self.cameraLayoutMode = mode
+        }
+        UserDefaults.standard.set(self.cameraLayoutMode.rawValue, forKey: cameraLayoutKey)
+    }
+
     // MARK: - Appearance Application
     private func applyAppearance(_ mode: AppearanceMode) {
         let style: UIUserInterfaceStyle
@@ -210,6 +221,13 @@ public final class ExpenseStore: ObservableObject {
            let savedAppearance = AppearanceMode(rawValue: appearanceStr) {
             self.appearanceMode = savedAppearance
             applyAppearance(savedAppearance)
+        }
+        if let layoutStr = UserDefaults.standard.string(forKey: cameraLayoutKey),
+           let savedLayout = CameraLayoutMode(rawValue: layoutStr) {
+            self.cameraLayoutMode = savedLayout
+        }
+        if !UIDevice.current.hasDynamicIsland {
+            self.cameraLayoutMode = .default
         }
     }
 
@@ -253,5 +271,16 @@ public final class ExpenseStore: ObservableObject {
         if let encoded = try? JSONEncoder().encode(recurringExpenses) {
             UserDefaults.standard.set(encoded, forKey: recurringKey)
         }
+    }
+}
+
+// MARK: - UIDevice Dynamic Island Detection
+public extension UIDevice {
+    var hasDynamicIsland: Bool {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else {
+            return false
+        }
+        return window.safeAreaInsets.top >= 51
     }
 }

@@ -203,6 +203,7 @@ public struct ContentView: View {
             // 5. Quick Camera Overlay (Floats directly over app layout)
             if showCameraPicker {
                 QuickCameraView(
+                    store: store,
                     onPhotoCaptured: { data in
                         self.capturedPhotoData = data
                         self.activeTab = .addExpense

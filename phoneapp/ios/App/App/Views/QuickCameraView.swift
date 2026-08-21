@@ -3,6 +3,7 @@ import AVFoundation
 
 @MainActor
 public struct QuickCameraView: View {
+    @ObservedObject public var store: ExpenseStore
     public var onPhotoCaptured: (Data) -> Void
     public var onDismiss: () -> Void
 
@@ -11,12 +12,22 @@ public struct QuickCameraView: View {
     @State private var isExpanded: Bool = false
     @State private var dragOffset: CGSize = .zero
 
-    public init(onPhotoCaptured: @escaping (Data) -> Void, onDismiss: @escaping () -> Void) {
+    public init(store: ExpenseStore, onPhotoCaptured: @escaping (Data) -> Void, onDismiss: @escaping () -> Void) {
+        self.store = store
         self.onPhotoCaptured = onPhotoCaptured
         self.onDismiss = onDismiss
     }
 
     public var body: some View {
+        if store.cameraLayoutMode == .dynamicIsland {
+            dynamicIslandCameraBody
+        } else {
+            defaultCameraBody
+        }
+    }
+
+    // MARK: - Dynamic Island Camera Body
+    private var dynamicIslandCameraBody: some View {
         let screenWidth = UIScreen.main.bounds.width
         let cardWidth = screenWidth - 20
         let previewWidth = cardWidth - 20
@@ -37,7 +48,6 @@ public struct QuickCameraView: View {
                 .contentShape(Rectangle())
                 .onTapGesture {
                     if isExpanded {
-                        // Native iOS snappy exit transition
                         withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
                             isExpanded = false
                         }
@@ -58,7 +68,6 @@ public struct QuickCameraView: View {
 
                                 // Close Button (Right, Colored Red!)
                                 Button {
-                                    // Native iOS snappy exit transition
                                     withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
                                         isExpanded = false
                                     }
@@ -85,7 +94,7 @@ public struct QuickCameraView: View {
 
                             // Bottom actions layout (Zoom + Rotate/Capture row)
                             VStack(spacing: 14) {
-                                // Native zoom selector (Larger buttons)
+                                // Native zoom selector
                                 HStack(spacing: 12) {
                                     ForEach([0.5, 1.0, 2.0, 3.0], id: \.self) { level in
                                         Button {
@@ -106,7 +115,7 @@ public struct QuickCameraView: View {
 
                                 // Rotate, Center Capture, and Flash Button
                                 HStack {
-                                    // Rotate Camera (left - larger button)
+                                    // Rotate Camera (left)
                                     Button {
                                         camera.switchCamera()
                                     } label: {
@@ -121,7 +130,7 @@ public struct QuickCameraView: View {
 
                                     Spacer()
 
-                                    // Capture Photo Button (center - significantly larger)
+                                    // Capture Photo Button (center)
                                     Button {
                                         let generator = UIImpactFeedbackGenerator(style: .medium)
                                         generator.impactOccurred()
@@ -145,7 +154,7 @@ public struct QuickCameraView: View {
 
                                     Spacer()
 
-                                    // Flash toggle (right - larger button)
+                                    // Flash toggle (right)
                                     Button {
                                         switch flashMode {
                                         case .off: flashMode = .on
@@ -189,21 +198,18 @@ public struct QuickCameraView: View {
                 .gesture(
                     DragGesture()
                         .onChanged { gesture in
-                            if gesture.translation.height < 0 { // Only allow swiping up to close
+                            if gesture.translation.height < 0 {
                                 dragOffset = gesture.translation
                             }
                         }
                         .onEnded { gesture in
-                            if gesture.translation.height < -70 { // Snappy dismiss trigger
+                            if gesture.translation.height < -70 {
                                 withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
                                     isExpanded = false
                                     dragOffset = .zero
                                 }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
-                                    onDismiss()
-                                }
+                                superClassDismiss()
                             } else {
-                                // Dynamic elastic snap-back
                                 withAnimation(.spring(response: 0.40, dampingFraction: 0.70)) {
                                     dragOffset = .zero
                                 }
@@ -217,7 +223,6 @@ public struct QuickCameraView: View {
         }
         .onAppear {
             camera.startSession()
-            // Native Apple spring for rich opening expand bounce
             withAnimation(.spring(response: 0.46, dampingFraction: 0.66, blendDuration: 0.1)) {
                 isExpanded = true
             }
@@ -227,6 +232,141 @@ public struct QuickCameraView: View {
             isExpanded = false
         }
         .statusBarHidden(true)
+    }
+
+    // MARK: - Default Full Screen Camera Body
+    private var defaultCameraBody: some View {
+        ZStack {
+            // Live Preview takes up full screen
+            CameraPreviewRepresentable(session: camera.session)
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Top bar
+                HStack {
+                    // Flash toggle (Left)
+                    Button {
+                        switch flashMode {
+                        case .off: flashMode = .on
+                        case .on: flashMode = .auto
+                        case .auto: flashMode = .off
+                        @unknown default: flashMode = .off
+                        }
+                        camera.flashMode = flashMode
+                    } label: {
+                        Image(systemName: flashIconName)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(flashMode == .off ? .white.opacity(0.8) : .yellow)
+                            .frame(width: 40, height: 40)
+                            .background(Circle().fill(Color.black.opacity(0.4)))
+                    }
+
+                    Spacer()
+
+                    // Close Button (Right, Colored Red!)
+                    Button {
+                        onDismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.red)
+                            .frame(width: 40, height: 40)
+                            .background(Circle().fill(Color.black.opacity(0.4)))
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+
+                Spacer()
+
+                // Bottom actions layout (Zoom + Rotate/Capture row)
+                VStack(spacing: 16) {
+                    // Zoom selector
+                    HStack(spacing: 12) {
+                        ForEach([0.5, 1.0, 2.0, 3.0], id: \.self) { level in
+                            Button {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                                    camera.setZoom(factor: level)
+                                }
+                            } label: {
+                                let isActive = abs(camera.currentZoom - level) < 0.1
+                                Text(level == 0.5 ? ".5" : "\(Int(level))")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .foregroundColor(isActive ? .yellow : .white)
+                                    .frame(width: 32, height: 32)
+                                    .background(Circle().fill(isActive ? Color.black.opacity(0.65) : Color.black.opacity(0.35)))
+                            }
+                        }
+                    }
+
+                    // Rotate and Capture Button row
+                    HStack {
+                        // Rotate Camera (left)
+                        Button {
+                            camera.switchCamera()
+                        } label: {
+                            Image(systemName: "camera.rotate.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(Circle().fill(Color.black.opacity(0.4)))
+                        }
+                        .padding(.leading, 30)
+
+                        Spacer()
+
+                        // Capture Photo Button (center)
+                        Button {
+                            let generator = UIImpactFeedbackGenerator(style: .medium)
+                            generator.impactOccurred()
+                            camera.capturePhoto { data in
+                                if let data = data {
+                                    onPhotoCaptured(data)
+                                    onDismiss()
+                                }
+                            }
+                        } label: {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 62, height: 62)
+                                Circle()
+                                    .strokeBorder(Color.white, lineWidth: 3)
+                                    .frame(width: 74, height: 74)
+                            }
+                        }
+
+                        Spacer()
+
+                        // Symmetry placeholder
+                        Color.clear
+                            .frame(width: 44, height: 44)
+                            .padding(.trailing, 30)
+                    }
+                }
+                .padding(.bottom, 36)
+                .background(
+                    LinearGradient(
+                        colors: [Color.clear, Color.black.opacity(0.6)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+            }
+        }
+        .onAppear {
+            camera.startSession()
+        }
+        .onDisappear {
+            camera.stopSession()
+        }
+        .statusBarHidden(true)
+    }
+
+    private func superClassDismiss() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+            onDismiss()
+        }
     }
 
     private var flashIconName: String {

@@ -210,6 +210,51 @@ public struct SettingsView: View {
                             .pickerStyle(.menu)
                         }
                         .padding(16)
+
+                        Divider().padding(.leading, 56)
+
+                        // Camera Layout Mode Picker
+                        HStack {
+                            settingsIcon(name: "camera.viewfinder", color: .orange)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(store.language == .en ? "Camera Interface" : "Giao diện Camera")
+                                    .font(.appFont(size: 16, weight: .medium))
+                                Text(store.language == .en ? "Choose style for quick capture" : "Chọn giao diện chụp")
+                                    .font(.appFont(size: 12, weight: .regular))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.leading, 6)
+
+                            Spacer()
+
+                            let isDiAvailable = UIDevice.current.hasDynamicIsland
+                            let dynamicIslandLabel: String = {
+                                let base = CameraLayoutMode.dynamicIsland.title(lang: store.language)
+                                if isDiAvailable {
+                                    return base
+                                } else {
+                                    let status = store.language == .en ? "Unsupported" : "Không hỗ trợ"
+                                    return "\(base) (\(status))"
+                                }
+                            }()
+
+                            Picker("", selection: Binding(
+                                get: { store.cameraLayoutMode },
+                                set: { store.setCameraLayoutMode($0) }
+                            )) {
+                                Text(CameraLayoutMode.default.title(lang: store.language))
+                                    .tag(CameraLayoutMode.default)
+                                
+                                Text(dynamicIslandLabel)
+                                    .tag(CameraLayoutMode.dynamicIsland)
+                                    .disabled(!isDiAvailable)
+                            }
+                            .font(.appFont(size: 15, weight: .medium))
+                            .pickerStyle(.menu)
+                            .disabled(!isDiAvailable)
+                        }
+                        .padding(16)
                     }
                     .liquidGlass(cornerRadius: 24)
                 }
