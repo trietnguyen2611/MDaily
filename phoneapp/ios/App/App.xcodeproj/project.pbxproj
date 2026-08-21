@@ -34,6 +34,9 @@
 		AA0100152FE993A700000002 /* ImagePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100152FE993A700000001 /* ImagePickerView.swift */; };
 		AA0100162FE993A700000002 /* FullScreenImageViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100162FE993A700000001 /* FullScreenImageViewer.swift */; };
 		AA0100172FE993A700000002 /* CustomTimeFilterSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100172FE993A700000001 /* CustomTimeFilterSheet.swift */; };
+		AA0100202FE993A700000002 /* QuickCameraView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100202FE993A700000001 /* QuickCameraView.swift */; };
+		AA0100212FE993A700000002 /* RecurringExpense.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100212FE993A700000001 /* RecurringExpense.swift */; };
+		AA0100222FE993A700000002 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100222FE993A700000001 /* NotificationService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +69,9 @@
 		AA0100152FE993A700000001 /* ImagePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/ImagePickerView.swift; sourceTree = "<group>"; };
 		AA0100162FE993A700000001 /* FullScreenImageViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/FullScreenImageViewer.swift; sourceTree = "<group>"; };
 		AA0100172FE993A700000001 /* CustomTimeFilterSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/CustomTimeFilterSheet.swift; sourceTree = "<group>"; };
+		AA0100202FE993A700000001 /* QuickCameraView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/QuickCameraView.swift; sourceTree = "<group>"; };
+		AA0100212FE993A700000001 /* RecurringExpense.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/RecurringExpense.swift; sourceTree = "<group>"; };
+		AA0100222FE993A700000001 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/NotificationService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -117,6 +123,9 @@
 				AA0100152FE993A700000001 /* ImagePickerView.swift */,
 				AA0100162FE993A700000001 /* FullScreenImageViewer.swift */,
 				AA0100172FE993A700000001 /* CustomTimeFilterSheet.swift */,
+				AA0100202FE993A700000001 /* QuickCameraView.swift */,
+				AA0100212FE993A700000001 /* RecurringExpense.swift */,
+				AA0100222FE993A700000001 /* NotificationService.swift */,
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				9582B6842FE993A70072D4E9 /* AFMPlugin.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
@@ -229,6 +238,9 @@
 				AA0100152FE993A700000002 /* ImagePickerView.swift in Sources */,
 				AA0100162FE993A700000002 /* FullScreenImageViewer.swift in Sources */,
 				AA0100172FE993A700000002 /* CustomTimeFilterSheet.swift in Sources */,
+				AA0100202FE993A700000002 /* QuickCameraView.swift in Sources */,
+				AA0100212FE993A700000002 /* RecurringExpense.swift in Sources */,
+				AA0100222FE993A700000002 /* NotificationService.swift in Sources */,
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				9582B6852FE993A70072D4E9 /* AFMPlugin.swift in Sources */,

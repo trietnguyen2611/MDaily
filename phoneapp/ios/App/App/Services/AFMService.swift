@@ -28,8 +28,31 @@ public struct AFMStatus: Sendable {
     public var message: String
 }
 
+private final class ExtractionCache: @unchecked Sendable {
+    private var cache: [String: ExtractionResult] = [:]
+    private let lock = NSLock()
+    
+    func get(forKey key: String) -> ExtractionResult? {
+        lock.lock()
+        defer { lock.unlock() }
+        return cache[key]
+    }
+    
+    func set(_ value: ExtractionResult, forKey key: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        cache[key] = value
+    }
+}
+
 public final class AFMService: Sendable {
     public static let shared = AFMService()
+    private let cache = ExtractionCache()
+
+    private func cacheKey(for image: UIImage) -> String? {
+        guard let data = image.jpegData(compressionQuality: 0.1) else { return nil }
+        return "\(data.count)_\(data.prefix(100).map { String(format: "%02x", $0) }.joined())"
+    }
 
     public func checkStatus() -> AFMStatus {
         #if canImport(FoundationModels)
@@ -50,8 +73,15 @@ public final class AFMService: Sendable {
 
     // MARK: - Image & Receipt Extraction
     public func extractExpense(from image: UIImage) async -> ExtractionResult {
+        let key = cacheKey(for: image)
+        if let key = key, let cached = cache.get(forKey: key) {
+            return cached
+        }
+
         guard let cgImage = image.cgImage else {
-            return ExtractionResult(success: false)
+            let res = ExtractionResult(success: false)
+            if let key = key { cache.set(res, forKey: key) }
+            return res
         }
 
         // 1. Check if the image contains a receipt/invoice
@@ -60,7 +90,9 @@ public final class AFMService: Sendable {
 
         // 2. Only proceed if it is a receipt image
         guard isReceiptImage else {
-            return ExtractionResult(success: false)
+            let res = ExtractionResult(success: false)
+            if let key = key { cache.set(res, forKey: key) }
+            return res
         }
 
         // 3. Run Vision OCR Text Recognition
@@ -135,11 +167,14 @@ public final class AFMService: Sendable {
                     }
                     finalParsed.isInvoice = true
                 }
+                if let key = key { cache.set(finalParsed, forKey: key) }
                 return finalParsed
             }
         }
 
-        return ExtractionResult(success: false)
+        let fallbackRes = ExtractionResult(success: false)
+        if let key = key { cache.set(fallbackRes, forKey: key) }
+        return fallbackRes
     }
 
     private func recognizeText(from cgImage: CGImage) async -> [String] {

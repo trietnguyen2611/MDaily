@@ -197,7 +197,7 @@ public struct LocalizationService {
             "appearance_desc": [.vi: "Chế độ giao diện sáng, tối hoặc theo hệ thống", .en: "Light, dark, or system appearance mode"],
             "appearance_light": [.vi: "Sáng", .en: "Light"],
             "appearance_dark": [.vi: "Tối", .en: "Dark"],
-            "appearance_system": [.vi: "Theo hệ thống", .en: "System"],
+            "appearance_system": [.vi: "Hệ thống", .en: "System"],
 
             // Recurring reminder features
             "recurring_reminder": [.vi: "Nhắc thanh toán", .en: "Payment Reminder"],

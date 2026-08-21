@@ -337,6 +337,8 @@ public struct FadingHorizontalText: View {
     @State private var containerWidth: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
     @State private var isAnimating: Bool = false
+    
+    @Environment(\.scenePhase) private var scenePhase
 
     public init(
         _ text: String,
@@ -391,11 +393,19 @@ public struct FadingHorizontalText: View {
                 containerWidth = geo.size.width
                 startMarqueeAnimationIfNeeded()
             }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    startMarqueeAnimationIfNeeded()
+                } else {
+                    stopMarqueeAnimation()
+                }
+            }
         }
         .frame(height: 18)
     }
 
     private func startMarqueeAnimationIfNeeded() {
+        guard scenePhase == .active else { return }
         guard textWidth > containerWidth, containerWidth > 0, !isAnimating else { return }
         isAnimating = true
         let diff = textWidth - containerWidth + 24
@@ -407,6 +417,13 @@ public struct FadingHorizontalText: View {
                 .repeatForever(autoreverses: true)
         ) {
             scrollOffset = -diff
+        }
+    }
+
+    private func stopMarqueeAnimation() {
+        isAnimating = false
+        withAnimation(.none) {
+            scrollOffset = 0
         }
     }
 }

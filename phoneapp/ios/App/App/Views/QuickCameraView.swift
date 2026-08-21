@@ -28,7 +28,7 @@ public struct QuickCameraView: View {
             VStack(spacing: 0) {
                 // Top Bar
                 topBar
-                    .padding(.top, 10)
+                    .padding(.top, 56)
 
                 Spacer()
 
@@ -52,11 +52,12 @@ public struct QuickCameraView: View {
             camera.startSession()
             camera.onReceiptDetected = { detected in
                 if receiptDetectionEnabled {
+                    let stateChanged = !receiptDetected && detected
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                         receiptDetected = detected
                         showReceiptBanner = detected
                     }
-                    if detected {
+                    if stateChanged {
                         let generator = UINotificationFeedbackGenerator()
                         generator.notificationOccurred(.success)
                         // Auto-hide banner after 3 seconds

@@ -242,6 +242,7 @@ public struct ContentView: View {
             ExpenseDetailSheet(
                 store: store,
                 expense: exp,
+                startInEditMode: true,
                 onClose: { editingExpense = nil }
             )
         }
@@ -488,6 +489,16 @@ private struct ShareCardView: View {
                     Text(note)
                         .font(.system(size: 14, weight: .regular, design: .rounded))
                         .foregroundColor(.secondary)
+                }
+
+                if let photoData = expense.photoData, let uiImage = UIImage(data: photoData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity)
+                        .frame(maxHeight: 180)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .padding(.vertical, 4)
                 }
 
                 let formatter = DateFormatter()

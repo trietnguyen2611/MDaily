@@ -325,7 +325,7 @@ public struct AddExpenseView: View {
                                             .foregroundColor(.secondary)
                                         Spacer()
                                         Picker("", selection: $repeatInterval) {
-                                            ForEach(RepeatInterval.allCases.filter { $0 != .none }) { interval in
+                                            ForEach(RepeatInterval.allCases) { interval in
                                                 Text(interval.title(lang: store.language)).tag(interval)
                                             }
                                         }

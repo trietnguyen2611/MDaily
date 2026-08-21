@@ -33,12 +33,14 @@ public struct ExpenseDetailSheet: View {
     public init(
         store: ExpenseStore,
         expense: Expense,
+        startInEditMode: Bool = false,
         onClose: @escaping () -> Void
     ) {
         self.store = store
         self.expense = expense
         self.onClose = onClose
 
+        _isEditing = State(initialValue: startInEditMode)
         _currentExpense = State(initialValue: expense)
         _editAmountText = State(initialValue: ExpenseDetailSheet.formatAmountString("\(Int(expense.amount))"))
         _editCategory = State(initialValue: expense.category)
