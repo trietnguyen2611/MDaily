@@ -313,6 +313,7 @@ public struct AddExpenseView: View {
                                         DatePicker("", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
                                             .datePickerStyle(.compact)
                                             .labelsHidden()
+                                            .environment(\.locale, Locale(identifier: store.language == .en ? "en_US" : "vi_VN"))
                                     }
                                     .padding(12)
                                     .background(Color(.tertiarySystemBackground))

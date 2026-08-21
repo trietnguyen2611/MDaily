@@ -208,6 +208,7 @@ public struct ExpenseDetailSheet: View {
                                         )
                                         .datePickerStyle(.compact)
                                         .labelsHidden()
+                                        .environment(\.locale, Locale(identifier: store.language == .en ? "en_US" : "vi_VN"))
                                         .transition(.opacity)
                                     } else {
                                         Text(formatDate(currentExpense.date))

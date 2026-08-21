@@ -11,7 +11,7 @@ public enum RepeatInterval: String, Codable, CaseIterable, Identifiable, Sendabl
 
     public func title(lang: Language) -> String {
         switch self {
-        case .none: return lang == .en ? "No Repeat" : "Không lặp"
+        case .none: return lang == .en ? "None" : "Không lặp lại"
         case .daily: return lang == .en ? "Daily" : "Hàng ngày"
         case .weekly: return lang == .en ? "Weekly" : "Hàng tuần"
         case .monthly: return lang == .en ? "Monthly" : "Hàng tháng"

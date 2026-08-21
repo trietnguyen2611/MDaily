@@ -170,6 +170,7 @@ public struct CustomTimeFilterSheet: View {
                 displayedComponents: [.date]
             )
             .datePickerStyle(.graphical)
+            .environment(\.locale, Locale(identifier: store.language == .en ? "en_US" : "vi_VN"))
             .padding(12)
             .background {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
@@ -265,39 +266,21 @@ public struct CustomTimeFilterSheet: View {
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .foregroundColor(.secondary)
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+            Picker("", selection: $selectedYear) {
                 ForEach(years, id: \.self) { y in
-                    let isSelected = selectedYear == y
-                    Button {
-                        selectedYear = y
-                    } label: {
-                        Text(String(y))
-                            .font(.system(size: 16, weight: isSelected ? .bold : .medium, design: .rounded))
-                            .foregroundColor(isSelected ? .white : .primary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background {
-                                if isSelected {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Color(red: 0.16, green: 0.72, blue: 0.54), Color(red: 0.08, green: 0.48, blue: 0.68)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
-                                        )
-                                } else {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .fill(colorScheme == .dark ? Color(white: 0.12) : Color.white)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.06), lineWidth: 0.5)
-                                        )
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
+                    Text(String(y))
+                        .tag(y)
                 }
+            }
+            .pickerStyle(.wheel)
+            .frame(height: 160)
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(colorScheme == .dark ? Color(white: 0.12) : Color.white)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .strokeBorder(colorScheme == .dark ? Color.white.opacity(0.10) : Color.black.opacity(0.06), lineWidth: 0.5)
+                    )
             }
         }
     }
@@ -323,6 +306,7 @@ public struct CustomTimeFilterSheet: View {
 
                     DatePicker("", selection: $fromDate, displayedComponents: [.date])
                         .labelsHidden()
+                        .environment(\.locale, Locale(identifier: store.language == .en ? "en_US" : "vi_VN"))
                 }
                 .padding(14)
                 .background {
@@ -343,6 +327,7 @@ public struct CustomTimeFilterSheet: View {
 
                     DatePicker("", selection: $toDate, displayedComponents: [.date])
                         .labelsHidden()
+                        .environment(\.locale, Locale(identifier: store.language == .en ? "en_US" : "vi_VN"))
                 }
                 .padding(14)
                 .background {
