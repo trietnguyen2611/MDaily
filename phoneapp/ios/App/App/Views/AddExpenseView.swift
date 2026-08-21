@@ -625,75 +625,80 @@ struct AIExtractionOverlayView: View {
     let previewHeight: CGFloat
     let text: String
 
-    @State private var scanOffset: CGFloat = -1.0
-    @State private var animateGradient: Bool = false
+    @State private var rotationAngle: Double = 0.0
+    @State private var pulseScale: CGFloat = 1.0
+
+    // Siri Apple Intelligence colors
+    private let siriColors = [
+        Color(red: 0.12, green: 0.53, blue: 0.90), // Cyan/Blue
+        Color(red: 0.60, green: 0.15, blue: 0.85), // Indigo/Purple
+        Color(red: 0.95, green: 0.25, blue: 0.50), // Pink/Magenta
+        Color(red: 0.95, green: 0.45, blue: 0.15), // Orange
+        Color(red: 0.12, green: 0.75, blue: 0.55), // Teal/Green
+        Color(red: 0.12, green: 0.53, blue: 0.90)  // Loop back
+    ]
 
     var body: some View {
-        ZStack(alignment: .top) {
-            // 1. Moving scan backdrop gradient overlay
+        let siriGradient = AngularGradient(
+            colors: siriColors,
+            center: .center
+        )
+
+        ZStack {
+            // 1. Ambient Siri Glow Backdrop (Bloom)
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color.blue.opacity(0.15), Color.purple.opacity(0.15), Color.cyan.opacity(0.10)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                .fill(siriGradient)
+                .rotationEffect(.degrees(rotationAngle))
+                .blur(radius: 28)
+                .opacity(0.35)
+                .scaleEffect(pulseScale)
+
+            // 2. Optical Glass Backdrop blurring the receipt image underneath
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(.ultraThinMaterial.opacity(0.88))
+                .background(Color.black.opacity(0.12))
+
+            // 3. Apple Intelligence Siri Edge Glow Border (Layered for neon blur intensity)
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(siriGradient, lineWidth: 5)
+                .rotationEffect(.degrees(rotationAngle))
+                .blur(radius: 5)
+                .opacity(0.80)
+
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(siriGradient, lineWidth: 1.5)
+                .rotationEffect(.degrees(rotationAngle))
+                .opacity(0.95)
+
+            // 4. Central HUD Card with spinner and text
+            HStack(spacing: 10) {
+                ProgressView()
+                    .tint(.white)
+                    .scaleEffect(1.1)
+                Text(text)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                Capsule()
+                    .fill(Color.black.opacity(0.75))
+                    .overlay(
+                        Capsule().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
                     )
-                )
-                .hueRotation(.degrees(animateGradient ? 360 : 0))
-                .animation(.linear(duration: 4.0).repeatForever(autoreverses: false), value: animateGradient)
-                .background(.ultraThinMaterial.opacity(0.85))
-
-            // 2. Horizontal scan line
-            GeometryReader { geo in
-                let startY = 12.0
-                let endY = geo.size.height - 12.0
-                let currentY = startY + (endY - startY) * (scanOffset + 1.0) / 2.0
-
-                ZStack {
-                    // Glow bar
-                    Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.clear, Color.cyan, Color.blue, Color.cyan, Color.clear],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .frame(height: 4)
-                        .shadow(color: Color.blue.opacity(0.8), radius: 6, x: 0, y: 0)
-                        .position(x: geo.size.width / 2.0, y: currentY)
-                }
-            }
-
-            // 3. Central HUD Card
-            VStack {
-                Spacer()
-                HStack(spacing: 10) {
-                    ProgressView()
-                        .tint(.white)
-                        .scaleEffect(1.1)
-                    Text(text)
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(
-                    Capsule()
-                        .fill(Color.black.opacity(0.75))
-                        .overlay(
-                            Capsule().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
-                        )
-                )
-                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
-                Spacer()
-            }
+            )
+            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
         }
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .onAppear {
-            animateGradient = true
+            // Siri rotating flow animation
+            withAnimation(.linear(duration: 4.5).repeatForever(autoreverses: false)) {
+                rotationAngle = 360.0
+            }
+            // Gentle pulse scaling
             withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
-                scanOffset = 1.0
+                pulseScale = 1.08
             }
         }
     }

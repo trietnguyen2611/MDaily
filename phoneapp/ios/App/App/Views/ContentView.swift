@@ -197,6 +197,7 @@ public struct ContentView: View {
                 },
                 isKeyboardActive: isKeyboardVisible
             )
+            .offset(y: 12)
             }
             .opacity(showSplash ? 0.0001 : 1.0)
             
