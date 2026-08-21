@@ -92,13 +92,23 @@
 		</dict>
 		<dict>
 			<key>UIApplicationShortcutItemType</key>
-			<string>org.mdaily.app.quickReports</string>
+			<string>org.mdaily.app.quickAIChat</string>
 			<key>UIApplicationShortcutItemTitle</key>
-			<string>Xem báo cáo</string>
+			<string>MDaily AI Chat</string>
 			<key>UIApplicationShortcutItemSubtitle</key>
-			<string>Biểu đồ &amp; Phân loại</string>
+			<string>Hỏi trợ lý tài chính AI</string>
 			<key>UIApplicationShortcutItemIconType</key>
 			<string>UIApplicationShortcutIconTypeSearch</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>org.mdaily.app.quickReports</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Tổng quan</string>
+			<key>UIApplicationShortcutItemSubtitle</key>
+			<string>Xem báo cáo chi tiêu</string>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>UIApplicationShortcutIconTypeHome</string>
 		</dict>
 	</array>
 </dict>

@@ -56,6 +56,7 @@ public struct ContentView: View {
     @State private var showCustomTimeFilterSheet: Bool = false
     @State private var customTimeFilterTab: CustomFilterTab = .specificDate
     @State private var selectedExpense: Expense? = nil
+    @State private var editingExpense: Expense? = nil
     @State private var capturedPhotoData: Data? = nil
     @State private var showCameraFromQuickAction: Bool = false
     @State private var showSplash: Bool = true
@@ -137,7 +138,13 @@ public struct ContentView: View {
                         DashboardView(
                             store: store,
                             expenses: filteredExpenses,
-                            onSelectExpense: { selectedExpense = $0 }
+                            onSelectExpense: { selectedExpense = $0 },
+                            onEditExpense: { expense in
+                                editingExpense = expense
+                            },
+                            onShareExpense: { expense in
+                                shareExpenseCard(expense)
+                            }
                         )
                     case .addExpense:
                         AddExpenseView(
@@ -231,6 +238,13 @@ public struct ContentView: View {
                 onClose: { selectedExpense = nil }
             )
         }
+        .sheet(item: $editingExpense) { exp in
+            ExpenseDetailSheet(
+                store: store,
+                expense: exp,
+                onClose: { editingExpense = nil }
+            )
+        }
         .sheet(isPresented: $showAiChat) {
             ChatbotSheet(
                 store: store,
@@ -245,13 +259,17 @@ public struct ContentView: View {
                 onClose: { showCustomTimeFilterSheet = false }
             )
         }
-        .sheet(isPresented: $showCameraFromQuickAction) {
-            ImagePickerView(sourceType: UIImagePickerController.isSourceTypeAvailable(.camera) ? .camera : .photoLibrary) { image in
-                if let data = image.jpegData(compressionQuality: 0.85) {
+        .fullScreenCover(isPresented: $showCameraFromQuickAction) {
+            QuickCameraView(
+                onPhotoCaptured: { data in
                     self.capturedPhotoData = data
                     activeTab = .addExpense
+                },
+                onDismiss: {
+                    showCameraFromQuickAction = false
                 }
-            }
+            )
+            .ignoresSafeArea()
         }
         .onReceive(NotificationCenter.default.publisher(for: .handleQuickAction)) { notification in
             guard let actionType = notification.object as? String else { return }
@@ -264,9 +282,25 @@ public struct ContentView: View {
                     showCameraFromQuickAction = true
                 case "org.mdaily.app.quickReports":
                     activeTab = .reports
+                case "org.mdaily.app.quickAIChat":
+                    showAiChat = true
                 default:
                     break
                 }
+            }
+        }
+    }
+
+    // MARK: - Share Expense Card
+    private func shareExpenseCard(_ expense: Expense) {
+        let renderer = ImageRenderer(content: ShareCardView(expense: expense, store: store))
+        renderer.scale = UIScreen.main.scale
+
+        if let uiImage = renderer.uiImage {
+            let activityVC = UIActivityViewController(activityItems: [uiImage], applicationActivities: nil)
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let rootVC = windowScene.windows.first?.rootViewController {
+                rootVC.present(activityVC, animated: true)
             }
         }
     }
@@ -421,6 +455,56 @@ public struct ContentView: View {
                 .padding(.bottom, 8)
             }
         }
+    }
+}
+
+// MARK: - Share Card View (rendered as image for sharing)
+private struct ShareCardView: View {
+    let expense: Expense
+    let store: ExpenseStore
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "dollarsign.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(.blue)
+                Text("MDaily")
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                Spacer()
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(store.categoryLabel(for: expense.category))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+
+                Text(store.formatCurrency(expense.amount))
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundColor(.blue)
+
+                if let note = expense.note, !note.isEmpty {
+                    Text(note)
+                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .foregroundColor(.secondary)
+                }
+
+                let formatter = DateFormatter()
+                Text({
+                    formatter.dateFormat = "HH:mm dd/MM/yyyy"
+                    return formatter.string(from: expense.date)
+                }())
+                .font(.system(size: 12, weight: .medium, design: .rounded))
+                .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(24)
+        .frame(width: 320)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
     }
 }
 

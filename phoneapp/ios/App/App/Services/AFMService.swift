@@ -75,7 +75,33 @@ public final class AFMService: Sendable {
                 let model = SystemLanguageModel.default
                 if model.isAvailable {
                     let fullText = textResult.joined(separator: "\n")
-                    let instructions = "You are an expert receipt parser. Extract data from the following OCR text and return ONLY a valid JSON object. Do not include markdown formatting or backticks. Required keys: 'itemName' (string, name of store/merchant), 'amount' (number, total amount paid without currency symbols), 'category' (string, choose from: food, shopping, transport, bills, health, education, entertainment, other), 'isInvoice' (boolean)."
+                    let instructions = """
+                    You are an expert Vietnamese and English receipt/invoice parser. Extract data from the following OCR text and return ONLY a valid JSON object. Do not include markdown formatting or backticks.
+
+                    IMPORTANT CONTEXT for Vietnamese receipts:
+                    - Common Vietnamese store chains: Bách Hoá Xanh, WinMart, Co.opmart, Big C, Lotte Mart, AEON
+                    - Convenience stores: Circle K, FamilyMart, 7-Eleven, Ministop, GS25
+                    - Pharmacies: Long Châu (FPT Long Châu), An Khang, Pharmacity, Guardian
+                    - Hospital/Medical: Bệnh viện, Phòng khám, Y tế
+                    - Utility bills: Điện lực (EVN), Cấp nước, VNPT, Viettel, FPT Telecom
+                    - Food chains: Highlands Coffee, Phúc Long, The Coffee House, KFC, Lotteria, Jollibee, McDonald's, Starbucks
+                    - Ride-hailing: Grab, Gojek, Be, Xanh SM
+                    
+                    Vietnamese amount patterns: "50.000đ", "50,000 VND", "50.000 VNĐ", dots as thousand separators
+                    Look for total keywords: "Tổng cộng", "Thành tiền", "Tổng tiền", "Thanh toán", "T.Cộng", "Tạm tính"
+                    
+                    Required JSON keys:
+                    - 'itemName' (string, name of store/merchant or main item)
+                    - 'amount' (number, total amount paid without currency symbols)
+                    - 'category' (string, choose from: food, shopping, transport, bills, health, education, entertainment, other)
+                    - 'isInvoice' (boolean, true if receipt/invoice/bill)
+                    
+                    Category rules:
+                    - Pharmacies, hospitals, clinics → "health"
+                    - Utility bills (electricity, water, internet) → "bills"
+                    - Convenience stores, supermarkets → "shopping"
+                    - Restaurants, cafes, food delivery → "food"
+                    """
                     let session = LanguageModelSession(instructions: instructions)
                     if let response = try? await session.respond(to: fullText) {
                         let jsonString = String(response.content).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -186,7 +212,8 @@ public final class AFMService: Sendable {
 
         let invoiceKeywords = [
             "hoa don", "hóa đơn", "bill", "receipt", "tong cong", "tổng cộng", "total",
-            "thanh toan", "thanh toán", "vat", "pos", "thành tiền", "thanh tien", "tổng tiền", "tong tien"
+            "thanh toan", "thanh toán", "vat", "pos", "thành tiền", "thanh tien", "tổng tiền", "tong tien",
+            "t.cộng", "t.cong", "tạm tính", "tam tinh", "sub total", "net", "payment"
         ]
         let lowerLines = lines.map { $0.lowercased() }
 
@@ -194,8 +221,9 @@ public final class AFMService: Sendable {
             isInvoice = true
         }
 
-        // Identify Known Merchants
-        let merchants = [
+        // Identify Known Merchants (expanded)
+        let merchants: [(String, String)] = [
+            // Food & Beverage
             ("Starbucks", "food"),
             ("Highlands Coffee", "food"),
             ("Phúc Long", "food"),
@@ -204,24 +232,60 @@ public final class AFMService: Sendable {
             ("Lotteria", "food"),
             ("McDonald's", "food"),
             ("Jollibee", "food"),
+            ("Pizza Hut", "food"),
+            ("Domino's", "food"),
+            ("Burger King", "food"),
+            ("Texas Chicken", "food"),
+            ("Popeyes", "food"),
+            // Convenience stores & Retail
             ("Circle K", "shopping"),
             ("FamilyMart", "shopping"),
+            ("Family Mart", "shopping"),
             ("7-Eleven", "shopping"),
+            ("7 Eleven", "shopping"),
+            ("Ministop", "shopping"),
+            ("GS25", "shopping"),
             ("WinMart", "shopping"),
+            ("Win Mart", "shopping"),
             ("Co.opmart", "shopping"),
+            ("Co.op Mart", "shopping"),
             ("Bách Hoá Xanh", "shopping"),
+            ("Bach Hoa Xanh", "shopping"),
+            ("Big C", "shopping"),
+            ("Lotte Mart", "shopping"),
+            ("AEON", "shopping"),
+            ("Mega Market", "shopping"),
             ("Shopee", "shopping"),
             ("Lazada", "shopping"),
             ("Tiki", "shopping"),
+            ("Thế Giới Di Động", "shopping"),
+            ("TGDĐ", "shopping"),
+            ("Điện Máy Xanh", "shopping"),
+            ("MWG", "shopping"),
+            // Transport
             ("Grab", "transport"),
             ("Gojek", "transport"),
             ("Be", "transport"),
             ("Xanh SM", "transport"),
+            // Utilities / Bills
             ("Điện Lực", "bills"),
+            ("EVN", "bills"),
             ("Cấp Nước", "bills"),
+            ("Nước Sạch", "bills"),
             ("VNPT", "bills"),
             ("Viettel", "bills"),
-            ("FPT", "bills")
+            ("FPT Telecom", "bills"),
+            ("Mobifone", "bills"),
+            ("Vinaphone", "bills"),
+            // Health / Pharmacy
+            ("Long Châu", "health"),
+            ("FPT Long Châu", "health"),
+            ("An Khang", "health"),
+            ("Pharmacity", "health"),
+            ("Guardian", "health"),
+            ("Bệnh Viện", "health"),
+            ("Phòng Khám", "health"),
+            ("Nhà Thuốc", "health")
         ]
 
         for (merchant, cat) in merchants {
@@ -235,7 +299,9 @@ public final class AFMService: Sendable {
         // Amount Extraction: Look for total lines first
         let totalPatterns = [
             "tổng cộng", "tong cong", "thành tiền", "thanh tien", "tổng tiền", "tong tien",
-            "total", "grand total", "tiền mặt", "tien mat", "amount", "phải thanh toán", "đã thanh toán"
+            "total", "grand total", "tiền mặt", "tien mat", "amount", "phải thanh toán", "đã thanh toán",
+            "t.cộng", "t.cong", "tạm tính", "tam tinh", "sub total", "payment", "net amount",
+            "cộng", "cong"
         ]
 
         for line in lines.reversed() {
@@ -280,14 +346,23 @@ public final class AFMService: Sendable {
         }
 
         let fullText = lowerLines.joined(separator: " ")
-        if fullText.contains("cafe") || fullText.contains("coffee") || fullText.contains("quan") ||
+
+        // Health category detection
+        if fullText.contains("thuốc") || fullText.contains("thuoc") || fullText.contains("pharmacy") ||
+           fullText.contains("bệnh viện") || fullText.contains("benh vien") || fullText.contains("phòng khám") ||
+           fullText.contains("phong kham") || fullText.contains("y tế") || fullText.contains("y te") ||
+           fullText.contains("long châu") || fullText.contains("long chau") || fullText.contains("an khang") ||
+           fullText.contains("pharmacity") || fullText.contains("guardian") || fullText.contains("khám") {
+            foundCategory = "health"
+        } else if fullText.contains("cafe") || fullText.contains("coffee") || fullText.contains("quan") ||
            fullText.contains("nha hang") || fullText.contains("com") || fullText.contains("tra") ||
            fullText.contains("food") || fullText.contains("an uong") || fullText.contains("bánh") ||
            fullText.contains("pho") || fullText.contains("lẩu") || fullText.contains("nướng") {
             foundCategory = "food"
         } else if fullText.contains("dien") || fullText.contains("nuoc") || fullText.contains("internet") ||
                   fullText.contains("phi") || fullText.contains("cuoc") || fullText.contains("hoa don") ||
-                  fullText.contains("tien nha") {
+                  fullText.contains("tien nha") || fullText.contains("evn") || fullText.contains("điện lực") ||
+                  fullText.contains("cấp nước") || fullText.contains("nước sạch") {
             foundCategory = "bills"
         } else if fullText.contains("grab") || fullText.contains("be") || fullText.contains("xang") ||
                   fullText.contains("taxi") || fullText.contains("xe") || fullText.contains("xanh sm") ||
@@ -412,16 +487,42 @@ public final class AFMService: Sendable {
                     let txListStr = isEnglish ? "Transaction history:\n\(txDetails)" : "Lịch sử giao dịch:\n\(txDetails)"
                     
                     let instructions = isEnglish
-                        ? "You are MDaily AI, a smart financial assistant. Keep your answers concise, natural, and friendly. Limit your responses to personal finance, budgeting, and the user's expense data. Decline out-of-scope questions like coding, math, or history. User's data context:\nTotal spend: \(formatMoney(totalSpend)). This month: \(formatMoney(thisMonthSpend)). Top category: \(topCategoryName) (\(formatMoney(topCategoryPair?.value ?? 0))).\n\n\(txListStr)"
-                        : "Bạn là MDaily AI, trợ lý tài chính thông minh. Trả lời thân thiện, tự nhiên và ngắn gọn. Chỉ trả lời các câu hỏi liên quan đến tài chính, chi tiêu, ngân sách. Từ chối lịch sự các câu hỏi ngoài lề (như code, toán, lịch sử, làm thơ). Ngữ cảnh dữ liệu:\nTổng chi: \(formatMoney(totalSpend)). Tháng này: \(formatMoney(thisMonthSpend)). Danh mục nhiều nhất: \(topCategoryName) (\(formatMoney(topCategoryPair?.value ?? 0))).\n\n\(txListStr)"
+                        ? """
+                        You are MDaily AI, a smart financial assistant. Keep your answers concise, natural, and friendly. Limit your responses to personal finance, budgeting, and the user's expense data. Decline out-of-scope questions like coding, math, or history.
+                        
+                        IMPORTANT: You are having a continuous conversation with the user. Pay attention to the chat history below and reference previous messages when relevant. If the user asks follow-up questions like "what about that?" or "tell me more", refer back to the context of earlier messages.
+                        
+                        User's data context:
+                        Total spend: \(formatMoney(totalSpend)). This month: \(formatMoney(thisMonthSpend)). Today: \(formatMoney(todaySpend)). Top category: \(topCategoryName) (\(formatMoney(topCategoryPair?.value ?? 0))).
+                        
+                        \(txListStr)
+                        """
+                        : """
+                        Bạn là MDaily AI, trợ lý tài chính thông minh. Trả lời thân thiện, tự nhiên và ngắn gọn. Chỉ trả lời các câu hỏi liên quan đến tài chính, chi tiêu, ngân sách. Từ chối lịch sự các câu hỏi ngoài lề (như code, toán, lịch sử, làm thơ).
+                        
+                        QUAN TRỌNG: Bạn đang trong một cuộc hội thoại liên tục với người dùng. Hãy chú ý đến lịch sử chat bên dưới và tham chiếu lại các tin nhắn trước khi phù hợp. Nếu người dùng hỏi tiếp như "còn cái đó thì sao?", "nói thêm đi", hãy tham chiếu lại ngữ cảnh tin nhắn trước đó.
+                        
+                        Ngữ cảnh dữ liệu:
+                        Tổng chi: \(formatMoney(totalSpend)). Tháng này: \(formatMoney(thisMonthSpend)). Hôm nay: \(formatMoney(todaySpend)). Danh mục nhiều nhất: \(topCategoryName) (\(formatMoney(topCategoryPair?.value ?? 0))).
+                        
+                        \(txListStr)
+                        """
                     
-                    let validHistory = chatHistory.dropLast(2).suffix(12)
+                    // Build chat history with more context (up to 20 messages)
+                    let validHistory = chatHistory.dropLast(2).suffix(20)
                     let historyContext = validHistory.map { msg in
                         let roleName = msg.role == "user" ? (isEnglish ? "User" : "Người dùng") : "MDaily AI"
-                        return "\(roleName): \(msg.content)"
-                    }.joined(separator: "\n")
+                        return "[\(roleName)]: \(msg.content)"
+                    }.joined(separator: "\n---\n")
                     
-                    let historyPrefix = historyContext.isEmpty ? "" : (isEnglish ? "Chat History:\n\(historyContext)\n\nCurrent user message: " : "Lịch sử chat:\n\(historyContext)\n\nTin nhắn hiện tại: ")
+                    let historyPrefix: String
+                    if historyContext.isEmpty {
+                        historyPrefix = ""
+                    } else {
+                        historyPrefix = isEnglish
+                            ? "=== CONVERSATION HISTORY ===\n\(historyContext)\n=== END HISTORY ===\n\nUser's current message: "
+                            : "=== LỊCH SỬ HỘI THOẠI ===\n\(historyContext)\n=== KẾT THÚC LỊCH SỬ ===\n\nTin nhắn hiện tại của người dùng: "
+                    }
                     
                     let fullPrompt = "\(historyPrefix)\(prompt)"
                     
@@ -466,6 +567,9 @@ public final class AFMService: Sendable {
             } else if p.contains("điện") || p.contains("nước") || p.contains("hoá đơn") || p.contains("tiền nhà") || p.contains("mạng") || p.contains("bill") {
                 matchedCategoryId = "bills"
                 matchedCategoryLabel = categories.first(where: { $0.id == "bills" })?.label ?? "Hoá đơn"
+            } else if p.contains("thuốc") || p.contains("bệnh viện") || p.contains("khám") || p.contains("health") || p.contains("sức khoẻ") || p.contains("nhà thuốc") || p.contains("pharmacy") {
+                matchedCategoryId = "health"
+                matchedCategoryLabel = categories.first(where: { $0.id == "health" })?.label ?? "Sức khoẻ"
             }
         }
 

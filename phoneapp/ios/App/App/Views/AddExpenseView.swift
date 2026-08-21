@@ -15,6 +15,11 @@ public struct AddExpenseView: View {
     @State private var isExtracting: Bool = false
     @State private var extractResultText: String? = nil
 
+    // Recurring expense fields
+    @State private var isRecurring: Bool = false
+    @State private var reminderDate: Date = Date()
+    @State private var repeatInterval: RepeatInterval = .monthly
+
     private enum FormField {
         case amount, newCategory, note
     }
@@ -48,6 +53,9 @@ public struct AddExpenseView: View {
         showAmountError = false
         isAddingCategory = false
         newCategoryName = ""
+        isRecurring = false
+        reminderDate = Date()
+        repeatInterval = .monthly
     }
 
     private func formatAmountString(_ input: String) -> String {
@@ -119,6 +127,27 @@ public struct AddExpenseView: View {
         )
 
         store.addExpense(expense)
+
+        // Create recurring expense if enabled
+        if isRecurring {
+            let recurring = RecurringExpense(
+                amount: amount,
+                category: selectedCategory,
+                note: cleanNote.isEmpty ? nil : cleanNote,
+                photoData: photoData,
+                reminderDate: reminderDate,
+                repeatInterval: repeatInterval,
+                isActive: true,
+                linkedExpenseId: expense.id
+            )
+            store.addRecurringExpense(recurring)
+
+            // Request notification permission if needed
+            Task {
+                let _ = await NotificationService.shared.requestPermission()
+            }
+        }
+
         resetForm()
         onSave()
     }
@@ -254,6 +283,63 @@ public struct AddExpenseView: View {
                                 .focused($focusedField, equals: .note)
                                 .id(FormField.note)
                         }
+
+                        // Recurring Payment Toggle
+                        VStack(alignment: .leading, spacing: 10) {
+                            Toggle(isOn: $isRecurring) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "bell.badge.fill")
+                                        .foregroundColor(.orange)
+                                        .font(.system(size: 16))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(store.t("recurring_reminder"))
+                                            .font(.appFont(size: 15, weight: .medium))
+                                        Text(store.t("recurring_reminder_desc"))
+                                            .font(.appFont(size: 11, weight: .regular))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                            .tint(.orange)
+
+                            if isRecurring {
+                                VStack(spacing: 10) {
+                                    // Reminder Date
+                                    HStack {
+                                        Text(store.t("reminder_date"))
+                                            .font(.appFont(size: 14, weight: .medium))
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        DatePicker("", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
+                                            .datePickerStyle(.compact)
+                                            .labelsHidden()
+                                    }
+                                    .padding(12)
+                                    .background(Color(.tertiarySystemBackground))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                                    // Repeat Interval
+                                    HStack {
+                                        Text(store.t("repeat_interval"))
+                                            .font(.appFont(size: 14, weight: .medium))
+                                            .foregroundColor(.secondary)
+                                        Spacer()
+                                        Picker("", selection: $repeatInterval) {
+                                            ForEach(RepeatInterval.allCases.filter { $0 != .none }) { interval in
+                                                Text(interval.title(lang: store.language)).tag(interval)
+                                            }
+                                        }
+                                        .pickerStyle(.menu)
+                                    }
+                                    .padding(12)
+                                    .background(Color(.tertiarySystemBackground))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                }
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
+                        }
+                        .padding(.top, 4)
+                        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isRecurring)
                     }
                     .padding(20)
                     .liquidGlass(cornerRadius: 28)
@@ -350,12 +436,16 @@ public struct AddExpenseView: View {
             }
             Button(store.t("cancel"), role: .cancel) {}
         }
-        .sheet(isPresented: $showCameraPicker) {
-            ImagePickerView(sourceType: .camera) { image in
-                if let data = image.jpegData(compressionQuality: 0.85) {
+        .fullScreenCover(isPresented: $showCameraPicker) {
+            QuickCameraView(
+                onPhotoCaptured: { data in
                     processPhoto(data)
+                },
+                onDismiss: {
+                    showCameraPicker = false
                 }
-            }
+            )
+            .ignoresSafeArea()
         }
         .sheet(isPresented: $showLibraryPicker) {
             ImagePickerView(sourceType: .photoLibrary) { image in

@@ -57,12 +57,15 @@ public struct LiquidGlassDock: View {
         }
         .animation(.spring(response: 0.38, dampingFraction: 0.82), value: isKeyboardActive)
         .fullScreenCover(isPresented: $showCameraPicker) {
-            ImagePickerView(sourceType: .camera) { image in
-                if let data = image.jpegData(compressionQuality: 0.85) {
+            QuickCameraView(
+                onPhotoCaptured: { data in
                     onQuickPhotoCaptured(data)
                     activeTab = .addExpense
+                },
+                onDismiss: {
+                    showCameraPicker = false
                 }
-            }
+            )
             .ignoresSafeArea()
         }
         .sheet(isPresented: $showLibraryPicker) {

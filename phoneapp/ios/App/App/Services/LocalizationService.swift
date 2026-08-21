@@ -197,7 +197,15 @@ public struct LocalizationService {
             "appearance_desc": [.vi: "Chế độ giao diện sáng, tối hoặc theo hệ thống", .en: "Light, dark, or system appearance mode"],
             "appearance_light": [.vi: "Sáng", .en: "Light"],
             "appearance_dark": [.vi: "Tối", .en: "Dark"],
-            "appearance_system": [.vi: "Theo hệ thống", .en: "System"]
+            "appearance_system": [.vi: "Theo hệ thống", .en: "System"],
+
+            // Recurring reminder features
+            "recurring_reminder": [.vi: "Nhắc thanh toán", .en: "Payment Reminder"],
+            "recurring_reminder_desc": [.vi: "Tạo nhắc nhở thanh toán tự động định kỳ", .en: "Create automated recurring payment reminders"],
+            "reminder_date": [.vi: "Ngày nhắc", .en: "Reminder Date"],
+            "repeat_interval": [.vi: "Lặp lại", .en: "Repeat"],
+            "view_details": [.vi: "Xem chi tiết", .en: "View Details"],
+            "share_image": [.vi: "Chia sẻ ảnh", .en: "Share Image"]
         ]
 
         return dict[key]?[lang] ?? dict[key]?[.vi] ?? key
