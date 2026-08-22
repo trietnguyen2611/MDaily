@@ -1,0 +1,34 @@
+name: Build iOS/macOS App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: Build for iOS
+      run: |
+        xcodebuild -project MDaily.xcodeproj \
+                   -scheme MDaily \
+                   -destination 'platform=iOS Simulator,name=iPhone 16' \
+                   -configuration Debug build
+
+    - name: Build for macOS
+      run: |
+        xcodebuild -project MDaily.xcodeproj \
+                   -scheme MDaily \
+                   -destination 'platform=macOS' \
+                   -configuration Debug build
