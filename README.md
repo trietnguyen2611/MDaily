@@ -1,70 +1,78 @@
-# MDaily
+# MDaily – Personal Expense Tracker & Budget App (Desktop + iOS)
 
-MDaily is a personal expense management app for both Desktop and Mobile. It has a simple, modern design and focuses on good user experience.
+**MDaily** is a modern **personal expense management app** available on Desktop and iOS. Track your spending, scan receipts with OCR + AI, get smart insights, and manage your budget with a clean Apple-inspired design.
+
+Ideal for anyone who wants a simple, beautiful, and smart way to control personal finances.
+
+---
 
 ## Main Features
 
-- **Expense Management**: Record spending, sort by category, add photos and notes.
-- **Receipt Recognition (OCR & AI)**: Automatically get expense information from receipt images.
-- **Statistics & Reports**: Track limits and see how money is spent clearly.
-- **AI Assistant**: Give advice and analyze personal money habits.
-- **Simple Design**: Interface inspired by Apple Design System. Smooth and easy to use.
+- **Expense Tracking** — Record spending, categorize expenses, add photos and notes.
+- **Receipt OCR & AI** — Automatically extract amount, date, and store name from receipt images.
+- **Statistics & Reports** — Clear charts and insights about your monthly spending and budget limits.
+- **AI Money Assistant** — Get personalized advice on spending habits and saving tips.
+- **Clean Design** — Minimal interface inspired by Apple Design System. Smooth and easy to use on both desktop and mobile.
+
+---
 
 ## Project Structure
 
 ```text
 MDaily/
-├── deskapp/       # Desktop app (Electron + React + TypeScript + Vite)
-├── phoneapp/      # Mobile iOS app (Capacitor + React + TypeScript + Vite)
-├── DESIGN.md      # Design rules for the interface (Design System)
-└── MDaily.png     # App brand logo
+├── deskapp/       # Desktop version (Electron + React + TypeScript + Vite)
+├── phoneapp/      # iOS version (Capacitor + React + TypeScript + Vite)
+├── DESIGN.md      # Design system rules
+└── MDaily.png     # App logo
 ```
 
-## Technologies Used
+---
+
+## Technologies
 
 - **Core**: React 19, TypeScript, Vite
-- **Desktop**: Electron, Tesseract.js, LocalForage
+- **Desktop**: Electron, Tesseract.js (OCR), LocalForage
 - **Mobile**: Capacitor (iOS)
-- **UI & Icons**: Custom CSS, Lucide Icons
+- **UI**: Custom CSS + Lucide Icons
+
+---
 
 ## Install & Run
 
-### System Requirements
-- Node.js (v18 or higher)
+### Requirements
+- Node.js v18 or higher
 - npm
 
-### 1. Desktop App (`deskapp`)
+### 1. Desktop App
 
 ```bash
 cd deskapp
 npm install
-
-# Run development environment
-npm run dev
-
-# Build the Desktop app
-npm run build
+npm run dev          # Development mode
+npm run build        # Build production app
 ```
 
-### 2. Mobile App (`phoneapp`)
+### 2. iOS App (phoneapp)
 
 ```bash
 cd phoneapp
 npm install
-
-# Run development environment
-npm run dev
-
-# Build for iOS with Capacitor
+npm run dev          # Development mode
 npm run build
 npx cap sync ios
-npx cap open ios
+npx cap open ios     # Open in Xcode
 ```
 
-## Check Source Code
+---
 
-Use Oxlint to check code quality:
+## Code Quality
 
 ```bash
-npm run lint
+npm run lint         # Run Oxlint
 ```
+
+---
+
+## Keywords
+
+`expense tracker` `personal finance app` `budget app` `receipt OCR` `AI spending assistant` `Electron React` `Capacitor iOS` `money management` `spending tracker`
