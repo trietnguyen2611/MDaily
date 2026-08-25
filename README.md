@@ -12,7 +12,6 @@ Ideal for anyone who wants a simple, beautiful, and smart way to control persona
 - **Receipt OCR & AI** — Automatically extract amount, date, and store name from receipt images.
 - **Statistics & Reports** — Clear charts and insights about your monthly spending and budget limits.
 - **AI Money Assistant** — Get personalized advice on spending habits and saving tips.
-- **Clean Design** — Minimal interface inspired by Apple Design System. Smooth and easy to use on both desktop and mobile.
 
 ---
 
