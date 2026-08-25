@@ -1,69 +1,69 @@
 # MDaily
 
-MDaily là ứng dụng quản lý chi tiêu cá nhân đa nền tảng (Desktop & Mobile) được thiết kế theo phong cách tối giản, hiện đại và tối ưu trải nghiệm người dùng.
+MDaily is a personal expense management app for both Desktop and Mobile. It has a simple, modern design and focuses on good user experience.
 
-## Tính năng chính
+## Main Features
 
-- **Quản lý chi tiêu**: Ghi chép, phân loại danh mục, hỗ trợ đính kèm ảnh và ghi chú.
-- **Nhận diện hóa đơn (OCR & AI)**: Tự động trích xuất thông tin chi tiêu từ hình ảnh hóa đơn.
-- **Thống kê & Báo cáo**: Theo dõi tổng quan hạn mức và phân bổ chi tiêu trực quan.
-- **Trợ lý AI**: Tư vấn và phân tích thói quen tài chính cá nhân.
-- **Thiết kế tối giản**: Giao diện lấy cảm hứng từ Apple Design System, mượt mà và trực quan.
+- **Expense Management**: Record spending, sort by category, add photos and notes.
+- **Receipt Recognition (OCR & AI)**: Automatically get expense information from receipt images.
+- **Statistics & Reports**: Track limits and see how money is spent clearly.
+- **AI Assistant**: Give advice and analyze personal money habits.
+- **Simple Design**: Interface inspired by Apple Design System. Smooth and easy to use.
 
-## Cấu trúc dự án
+## Project Structure
 
 ```text
 MDaily/
-├── deskapp/       # Ứng dụng Desktop (Electron + React + TypeScript + Vite)
-├── phoneapp/      # Ứng dụng Mobile iOS (Capacitor + React + TypeScript + Vite)
-├── DESIGN.md      # Quy chuẩn thiết kế giao diện (Design System)
-└── MDaily.png     # Logo thương hiệu ứng dụng
+├── deskapp/       # Desktop app (Electron + React + TypeScript + Vite)
+├── phoneapp/      # Mobile iOS app (Capacitor + React + TypeScript + Vite)
+├── DESIGN.md      # Design rules for the interface (Design System)
+└── MDaily.png     # App brand logo
 ```
 
-## Công nghệ sử dụng
+## Technologies Used
 
 - **Core**: React 19, TypeScript, Vite
 - **Desktop**: Electron, Tesseract.js, LocalForage
 - **Mobile**: Capacitor (iOS)
 - **UI & Icons**: Custom CSS, Lucide Icons
 
-## Cài đặt & Khởi chạy
+## Install & Run
 
-### Yêu cầu hệ thống
-- Node.js (v18 trở lên)
+### System Requirements
+- Node.js (v18 or higher)
 - npm
 
-### 1. Ứng dụng Desktop (`deskapp`)
+### 1. Desktop App (`deskapp`)
 
 ```bash
 cd deskapp
 npm install
 
-# Chạy môi trường phát triển
+# Run development environment
 npm run dev
 
-# Đóng gói ứng dụng Desktop
+# Build the Desktop app
 npm run build
 ```
 
-### 2. Ứng dụng Mobile (`phoneapp`)
+### 2. Mobile App (`phoneapp`)
 
 ```bash
 cd phoneapp
 npm install
 
-# Chạy môi trường phát triển
+# Run development environment
 npm run dev
 
-# Đóng gói cho iOS via Capacitor
+# Build for iOS with Capacitor
 npm run build
 npx cap sync ios
 npx cap open ios
 ```
 
-## Kiểm tra mã nguồn
+## Check Source Code
 
-Sử dụng Oxlint để kiểm tra chất lượng mã nguồn:
+Use Oxlint to check code quality:
 
 ```bash
 npm run lint
