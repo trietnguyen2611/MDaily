@@ -1,77 +1,57 @@
-# MDaily – Personal Expense Tracker & Budget App (Desktop + iOS)
+# MDaily — Pure Native SwiftUI Personal Finance App
 
-**MDaily** is a modern **personal expense management app** available on Desktop and iOS. Track your spending, scan receipts with OCR + AI, get smart insights, and manage your budget with a clean Apple-inspired design.
+**MDaily** là ứng dụng quản lý chi tiêu cá nhân thuần Native SwiftUI (Apple Multiplatform), được thiết kế tối ưu cho **macOS 26+ (Apple Silicon)**, **iOS 26+**, **iPadOS 26+** và giao diện thích ứng **iPhone Duo** (*Folded / Unfolded* với thanh điều hướng bên phải và Inspector song song).
 
-Ideal for anyone who wants a simple, beautiful, and smart way to control personal finances.
-
----
-
-## Main Features
-
-- **Expense Tracking** — Record spending, categorize expenses, add photos and notes.
-- **Receipt OCR & AI** — Automatically extract amount, date, and store name from receipt images.
-- **Statistics & Reports** — Clear charts and insights about your monthly spending and budget limits.
-- **AI Money Assistant** — Get personalized advice on spending habits and saving tips.
+**MDaily** is a pure Native SwiftUI personal finance and expense management app built for **macOS 26+ (Apple Silicon)**, **iOS 26+**, **iPadOS 26+**, and **iPhone Duo** adaptive layouts, combining **OS 26+ Liquid Glass** navigation chrome with an Apple Gallery visual aesthetic.
 
 ---
 
-## Project Structure
+## Tính năng chính / Key Features
+
+- **Theo dõi thu chi & Ngân sách / Expense & Income Tracking** — Ghi nhận giao dịch nhanh chóng, phân loại danh mục, đính kèm ảnh hoá đơn và ghi chú.
+- **Quét hoá đơn Vision OCR & Apple Intelligence (AFM)** — Trích xuất tự động số tiền, ngày tháng và nội dung từ ảnh hoá đơn trực tiếp trên thiết bị.
+- **Trợ lý tài chính AI / AI Money Assistant** — Phân tích thói quen chi tiêu và gợi ý tiết kiệm bằng Apple Foundation Models trên thiết bị (hỗ trợ Tiếng Việt & English).
+- **Đồng bộ mạng LAN không cần máy chủ / Peer-to-Peer LAN Sync** — Tự động phát hiện và đồng bộ dữ liệu giữa Mac, iPad và iPhone qua Bonjour (`_mdaily-sync._tcp`).
+- **Giao diện thích ứng đa thiết bị / Adaptive Multiplatform UI** — Tự động chuyển đổi giữa thanh điều hướng nổi iPhone, thanh bên phải cho **iPhone Duo** (mở rộng Inspector khi mở gập), và `NavigationSplitView` + Inspector cho iPad & macOS.
+
+---
+
+## Yêu cầu hệ thống / Requirements
+
+- **Xcode 27** (`objectVersion = 77`, Swift 6.0)
+- **macOS 26.0+** (Apple Silicon `arm64` only)
+- **iOS 26.0+ / iPadOS 26.0+**
+
+---
+
+## Cấu trúc dự án / Project Structure
 
 ```text
 MDaily/
-├── deskapp/       # Desktop version (Electron + React + TypeScript + Vite)
-├── phoneapp/      # iOS version (Capacitor + React + TypeScript + Vite)
-├── DESIGN.md      # Design system rules
-└── MDaily.png     # App logo
+├── MDaily.xcodeproj/         # Xcode 27 Multiplatform Project
+├── MDaily/
+│   ├── App/                  # Entry point & app commands (MDailyApp.swift)
+│   ├── Models/               # Codable domain models (Transaction, Category, Budget, ...)
+│   ├── Services/             # Persistence, Vision OCR, AFM AI, Bonjour LAN Sync, Posture
+│   ├── DesignSystem/         # Apple Gallery colors, typography & Liquid Glass modifiers
+│   ├── Views/                # Adaptive SwiftUI views (Navigation, Dashboard, Transactions, Reports, Assistant, Settings)
+│   ├── Assets.xcassets/      # AppIcon, AccentColor, Logo
+│   ├── Info.plist            # Permissions & Bonjour service declarations
+│   └── MDaily.entitlements   # App Sandbox, LAN client/server & user-selected files
+├── DESIGN.md                 # Design system tokens & visual rules
+└── md.icon/                  # Source brand icon assets
 ```
 
 ---
 
-## Technologies
+## Mở & Chạy / Build & Run
 
-- **Core**: React 19, TypeScript, Vite
-- **Desktop**: Electron, Tesseract.js (OCR), LocalForage
-- **Mobile**: Capacitor (iOS)
-- **UI**: Custom CSS + Lucide Icons
+1. Mở `MDaily.xcodeproj` bằng **Xcode 27**.
+2. Chọn scheme **MDaily** và thiết bị đích (**My Mac**, **iPhone**, hoặc **iPad Simulator**).
+3. Nhấn `⌘R` để build và chạy ứng dụng.
 
----
-
-## Install & Run
-
-### Requirements
-- Node.js v18 or higher
-- npm
-
-### 1. Desktop App
+Hoặc kiểm tra nhanh qua dòng lệnh:
 
 ```bash
-cd deskapp
-npm install
-npm run dev          # Development mode
-npm run build        # Build production app
+xcodebuild -list -project MDaily.xcodeproj
 ```
-
-### 2. iOS App (phoneapp)
-
-```bash
-cd phoneapp
-npm install
-npm run dev          # Development mode
-npm run build
-npx cap sync ios
-npx cap open ios     # Open in Xcode
-```
-
----
-
-## Code Quality
-
-```bash
-npm run lint         # Run Oxlint
-```
-
----
-
-## Keywords
-
-`expense tracker` `personal finance app` `budget app` `receipt OCR` `AI spending assistant` `Electron React` `Capacitor iOS` `money management` `spending tracker`
