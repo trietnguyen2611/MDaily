@@ -32,3 +32,6 @@ deskapp/build/native/
 deskapp/build/icon.iconset/
 deskapp/build/icon.icns
 phoneapp/dist/
+
+# agents
+.agents/
