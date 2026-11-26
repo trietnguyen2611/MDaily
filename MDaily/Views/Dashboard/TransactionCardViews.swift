@@ -69,8 +69,6 @@ public struct TransactionPhotoCard: View {
     public let onEdit: () -> Void
     public let onDelete: () -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
-
     public init(
         transaction: Transaction,
         photoData: Data,
@@ -127,17 +125,17 @@ public struct TransactionPhotoCard: View {
                 // Minimal legibility scrim over bottom photography edge
                 LinearGradient(
                     stops: [
-                        .init(color: Color.black.opacity(0.35), location: 0.0),
-                        .init(color: Color.black.opacity(0.05), location: 0.38),
-                        .init(color: Color.black.opacity(0.28), location: 0.62),
-                        .init(color: Color.black.opacity(0.84), location: 1.0)
+                        .init(color: Color.black.opacity(0.28), location: 0.0),
+                        .init(color: Color.black.opacity(0.04), location: 0.40),
+                        .init(color: Color.black.opacity(0.24), location: 0.62),
+                        .init(color: Color.black.opacity(0.82), location: 1.0)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
 
                 VStack(alignment: .leading, spacing: 0) {
-                    // Top row: Category chip + AI/Recurring badges
+                    // Top row: Category glass chip + AI/Recurring badges
                     HStack(alignment: .top, spacing: 6) {
                         HStack(spacing: 4) {
                             Image(systemName: categoryIcon)
@@ -149,16 +147,16 @@ public struct TransactionPhotoCard: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color.black.opacity(0.45), in: Capsule())
+                        .mdailyGlassPill(interactive: false, tint: .black.opacity(0.25))
 
                         Spacer(minLength: 4)
 
                         if transaction.isAiProcessed {
                             Image(systemName: "sparkles")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .frame(width: 24, height: 24)
-                                .background(Color.mdailyActionBlue.opacity(0.85), in: Circle())
+                                .mdailyGlassSurface(in: Circle(), interactive: false, tint: Color.mdailyActionBlue.opacity(0.4))
                         }
 
                         if isRecurring {
@@ -166,14 +164,13 @@ public struct TransactionPhotoCard: View {
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(.white)
                                 .frame(width: 24, height: 24)
-                                .background(Color.orange.opacity(0.88), in: Circle())
+                                .mdailyGlassSurface(in: Circle(), interactive: false, tint: Color.orange.opacity(0.4))
                         }
                     }
 
                     Spacer(minLength: 8)
 
-                    // Bottom left-aligned financial text
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text("\(TransactionFormatHelper.signedPrefix(for: transaction.kind))\(store.formatCurrency(transaction.amount))")
                             .font(.system(size: 18, weight: .semibold))
                             .tracking(-0.3)
@@ -199,10 +196,7 @@ public struct TransactionPhotoCard: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Color.mdailyHairline, lineWidth: 1)
-            )
+            .mdailyCard(cornerRadius: 18)
         }
         .buttonStyle(MDailyPressButtonStyle())
         .contextMenu {
@@ -225,8 +219,6 @@ public struct TransactionTextCard: View {
     public let onSelect: () -> Void
     public let onEdit: () -> Void
     public let onDelete: () -> Void
-
-    @Environment(\.colorScheme) private var colorScheme
 
     public init(
         transaction: Transaction,
@@ -266,10 +258,7 @@ public struct TransactionTextCard: View {
     }
 
     private var amountColor: Color {
-        if transaction.kind == .income {
-            return Color.mdailyIncomeGreen
-        }
-        return colorScheme == .dark ? .white : Color(red: 0.114, green: 0.114, blue: 0.122)
+        transaction.kind == .income ? Color.mdailyIncomeGreen : Color.mdailyInk
     }
 
     private var kindBadgeTint: Color {
@@ -309,15 +298,11 @@ public struct TransactionTextCard: View {
                     }
                 }
 
-                // Category label & Kind pill
-                HStack(spacing: 6) {
-                    Text(categoryLabel)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+                Text(categoryLabel)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
 
-                // Signed Amount
                 Text("\(TransactionFormatHelper.signedPrefix(for: transaction.kind))\(store.formatCurrency(transaction.amount))")
                     .font(.system(size: 20, weight: .semibold))
                     .tracking(-0.35)
@@ -325,7 +310,6 @@ public struct TransactionTextCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
 
-                // Note
                 if let note = cleanNote {
                     Text(note)
                         .font(.system(size: 13, weight: .regular))
@@ -336,7 +320,6 @@ public struct TransactionTextCard: View {
 
                 Spacer(minLength: 2)
 
-                // Date footer
                 Text(TransactionFormatHelper.shortDateTime(transaction.date))
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(.tertiary)
@@ -367,8 +350,6 @@ public struct TransactionCompactRow: View {
     public let onSelect: () -> Void
     public let onEdit: () -> Void
     public let onDelete: () -> Void
-
-    @Environment(\.colorScheme) private var colorScheme
 
     public init(
         transaction: Transaction,
@@ -408,10 +389,7 @@ public struct TransactionCompactRow: View {
     }
 
     private var amountColor: Color {
-        if transaction.kind == .income {
-            return Color.mdailyIncomeGreen
-        }
-        return colorScheme == .dark ? .white : Color(red: 0.114, green: 0.114, blue: 0.122)
+        transaction.kind == .income ? Color.mdailyIncomeGreen : Color.mdailyInk
     }
 
     private var iconTint: Color {
@@ -425,13 +403,13 @@ public struct TransactionCompactRow: View {
                     ZStack {
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .fill(iconTint.opacity(0.12))
-                            .frame(width: 38, height: 38)
+                            .frame(width: 36, height: 36)
                         Image(systemName: categoryIcon)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(iconTint)
                     }
 
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 5) {
                             Text(categoryLabel)
                                 .font(.system(size: 15, weight: .semibold))
@@ -484,7 +462,6 @@ public struct TransactionCompactRow: View {
             }
             .buttonStyle(.plain)
 
-            // Quick inline action menu (great on macOS / iPad / iPhone)
             Menu {
                 TransactionContextMenuItems(
                     lang: store.language,
@@ -503,7 +480,7 @@ public struct TransactionCompactRow: View {
             .accessibilityLabel(store.language == .en ? "Actions" : "Thao tác")
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .padding(.vertical, 10)
         .contextMenu {
             TransactionContextMenuItems(
                 lang: store.language,

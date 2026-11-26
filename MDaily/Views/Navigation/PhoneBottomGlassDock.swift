@@ -5,6 +5,8 @@ public struct PhoneBottomGlassDock: View {
     public let language: Language
     public let onQuickCapture: () -> Void
 
+    @Namespace private var dockNamespace
+
     public init(
         activeTab: Binding<AppTab>,
         language: Language,
@@ -26,16 +28,18 @@ public struct PhoneBottomGlassDock: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
                 .mdailyGlassSurface(in: Capsule(style: .continuous), interactive: true)
+                .shadow(color: Color.black.opacity(0.10), radius: 14, x: 0, y: 4)
 
                 Button(action: onQuickCapture) {
                     Image(systemName: "camera.fill")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Color.mdailyActionBlue)
-                        .frame(width: 52, height: 52)
+                        .foregroundStyle(Color.blue)
+                        .frame(width: 54, height: 54)
                         .contentShape(Circle())
                 }
                 .buttonStyle(MDailyPressButtonStyle())
-                .mdailyGlassSurface(in: Circle(), interactive: true)
+                .mdailyGlassSurface(in: Circle(), interactive: true, tint: Color.blue.opacity(0.18))
+                .mdailyNavGlow(isActive: true)
                 .accessibilityLabel(language == .en ? "Quick Receipt Capture" : "Chụp hóa đơn nhanh")
             }
         }
@@ -47,37 +51,26 @@ public struct PhoneBottomGlassDock: View {
     private func dockTabButton(for tab: AppTab) -> some View {
         let isSelected = activeTab == tab
         Button {
-            activeTab = tab
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                activeTab = tab
+            }
         } label: {
-            VStack(spacing: 3) {
-                Image(systemName: tab.iconName)
-                    .font(.system(size: 17, weight: isSelected ? .semibold : .regular))
-                Text(shortLabel(for: tab))
-                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .foregroundStyle(isSelected ? Color.mdailyActionBlue : Color.mdailyInk)
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-            .padding(.horizontal, 6)
-            .background {
-                if isSelected {
-                    Capsule(style: .continuous)
-                        .fill(Color.mdailyActionBlue.opacity(0.14))
+            Image(systemName: tab.iconName)
+                .font(.system(size: 19, weight: isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? Color.blue : Color.mdailyInk)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background {
+                    if isSelected {
+                        Capsule(style: .continuous)
+                            .fill(Color.blue.opacity(0.18))
+                            .matchedGeometryEffect(id: "phoneActiveTab", in: dockNamespace)
+                    }
                 }
-            }
-            .contentShape(Capsule(style: .continuous))
+                .mdailyNavGlow(isActive: isSelected)
+                .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(MDailyPressButtonStyle())
-    }
-
-    private func shortLabel(for tab: AppTab) -> String {
-        switch tab {
-        case .dashboard: return language == .en ? "Home" : "Tổng quan"
-        case .addTransaction: return language == .en ? "Add" : "Ghi"
-        case .reports: return language == .en ? "Reports" : "Báo cáo"
-        case .settings: return language == .en ? "Settings" : "Cài đặt"
-        }
+        .accessibilityLabel(tab.title(lang: language))
     }
 }

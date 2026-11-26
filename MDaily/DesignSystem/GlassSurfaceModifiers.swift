@@ -89,4 +89,44 @@ public extension View {
             tint: nil
         )
     }
+
+    @MainActor
+    @ViewBuilder
+    func mdailyGlassButton(prominent: Bool = false) -> some View {
+        #if os(visionOS)
+        self.buttonStyle(MDailyPressButtonStyle())
+        #else
+        if #available(macOS 26.0, iOS 26.0, *) {
+            if prominent {
+                self.buttonStyle(.glassProminent)
+            } else {
+                self.buttonStyle(.glass)
+            }
+        } else {
+            self.buttonStyle(MDailyPressButtonStyle())
+        }
+        #endif
+    }
+
+    @ViewBuilder
+    func mdailySoftScrollEdges() -> some View {
+        #if os(visionOS)
+        self
+        #else
+        if #available(macOS 26.0, iOS 26.0, *) {
+            self.scrollEdgeEffectStyle(.soft, for: .all)
+        } else {
+            self
+        }
+        #endif
+    }
+
+    func mdailyNavGlow(isActive: Bool) -> some View {
+        self.shadow(
+            color: isActive ? Color.blue.opacity(0.45) : .clear,
+            radius: isActive ? 10 : 0,
+            x: 0,
+            y: isActive ? 3 : 0
+        )
+    }
 }

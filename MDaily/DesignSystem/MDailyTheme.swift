@@ -220,15 +220,21 @@ public struct MDailyCardModifier: ViewModifier {
     }
 
     public func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        #if os(visionOS)
         content
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(background)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(Color.mdailyHairline, lineWidth: 1)
-            )
+            .background(.ultraThinMaterial, in: shape)
+            .overlay(shape.strokeBorder(Color.mdailyHairline, lineWidth: 1))
+        #else
+        if #available(macOS 26.0, iOS 26.0, *) {
+            content
+                .glassEffect(.regular, in: shape)
+        } else {
+            content
+                .background(.ultraThinMaterial, in: shape)
+                .overlay(shape.strokeBorder(Color.mdailyHairline, lineWidth: 1))
+        }
+        #endif
     }
 }
 
@@ -321,14 +327,10 @@ public struct MDailyCloseButton: View {
             Image(systemName: "xmark")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Color.mdailyInk)
-                .frame(width: 32, height: 32)
-                .background(
-                    Circle()
-                        .fill(MDailyColors.chipTranslucent)
-                )
-                .contentShape(Circle())
+                .frame(width: 28, height: 28)
         }
-        .buttonStyle(MDailyPressButtonStyle())
+        .buttonBorderShape(.circle)
+        .mdailyGlassButton(prominent: false)
         .accessibilityLabel(accessibilityLabel)
     }
 }

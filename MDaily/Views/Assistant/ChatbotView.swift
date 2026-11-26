@@ -56,17 +56,13 @@ public struct ChatbotView: View {
             }
         }
         .alert(
-            isEnglish ? "Clear chat history?" : "Xoá lịch sử trò chuyện?",
+            isEnglish ? "Clear chat?" : "Xoá hội thoại?",
             isPresented: $showClearConfirmation
         ) {
             Button(isEnglish ? "Clear" : "Xoá", role: .destructive) {
                 resetChat()
             }
             Button(isEnglish ? "Cancel" : "Huỷ", role: .cancel) {}
-        } message: {
-            Text(isEnglish
-                 ? "All messages in this session will be removed."
-                 : "Toàn bộ tin nhắn trong cuộc trò chuyện hiện tại sẽ bị xoá.")
         }
     }
 
@@ -74,23 +70,19 @@ public struct ChatbotView: View {
 
     private var topHeader: some View {
         HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(Color.mdailyActionBlue.opacity(0.12))
-                    .frame(width: 34, height: 34)
-                Image(systemName: "sparkles")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color.mdailyActionBlue)
-            }
+            Image(systemName: "sparkles")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Color.mdailyActionBlue)
+                .frame(width: 32, height: 32)
+                .mdailyGlassSurface(in: Circle(), interactive: false)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("MDaily AI")
                     .font(MDailyTypography.bodyStrong)
                     .foregroundStyle(Color.mdailyInk)
-                Text(afmStatus.model)
-                    .font(MDailyTypography.microLegal)
-                    .foregroundStyle(afmStatus.available ? Color.mdailyIncomeGreen : Color.mdailyMutedInk)
-                    .lineLimit(1)
+                Circle()
+                    .fill(afmStatus.available ? Color.mdailyIncomeGreen : Color.mdailyMutedInk)
+                    .frame(width: 6, height: 6)
             }
 
             Spacer()
@@ -101,10 +93,9 @@ public struct ChatbotView: View {
                 Image(systemName: "trash")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color.mdailyDestructiveRed)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(Color.mdailyDestructiveRed.opacity(0.10)))
+                    .frame(width: 30, height: 30)
             }
-            .buttonStyle(MDailyPressButtonStyle())
+            .mdailyGlassButton(prominent: false)
             .accessibilityLabel(isEnglish ? "Clear chat" : "Xoá hội thoại")
 
             MDailyCloseButton(accessibilityLabel: isEnglish ? "Close" : "Đóng") {
@@ -113,7 +104,6 @@ public struct ChatbotView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color.mdailyCanvas)
     }
 
     // MARK: - Messages
@@ -121,7 +111,7 @@ public struct ChatbotView: View {
     private var messagesScrollView: some View {
         ScrollViewReader { proxy in
             ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: 12) {
+                LazyVStack(spacing: 10) {
                     ForEach($store.chatMessages) { $msg in
                         messageRow(message: $msg)
                             .id(msg.id)
@@ -130,6 +120,7 @@ public struct ChatbotView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
             }
+            .mdailySoftScrollEdges()
             .onChange(of: store.chatMessages.count) { _, _ in
                 scrollToLatest(proxy: proxy)
             }
@@ -167,28 +158,22 @@ public struct ChatbotView: View {
                             .fill(Color.mdailyActionBlue)
                     )
             } else {
-                ZStack {
-                    Circle()
-                        .fill(Color.mdailyParchment)
-                        .frame(width: 26, height: 26)
-                        .overlay(Circle().strokeBorder(Color.mdailyHairline, lineWidth: 1))
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.mdailyActionBlue)
-                }
-                .padding(.top, 2)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Color.mdailyActionBlue)
+                    .frame(width: 26, height: 26)
+                    .mdailyGlassSurface(in: Circle(), interactive: false)
+                    .padding(.top, 2)
 
                 if msg.content == "..." {
-                    HStack(spacing: 8) {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text(isEnglish ? "Analyzing on-device..." : "Đang phân tích trên thiết bị...")
-                            .font(MDailyTypography.caption)
-                            .foregroundStyle(Color.mdailyMutedInk)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .mdailyCard(cornerRadius: 16, background: .mdailyParchment)
+                    ProgressView()
+                        .controlSize(.small)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .mdailyGlassSurface(
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous),
+                            interactive: false
+                        )
                 } else {
                     Text(msg.content)
                         .font(MDailyTypography.caption)
@@ -196,7 +181,10 @@ public struct ChatbotView: View {
                         .textSelection(.enabled)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .mdailyCard(cornerRadius: 16, background: .mdailyParchment)
+                        .mdailyGlassSurface(
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous),
+                            interactive: false
+                        )
                 }
 
                 Spacer(minLength: 32)
@@ -210,17 +198,11 @@ public struct ChatbotView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(quickPrompts, id: \.self) { prompt in
-                    Button {
+                    Button(prompt) {
                         sendMessage(prompt)
-                    } label: {
-                        Text(prompt)
-                            .font(MDailyTypography.finePrint)
-                            .foregroundStyle(Color.mdailyActionBlue)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .mdailyCard(cornerRadius: MDailyRadius.pill, background: .mdailyCardSurface)
                     }
-                    .buttonStyle(MDailyPressButtonStyle())
+                    .font(MDailyTypography.finePrint)
+                    .mdailyGlassButton(prominent: false)
                     .disabled(isLoading)
                 }
             }
@@ -235,9 +217,9 @@ public struct ChatbotView: View {
         let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         let isDisabled = trimmed.isEmpty || isLoading
 
-        return HStack(spacing: 10) {
+        return HStack(spacing: 8) {
             TextField(
-                isEnglish ? "Ask MDaily AI about your finances..." : "Hỏi MDaily AI về thu chi của bạn...",
+                isEnglish ? "Ask MDaily AI..." : "Hỏi MDaily AI...",
                 text: $inputText,
                 axis: .vertical
             )
@@ -257,19 +239,14 @@ public struct ChatbotView: View {
                 sendMessage(inputText)
             } label: {
                 Image(systemName: "arrow.up")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(isDisabled ? Color.mdailyMutedInk : Color.white)
-                    .frame(width: 34, height: 34)
-                    .background(
-                        Circle()
-                            .fill(isDisabled ? Color.mdailyParchment : Color.mdailyActionBlue)
-                    )
+                    .font(.system(size: 13, weight: .bold))
+                    .frame(width: 30, height: 30)
             }
-            .buttonStyle(MDailyPressButtonStyle())
+            .mdailyGlassButton(prominent: !isDisabled)
             .disabled(isDisabled)
             .padding(.trailing, 6)
         }
-        .mdailyCard(cornerRadius: 22, background: .mdailyCardSurface)
+        .mdailyGlassSurface(in: RoundedRectangle(cornerRadius: 22, style: .continuous), interactive: true)
         .padding(.horizontal, 14)
         .padding(.bottom, 12)
         .padding(.top, 4)
@@ -279,8 +256,8 @@ public struct ChatbotView: View {
 
     private func resetChat() {
         let greeting = isEnglish
-            ? "Hello! I am MDaily AI. Your income and expense data stays private on-device. How can I help today?"
-            : "Chào bạn! Tôi là trợ lý MDaily AI. Toàn bộ dữ liệu thu chi của bạn được phân tích riêng tư trên thiết bị. Bạn muốn kiểm tra gì hôm nay?"
+            ? "Hi! Ask me about your income, expenses, or savings."
+            : "Chào bạn! Hỏi tôi về thu chi, danh mục hoặc tiết kiệm."
 
         store.chatMessages = [
             ChatMessageSwift(role: "assistant", content: greeting, animate: false)

@@ -76,9 +76,10 @@ public struct QuickCaptureView: View {
                             Image(systemName: flashIconName)
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(flashMode == .off ? Color.white : Color.yellow)
-                                .frame(width: 42, height: 42)
-                                .background(Color.black.opacity(0.45), in: Circle())
+                                .frame(width: 40, height: 40)
+                                .mdailyGlassSurface(in: Circle(), interactive: true, tint: .black.opacity(0.2))
                         }
+                        .buttonStyle(.plain)
 
                         Spacer()
 
@@ -86,9 +87,10 @@ public struct QuickCaptureView: View {
                             Image(systemName: "xmark")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(.white)
-                                .frame(width: 42, height: 42)
-                                .background(Color.black.opacity(0.45), in: Circle())
+                                .frame(width: 40, height: 40)
+                                .mdailyGlassSurface(in: Circle(), interactive: true, tint: .black.opacity(0.2))
                         }
+                        .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
@@ -97,7 +99,7 @@ public struct QuickCaptureView: View {
 
                     // Bottom controls: zoom + library + capture + flip
                     VStack(spacing: 16) {
-                        HStack(spacing: 10) {
+                        HStack(spacing: 8) {
                             ForEach([0.5, 1.0, 2.0, 3.0], id: \.self) { level in
                                 let isActive = abs(camera.currentZoom - level) < 0.1
                                 Button {
@@ -107,11 +109,9 @@ public struct QuickCaptureView: View {
                                         .font(.system(size: 12, weight: .semibold))
                                         .foregroundStyle(isActive ? Color.yellow : Color.white)
                                         .frame(width: 34, height: 34)
-                                        .background(
-                                            Color.black.opacity(isActive ? 0.68 : 0.36),
-                                            in: Circle()
-                                        )
+                                        .mdailyGlassSurface(in: Circle(), interactive: true, tint: .black.opacity(0.2))
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
 
@@ -121,7 +121,7 @@ public struct QuickCaptureView: View {
                                     .font(.system(size: 18, weight: .medium))
                                     .foregroundStyle(.white)
                                     .frame(width: 46, height: 46)
-                                    .background(Color.black.opacity(0.45), in: Circle())
+                                    .glassEffect(.regular.tint(.black.opacity(0.2)).interactive(), in: Circle())
                             }
 
                             Spacer()
@@ -143,6 +143,7 @@ public struct QuickCaptureView: View {
                                         .frame(width: 76, height: 76)
                                 }
                             }
+                            .buttonStyle(MDailyPressButtonStyle())
 
                             Spacer()
 
@@ -153,8 +154,9 @@ public struct QuickCaptureView: View {
                                     .font(.system(size: 18, weight: .medium))
                                     .foregroundStyle(.white)
                                     .frame(width: 46, height: 46)
-                                    .background(Color.black.opacity(0.45), in: Circle())
+                                    .mdailyGlassSurface(in: Circle(), interactive: true, tint: .black.opacity(0.2))
                             }
+                            .buttonStyle(.plain)
                         }
                         .padding(.horizontal, 28)
                     }
@@ -169,7 +171,8 @@ public struct QuickCaptureView: View {
     }
 
     private var simulatorOrNoCameraFallback: some View {
-        VStack(spacing: 20) {
+        let english = isEnglish
+        return VStack(spacing: 20) {
             HStack {
                 Spacer()
                 MDailyCloseButton(action: onDismiss)
@@ -179,40 +182,24 @@ public struct QuickCaptureView: View {
 
             Spacer()
 
-            ZStack {
-                Circle()
-                    .fill(Color.mdailyParchment)
-                    .frame(width: 84, height: 84)
-                Image(systemName: "camera.badge.ellipsis")
-                    .font(.system(size: 32, weight: .regular))
-                    .foregroundStyle(Color.mdailyActionBlue)
-            }
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(.system(size: 36, weight: .regular))
+                .foregroundStyle(Color.mdailyActionBlue)
 
-            VStack(spacing: 6) {
-                Text(isEnglish ? "Camera Unavailable" : "Camera không khả dụng")
-                    .font(.system(size: 20, weight: .semibold))
-                Text(isEnglish
-                     ? "Choose a receipt photo from your library instead."
-                     : "Chọn ảnh hoá đơn từ thư viện ảnh của bạn.")
-                    .font(.system(size: 14))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
+            Text(english ? "Choose Photo" : "Chọn ảnh hoá đơn")
+                .font(.system(size: 19, weight: .semibold))
 
-            let english = isEnglish
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                 Label(
-                    english ? "Choose from Photo Library" : "Chọn từ thư viện ảnh",
+                    english ? "Photo Library" : "Thư viện ảnh",
                     systemImage: "photo.on.rectangle"
                 )
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 12)
-                .background(Color.mdailyActionBlue, in: Capsule())
+                .font(.system(size: 15, weight: .semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
             }
-            .buttonStyle(MDailyPressButtonStyle())
+            .buttonBorderShape(.capsule)
+            .mdailyGlassButton(prominent: true)
 
             Spacer()
         }
@@ -243,9 +230,10 @@ public struct QuickCaptureView: View {
 
     #if os(macOS)
     private var macOSImportBody: some View {
-        VStack(spacing: 20) {
+        let english = isEnglish
+        return VStack(spacing: 18) {
             HStack {
-                Text(isEnglish ? "Quick Receipt Import" : "Nhập nhanh hoá đơn")
+                Text(english ? "Import Receipt" : "Nhập hoá đơn")
                     .font(.system(size: 18, weight: .semibold))
                 Spacer()
                 MDailyCloseButton(action: onDismiss)
@@ -253,42 +241,28 @@ public struct QuickCaptureView: View {
 
             VStack(spacing: 14) {
                 Image(systemName: "doc.viewfinder")
-                    .font(.system(size: 36, weight: .regular))
+                    .font(.system(size: 34, weight: .regular))
                     .foregroundStyle(Color.mdailyActionBlue)
 
-                Text(isEnglish ? "Drop receipt image here" : "Kéo thả ảnh hoá đơn vào đây")
+                Text(english ? "Drop Receipt Image" : "Thả ảnh hoá đơn")
                     .font(.system(size: 16, weight: .semibold))
 
-                Text(isEnglish
-                     ? "Or import from Photos or Finder for automatic AI extraction."
-                     : "Hoặc chọn từ Ảnh / Finder để MDaily AI tự động nhận diện.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                let english = isEnglish
                 HStack(spacing: 12) {
                     PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                        Label(english ? "Photos" : "Thư viện Ảnh", systemImage: "photo.on.rectangle")
+                        Label(english ? "Photos" : "Ảnh", systemImage: "photo.on.rectangle")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 9)
-                            .background(Color.mdailyActionBlue, in: Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonBorderShape(.capsule)
+                    .mdailyGlassButton(prominent: true)
 
                     Button {
                         showFileImporter = true
                     } label: {
                         Label(english ? "Choose File…" : "Chọn tệp…", systemImage: "folder")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Color.mdailyActionBlue)
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 9)
-                            .background(Color.mdailyActionBlue.opacity(0.10), in: Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonBorderShape(.capsule)
+                    .mdailyGlassButton(prominent: false)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -313,7 +287,7 @@ public struct QuickCaptureView: View {
             }
         }
         .padding(22)
-        .frame(minWidth: 440, minHeight: 340)
+        .frame(minWidth: 420, minHeight: 320)
         .background(Color.mdailyCanvas)
         .fileImporter(
             isPresented: $showFileImporter,

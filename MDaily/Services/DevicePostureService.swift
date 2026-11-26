@@ -22,23 +22,11 @@ public enum AdaptiveLayoutProfile: String, CaseIterable, Identifiable, Sendable 
     public var supportsInlineInspector: Bool {
         self == .iPhoneDuoUnfolded || self == .pad || self == .mac
     }
-
-    public func displayName(lang: Language) -> String {
-        switch self {
-        case .iPhoneDuoFolded: return LocalizationService.t("layout_duo_folded", lang: lang)
-        case .iPhoneDuoUnfolded: return LocalizationService.t("layout_duo_unfolded", lang: lang)
-        case .standardPhone: return LocalizationService.t("layout_standard_phone", lang: lang)
-        case .pad: return LocalizationService.t("layout_pad", lang: lang)
-        case .mac: return LocalizationService.t("layout_mac", lang: lang)
-        }
-    }
 }
 
 @MainActor
 public final class DevicePostureService: ObservableObject {
     public static let shared = DevicePostureService()
-
-    @Published public var overrideProfile: AdaptiveLayoutProfile? = nil
 
     public let hardwareModelIdentifier: String
     public let simulatorDeviceName: String?
@@ -59,13 +47,6 @@ public final class DevicePostureService: ObservableObject {
             }
             self.hardwareModelIdentifier = machine
         }
-
-        let args = ProcessInfo.processInfo.arguments
-        if let flagIdx = args.firstIndex(of: "-mdaily-profile"),
-           flagIdx + 1 < args.count,
-           let profile = AdaptiveLayoutProfile(rawValue: args[flagIdx + 1]) {
-            self.overrideProfile = profile
-        }
     }
 
     public var isIPhoneDuoHardware: Bool {
@@ -79,25 +60,7 @@ public final class DevicePostureService: ObservableObject {
         return false
     }
 
-    public var hardwareDisplayName: String {
-        if isIPhoneDuoHardware {
-            return "\(hardwareModelIdentifier) (iPhone Duo)"
-        }
-        #if os(macOS)
-        return "macOS (\(hardwareModelIdentifier))"
-        #else
-        if let simName = simulatorDeviceName, !simName.isEmpty {
-            return "\(simName) (\(hardwareModelIdentifier))"
-        }
-        return hardwareModelIdentifier
-        #endif
-    }
-
     public func resolveProfile(for windowSize: CGSize) -> AdaptiveLayoutProfile {
-        if let overrideProfile {
-            return overrideProfile
-        }
-
         #if os(macOS)
         return .mac
         #elseif os(iOS)

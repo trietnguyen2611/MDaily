@@ -42,23 +42,37 @@ public struct DuoRightRailShell<Content: View, Inspector: View>: View {
     }
 
     public var body: some View {
-        HStack(spacing: 0) {
-            content()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .padding(.leading, leadingSafeMargin)
+        ZStack(alignment: .trailing) {
+            HStack(spacing: 0) {
+                content()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(.leading, leadingSafeMargin)
+                    .mdailySoftScrollEdges()
 
-            if profile == .iPhoneDuoUnfolded && isInspectorPresented {
-                Rectangle()
-                    .fill(Color.mdailyHairline)
-                    .frame(width: 1)
-                    .ignoresSafeArea(.container, edges: .vertical)
+                if profile == .iPhoneDuoUnfolded && isInspectorPresented {
+                    Rectangle()
+                        .fill(Color.mdailyHairline)
+                        .frame(width: 1)
+                        .ignoresSafeArea(.container, edges: .vertical)
 
-                inspector()
-                    .frame(width: 340)
-                    .frame(maxHeight: .infinity)
-                    .background(Color.mdailyCanvas)
-                    .transition(.move(edge: .trailing).combined(with: .opacity))
+                    inspector()
+                        .frame(width: 340)
+                        .frame(maxHeight: .infinity)
+                        .background(Color.mdailyCanvas)
+                        .transition(.move(edge: .trailing).combined(with: .opacity))
+                }
             }
+            .padding(.trailing, 76)
+
+            // Soft ambient trailing edge fade behind the floating glass rail
+            LinearGradient(
+                colors: [Color.clear, Color.mdailyCanvas.opacity(0.88)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: 96)
+            .ignoresSafeArea(.container, edges: .vertical)
+            .allowsHitTesting(false)
 
             DuoRightNavigationRail(
                 activeTab: $activeTab,
@@ -70,7 +84,6 @@ public struct DuoRightRailShell<Content: View, Inspector: View>: View {
             )
             // Keep clear of 55-59pt right corner radii on iPhone Duo hardware
             .padding(.vertical, 28)
-            .padding(.leading, 6)
             .padding(.trailing, 10)
         }
         .background(Color.mdailyCanvas.ignoresSafeArea())
@@ -85,6 +98,8 @@ public struct DuoRightNavigationRail: View {
     @Binding public var showAiChat: Bool
     public let onQuickCapture: () -> Void
     public let onToggleAiChat: () -> Void
+
+    @Namespace private var railNamespace
 
     public init(
         activeTab: Binding<AppTab>,
@@ -103,37 +118,39 @@ public struct DuoRightNavigationRail: View {
     }
 
     public var body: some View {
-        MDailyGlassContainer(spacing: 8) {
-            VStack(spacing: 8) {
+        MDailyGlassContainer(spacing: 10) {
+            VStack(spacing: 10) {
                 ForEach(AppTab.allCases) { tab in
                     railTabButton(for: tab)
                 }
 
                 Rectangle()
                     .fill(Color.mdailyHairline)
-                    .frame(width: 28, height: 1)
-                    .padding(.vertical, 4)
+                    .frame(width: 24, height: 1)
+                    .padding(.vertical, 2)
 
                 railActionButton(
                     systemImage: "camera.fill",
-                    label: language == .en ? "Scan" : "Chụp",
-                    isActive: false,
+                    accessibilityLabel: language == .en ? "Quick Capture" : "Chụp hóa đơn",
+                    isActive: true,
                     action: onQuickCapture
                 )
 
                 if aiChatEnabled {
                     railActionButton(
                         systemImage: "sparkles",
-                        label: "AI",
-                        isActive: showAiChat,
+                        accessibilityLabel: "MDaily AI",
+                        isActive: true,
+                        isHighlighted: showAiChat,
                         action: onToggleAiChat
                     )
                 }
             }
             .padding(.vertical, 12)
             .padding(.horizontal, 6)
-            .frame(width: 60)
+            .frame(width: 56)
             .mdailyGlassSurface(in: Capsule(style: .continuous), interactive: true)
+            .shadow(color: Color.black.opacity(0.10), radius: 14, x: 0, y: 4)
         }
         .frame(maxHeight: .infinity, alignment: .center)
     }
@@ -142,26 +159,24 @@ public struct DuoRightNavigationRail: View {
     private func railTabButton(for tab: AppTab) -> some View {
         let isSelected = activeTab == tab && !showAiChat
         Button {
-            showAiChat = false
-            activeTab = tab
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                showAiChat = false
+                activeTab = tab
+            }
         } label: {
-            VStack(spacing: 3) {
-                Image(systemName: tab.iconName)
-                    .font(.system(size: 17, weight: isSelected ? .semibold : .regular))
-                Text(shortLabel(for: tab))
-                    .font(.system(size: 9, weight: isSelected ? .semibold : .regular))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .foregroundStyle(isSelected ? Color.mdailyActionBlue : Color.mdailyInk)
-            .frame(width: 48, height: 48)
-            .background {
-                if isSelected {
-                    Capsule(style: .continuous)
-                        .fill(Color.mdailyActionBlue.opacity(0.14))
+            Image(systemName: tab.iconName)
+                .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? Color.blue : Color.mdailyInk)
+                .frame(width: 44, height: 44)
+                .background {
+                    if isSelected {
+                        Capsule(style: .continuous)
+                            .fill(Color.blue.opacity(0.18))
+                            .matchedGeometryEffect(id: "duoActiveTab", in: railNamespace)
+                    }
                 }
-            }
-            .contentShape(Capsule(style: .continuous))
+                .mdailyNavGlow(isActive: isSelected)
+                .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(MDailyPressButtonStyle())
         .accessibilityLabel(tab.title(lang: language))
@@ -170,41 +185,24 @@ public struct DuoRightNavigationRail: View {
     @ViewBuilder
     private func railActionButton(
         systemImage: String,
-        label: String,
+        accessibilityLabel: String,
         isActive: Bool,
+        isHighlighted: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            VStack(spacing: 3) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 16, weight: isActive ? .semibold : .medium))
-                Text(label)
-                    .font(.system(size: 9, weight: isActive ? .semibold : .regular))
-                    .lineLimit(1)
-            }
-            .foregroundStyle(isActive ? Color.white : Color.mdailyActionBlue)
-            .frame(width: 48, height: 48)
-            .background {
-                if isActive {
+            Image(systemName: systemImage)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(isHighlighted ? Color.white : Color.blue)
+                .frame(width: 44, height: 44)
+                .background {
                     Circle()
-                        .fill(Color.mdailyActionBlue)
-                } else {
-                    Circle()
-                        .fill(Color.mdailyActionBlue.opacity(0.10))
+                        .fill(isHighlighted ? Color.blue : Color.blue.opacity(0.16))
                 }
-            }
-            .contentShape(Circle())
+                .mdailyNavGlow(isActive: isActive)
+                .contentShape(Circle())
         }
         .buttonStyle(MDailyPressButtonStyle())
-        .accessibilityLabel(label)
-    }
-
-    private func shortLabel(for tab: AppTab) -> String {
-        switch tab {
-        case .dashboard: return language == .en ? "Home" : "Tổng quan"
-        case .addTransaction: return language == .en ? "Add" : "Ghi"
-        case .reports: return language == .en ? "Reports" : "Báo cáo"
-        case .settings: return language == .en ? "Settings" : "Cài đặt"
-        }
+        .accessibilityLabel(accessibilityLabel)
     }
 }

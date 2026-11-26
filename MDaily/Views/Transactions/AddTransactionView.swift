@@ -73,7 +73,7 @@ public struct AddTransactionView: View {
 
     public var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 headerRow
                 kindToggleSection
                 photoSection
@@ -82,9 +82,10 @@ public struct AddTransactionView: View {
             }
             .frame(maxWidth: 700, alignment: .leading)
             .padding(.horizontal, horizontalPadding)
-            .padding(.top, 12)
+            .padding(.top, 10)
             .padding(.bottom, layoutProfile == .standardPhone ? 104 : 36)
         }
+        .mdailySoftScrollEdges()
         .background(Color.mdailyCanvas.ignoresSafeArea())
         #if os(iOS)
         .scrollDismissesKeyboard(.interactively)
@@ -166,10 +167,11 @@ public struct AddTransactionView: View {
                 onCancel()
             } label: {
                 Text(isEnglish ? "Cancel" : "Huỷ")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundStyle(Color.mdailyActionBlue)
+                    .font(.system(size: 14, weight: .medium))
+                    .padding(.horizontal, 6)
             }
-            .buttonStyle(.plain)
+            .buttonBorderShape(.capsule)
+            .mdailyGlassButton(prominent: false)
         }
     }
 
@@ -189,14 +191,12 @@ public struct AddTransactionView: View {
                     HStack(spacing: 6) {
                         Image(systemName: kind == .income ? "arrow.down.left.circle.fill" : "arrow.up.right.circle.fill")
                             .font(.system(size: 14, weight: .semibold))
-                        Text(kind == .expense
-                             ? (isEnglish ? "Expense" : "Chi tiêu")
-                             : (isEnglish ? "Income" : "Thu nhập"))
-                            .font(.system(size: 15, weight: .semibold))
+                        Text(kind.title(lang: store.language))
+                            .font(.system(size: 14, weight: .semibold))
                     }
                     .foregroundStyle(isSelected ? Color.white : Color.primary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 9)
                     .background(
                         isSelected ? activeColor : Color.clear,
                         in: Capsule()
@@ -206,16 +206,14 @@ public struct AddTransactionView: View {
             }
         }
         .padding(4)
-        .background(Color.mdailyCardSurface, in: Capsule())
-        .overlay(
-            Capsule().strokeBorder(Color.mdailyHairline, lineWidth: 1)
-        )
+        .mdailyGlassPill(interactive: true)
     }
 
     // MARK: - Photo & Receipt Section
 
     @ViewBuilder
     private var photoSection: some View {
+        let english = isEnglish
         if let photoData, let image = Image(platformImageData: photoData) {
             VStack(alignment: .leading, spacing: 10) {
                 ZStack(alignment: .topTrailing) {
@@ -229,17 +227,16 @@ public struct AddTransactionView: View {
                             showFullscreenImage = true
                         }
 
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Button {
                             showFullscreenImage = true
                         } label: {
                             Image(systemName: "arrow.up.left.and.arrow.down.right")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .frame(width: 30, height: 30)
-                                .background(Color.black.opacity(0.55), in: Circle())
+                                .frame(width: 28, height: 28)
                         }
-                        .buttonStyle(.plain)
+                        .buttonBorderShape(.circle)
+                        .mdailyGlassButton(prominent: false)
 
                         Button {
                             withAnimation {
@@ -249,11 +246,10 @@ public struct AddTransactionView: View {
                         } label: {
                             Image(systemName: "xmark")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .frame(width: 30, height: 30)
-                                .background(Color.black.opacity(0.55), in: Circle())
+                                .frame(width: 28, height: 28)
                         }
-                        .buttonStyle(.plain)
+                        .buttonBorderShape(.circle)
+                        .mdailyGlassButton(prominent: false)
                     }
                     .padding(8)
                 }
@@ -262,7 +258,7 @@ public struct AddTransactionView: View {
                     if isExtracting {
                         ProgressView()
                             .controlSize(.small)
-                        Text(isEnglish ? "MDaily AI is reading receipt…" : "MDaily AI đang đọc hoá đơn…")
+                        Text(english ? "Extracting…" : "Đang nhận diện…")
                             .font(.system(size: 13, weight: .regular))
                             .foregroundStyle(.secondary)
                     } else if let label = aiExtractedLabel {
@@ -277,14 +273,11 @@ public struct AddTransactionView: View {
                         Button {
                             processPhoto(photoData, forceExtract: true)
                         } label: {
-                            Label(
-                                isEnglish ? "Extract with AI" : "Trích xuất bằng AI",
-                                systemImage: "sparkles"
-                            )
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Color.mdailyActionBlue)
+                            Label(english ? "AI Extract" : "Nhận diện AI", systemImage: "sparkles")
+                                .font(.system(size: 13, weight: .semibold))
                         }
-                        .buttonStyle(.plain)
+                        .buttonBorderShape(.capsule)
+                        .mdailyGlassButton(prominent: false)
                     }
 
                     Spacer()
@@ -295,63 +288,46 @@ public struct AddTransactionView: View {
         } else {
             VStack(spacing: 12) {
                 Image(systemName: "doc.viewfinder")
-                    .font(.system(size: 28, weight: .regular))
+                    .font(.system(size: 26, weight: .regular))
                     .foregroundStyle(Color.mdailyActionBlue)
 
-                Text(isEnglish ? "Receipt or Transaction Photo" : "Ảnh hoá đơn hoặc giao dịch")
+                Text(english ? "Receipt Photo" : "Ảnh hoá đơn")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.primary)
 
-                Text(isEnglish
-                     ? "Attach an image to auto-extract amount, category, and note."
-                     : "Đính kèm ảnh để tự động điền số tiền, danh mục và ghi chú.")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                let english = isEnglish
                 HStack(spacing: 10) {
                     #if os(iOS)
                     Button {
                         showCameraCapture = true
                     } label: {
                         Label(english ? "Camera" : "Chụp ảnh", systemImage: "camera")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 9)
-                            .background(Color.mdailyActionBlue, in: Capsule())
+                            .font(.system(size: 13, weight: .semibold))
                     }
-                    .buttonStyle(MDailyPressButtonStyle())
+                    .buttonBorderShape(.capsule)
+                    .mdailyGlassButton(prominent: true)
                     #endif
 
                     PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                        Label(english ? "Photo Library" : "Thư viện ảnh", systemImage: "photo.on.rectangle")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Color.mdailyActionBlue)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 9)
-                            .background(Color.mdailyActionBlue.opacity(0.10), in: Capsule())
+                        Label(english ? "Library" : "Thư viện", systemImage: "photo.on.rectangle")
+                            .font(.system(size: 13, weight: .semibold))
                     }
-                    .buttonStyle(.plain)
+                    .buttonBorderShape(.capsule)
+                    .mdailyGlassButton(prominent: false)
 
                     #if os(macOS)
                     Button {
                         showFileImporter = true
                     } label: {
-                        Label(english ? "Choose File…" : "Chọn tệp…", systemImage: "folder")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 9)
-                            .background(Color.mdailyParchment, in: Capsule())
+                        Label(english ? "File…" : "Tệp…", systemImage: "folder")
+                            .font(.system(size: 13, weight: .semibold))
                     }
-                    .buttonStyle(.plain)
+                    .buttonBorderShape(.capsule)
+                    .mdailyGlassButton(prominent: false)
                     #endif
                 }
             }
             .frame(maxWidth: .infinity)
-            .padding(18)
+            .padding(16)
             .mdailyCard(cornerRadius: 18)
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -375,7 +351,7 @@ public struct AddTransactionView: View {
     // MARK: - Form Card
 
     private var formCardSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             // Amount
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
@@ -384,7 +360,7 @@ public struct AddTransactionView: View {
                         .foregroundStyle(.secondary)
                     Spacer()
                     if showAmountError {
-                        Text(isEnglish ? "Enter a valid amount" : "Vui lòng nhập số tiền hợp lệ")
+                        Text(isEnglish ? "Invalid amount" : "Số tiền không hợp lệ")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.red)
                     }
@@ -411,7 +387,7 @@ public struct AddTransactionView: View {
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(Color.mdailyParchment, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .mdailyGlassSurface(in: RoundedRectangle(cornerRadius: 12, style: .continuous), interactive: true)
             }
 
             Divider().overlay(Color.mdailyHairline)
@@ -430,20 +406,18 @@ public struct AddTransactionView: View {
                             isAddingCategory.toggle()
                         }
                     } label: {
-                        Label(
-                            isAddingCategory ? (isEnglish ? "Close" : "Đóng") : (isEnglish ? "New Category" : "Thêm mới"),
-                            systemImage: isAddingCategory ? "xmark" : "plus"
-                        )
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.mdailyActionBlue)
+                        Image(systemName: isAddingCategory ? "xmark" : "plus")
+                            .font(.system(size: 12, weight: .semibold))
+                            .frame(width: 26, height: 26)
                     }
-                    .buttonStyle(.plain)
+                    .buttonBorderShape(.circle)
+                    .mdailyGlassButton(prominent: false)
                 }
 
                 if isAddingCategory {
                     HStack(spacing: 8) {
                         TextField(
-                            isEnglish ? "Category name…" : "Tên danh mục mới…",
+                            isEnglish ? "Category name…" : "Tên danh mục…",
                             text: $newCategoryName
                         )
                         .textFieldStyle(.plain)
@@ -451,23 +425,19 @@ public struct AddTransactionView: View {
                         .focused($focusedField, equals: .newCategory)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(Color.mdailyParchment, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .mdailyGlassSurface(in: RoundedRectangle(cornerRadius: 10, style: .continuous), interactive: true)
 
                         Button {
                             createInlineCategory()
                         } label: {
                             Text(isEnglish ? "Add" : "Tạo")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(Color.mdailyActionBlue, in: Capsule())
                         }
-                        .buttonStyle(.plain)
+                        .buttonBorderShape(.capsule)
+                        .mdailyGlassButton(prominent: true)
                     }
                 }
 
-                // Category selection flow
                 LazyVGrid(
                     columns: [GridItem(.adaptive(minimum: 112), spacing: 8)],
                     alignment: .leading,
@@ -491,9 +461,10 @@ public struct AddTransactionView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 9)
-                            .background(
-                                isSelected ? tint : Color.mdailyParchment,
-                                in: RoundedRectangle(cornerRadius: 11, style: .continuous)
+                            .mdailyGlassSurface(
+                                in: RoundedRectangle(cornerRadius: 11, style: .continuous),
+                                interactive: true,
+                                tint: isSelected ? tint : nil
                             )
                         }
                         .buttonStyle(.plain)
@@ -533,7 +504,7 @@ public struct AddTransactionView: View {
                     .foregroundStyle(.secondary)
 
                 TextField(
-                    isEnglish ? "Merchant, description, source…" : "Cửa hàng, mô tả, nguồn thu…",
+                    isEnglish ? "Note…" : "Ghi chú…",
                     text: $noteText
                 )
                 .textFieldStyle(.plain)
@@ -541,7 +512,7 @@ public struct AddTransactionView: View {
                 .focused($focusedField, equals: .note)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
-                .background(Color.mdailyParchment, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .mdailyGlassSurface(in: RoundedRectangle(cornerRadius: 12, style: .continuous), interactive: true)
             }
 
             Divider().overlay(Color.mdailyHairline)
@@ -550,7 +521,7 @@ public struct AddTransactionView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Toggle(isOn: $isRecurring) {
                     Label {
-                        Text(isEnglish ? "Recurring Reminder" : "Nhắc lịch định kỳ")
+                        Text(isEnglish ? "Recurring" : "Định kỳ")
                             .font(.system(size: 14, weight: .semibold))
                     } icon: {
                         Image(systemName: "bell.badge")
@@ -574,7 +545,7 @@ public struct AddTransactionView: View {
                     }
 
                     DatePicker(
-                        isEnglish ? "Next Reminder" : "Ngày nhắc tiếp theo",
+                        isEnglish ? "Next Reminder" : "Nhắc tiếp theo",
                         selection: $reminderDate,
                         displayedComponents: [.date, .hourAndMinute]
                     )
@@ -582,7 +553,7 @@ public struct AddTransactionView: View {
                 }
             }
         }
-        .padding(18)
+        .padding(16)
         .mdailyCard(cornerRadius: 18)
     }
 
@@ -595,27 +566,23 @@ public struct AddTransactionView: View {
                 onCancel()
             } label: {
                 Text(isEnglish ? "Cancel" : "Huỷ")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.mdailyActionBlue)
+                    .font(.system(size: 15, weight: .semibold))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        Capsule().strokeBorder(Color.mdailyActionBlue, lineWidth: 1)
-                    )
+                    .padding(.vertical, 6)
             }
-            .buttonStyle(MDailyPressButtonStyle())
+            .buttonBorderShape(.capsule)
+            .mdailyGlassButton(prominent: false)
 
             Button {
                 saveTransaction()
             } label: {
-                Text(isEnglish ? "Save Transaction" : "Lưu giao dịch")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.white)
+                Text(isEnglish ? "Save" : "Lưu")
+                    .font(.system(size: 15, weight: .semibold))
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.mdailyActionBlue, in: Capsule())
+                    .padding(.vertical, 6)
             }
-            .buttonStyle(MDailyPressButtonStyle())
+            .buttonBorderShape(.capsule)
+            .mdailyGlassButton(prominent: true)
         }
     }
 
@@ -674,7 +641,7 @@ public struct AddTransactionView: View {
                     if let itemName = result.itemName, !itemName.isEmpty, self.noteText.isEmpty {
                         self.noteText = itemName
                     }
-                    self.aiExtractedLabel = result.itemName ?? (isEnglish ? "Extracted by MDaily AI" : "Đã nhận diện bởi MDaily AI")
+                    self.aiExtractedLabel = result.itemName ?? "MDaily AI"
                 }
             }
         }
@@ -773,13 +740,8 @@ struct ReceiptImagePreviewSheet: View {
                     .padding(16)
             }
 
-            Button(action: onDismiss) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundStyle(.white, Color.white.opacity(0.28))
-            }
-            .buttonStyle(.plain)
-            .padding(18)
+            MDailyCloseButton(action: onDismiss)
+                .padding(18)
         }
         #if os(macOS)
         .frame(minWidth: 520, minHeight: 520)

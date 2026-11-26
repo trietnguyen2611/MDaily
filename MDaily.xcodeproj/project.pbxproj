@@ -3,18 +3,15 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 71;
 	objects = {
-
-/* Begin PBXBuildFile section */
-/* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		AA0000100000000000000001 /* MDaily.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MDaily.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		AA0000020000000000000001 /* Exceptions for "MDaily" folder in "MDaily" target */ = {
+		AA0000020000000000000001 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -24,14 +21,7 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		AA0000010000000000000001 /* MDaily */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				AA0000020000000000000001 /* Exceptions for "MDaily" folder in "MDaily" target */,
-			);
-			path = MDaily;
-			sourceTree = "<group>";
-		};
+		AA0000010000000000000001 /* MDaily */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (AA0000020000000000000001 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = MDaily; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,7 +102,6 @@
 			);
 			mainGroup = AA0000040000000000000001;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			productRefGroup = AA0000050000000000000001 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -265,6 +254,7 @@
 				CODE_SIGN_ENTITLEMENTS = MDaily/MDaily.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 38BAJ9M4VB;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -298,6 +288,7 @@
 				CODE_SIGN_ENTITLEMENTS = MDaily/MDaily.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 38BAJ9M4VB;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;

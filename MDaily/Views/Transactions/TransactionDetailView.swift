@@ -23,8 +23,6 @@ public struct TransactionDetailView: View {
     @State private var showDeleteConfirmation: Bool = false
     @State private var isFullscreenImage: Bool = false
 
-    @Environment(\.colorScheme) private var colorScheme
-
     public init(
         store: FinanceStore,
         transaction: Transaction,
@@ -69,7 +67,7 @@ public struct TransactionDetailView: View {
             Divider().overlay(Color.mdailyHairline)
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 16) {
                     if let photoData = currentTransaction.photoData,
                        let image = Image(platformImageData: photoData) {
                         photoHeroSection(image: image)
@@ -79,8 +77,9 @@ public struct TransactionDetailView: View {
                     detailsFormCard
                     footerActionsSection
                 }
-                .padding(18)
+                .padding(16)
             }
+            .mdailySoftScrollEdges()
         }
         .background(Color.mdailyCanvas.ignoresSafeArea())
         .onChange(of: transaction.id) { _, _ in
@@ -116,7 +115,7 @@ public struct TransactionDetailView: View {
     // MARK: - Top Bar
 
     private var topNavigationBar: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             if isEditing {
                 Button {
                     syncState(from: currentTransaction)
@@ -125,10 +124,11 @@ public struct TransactionDetailView: View {
                     }
                 } label: {
                     Text(isEnglish ? "Cancel" : "Huỷ")
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 14, weight: .medium))
+                        .padding(.horizontal, 6)
                 }
-                .buttonStyle(.plain)
+                .buttonBorderShape(.capsule)
+                .mdailyGlassButton(prominent: false)
             } else {
                 Text(isEnglish ? "Details" : "Chi tiết")
                     .font(.system(size: 17, weight: .semibold))
@@ -142,13 +142,11 @@ public struct TransactionDetailView: View {
                     saveEdits()
                 } label: {
                     Text(isEnglish ? "Save" : "Lưu")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(Color.mdailyActionBlue, in: Capsule())
+                        .font(.system(size: 14, weight: .semibold))
+                        .padding(.horizontal, 8)
                 }
-                .buttonStyle(MDailyPressButtonStyle())
+                .buttonBorderShape(.capsule)
+                .mdailyGlassButton(prominent: true)
             } else {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -156,15 +154,16 @@ public struct TransactionDetailView: View {
                     }
                 } label: {
                     Text(isEnglish ? "Edit" : "Sửa")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color.mdailyActionBlue)
+                        .font(.system(size: 14, weight: .semibold))
+                        .padding(.horizontal, 6)
                 }
-                .buttonStyle(.plain)
+                .buttonBorderShape(.capsule)
+                .mdailyGlassButton(prominent: false)
 
                 MDailyCloseButton(action: onClose)
             }
         }
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 16)
         .padding(.vertical, 12)
     }
 
@@ -187,11 +186,10 @@ public struct TransactionDetailView: View {
             } label: {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 32, height: 32)
-                    .background(Color.black.opacity(0.58), in: Circle())
+                    .frame(width: 30, height: 30)
             }
-            .buttonStyle(.plain)
+            .buttonBorderShape(.circle)
+            .mdailyGlassButton(prominent: false)
             .padding(10)
         }
         .padding(10)
@@ -212,9 +210,7 @@ public struct TransactionDetailView: View {
                                 editKind = kind
                             }
                         } label: {
-                            Text(kind == .expense
-                                 ? (isEnglish ? "Expense" : "Chi tiêu")
-                                 : (isEnglish ? "Income" : "Thu nhập"))
+                            Text(kind.title(lang: store.language))
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(isSelected ? Color.white : Color.primary)
                                 .frame(maxWidth: .infinity)
@@ -225,11 +221,11 @@ public struct TransactionDetailView: View {
                     }
                 }
                 .padding(3)
-                .background(Color.mdailyParchment, in: Capsule())
+                .mdailyGlassPill(interactive: true)
 
                 VStack(alignment: .leading, spacing: 4) {
                     if showAmountError {
-                        Text(isEnglish ? "Enter a valid amount" : "Số tiền không hợp lệ")
+                        Text(isEnglish ? "Invalid amount" : "Số tiền không hợp lệ")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.red)
                     }
@@ -254,14 +250,12 @@ public struct TransactionDetailView: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(Color.mdailyParchment, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .mdailyGlassSurface(in: RoundedRectangle(cornerRadius: 12, style: .continuous), interactive: true)
                 }
             } else {
                 HStack(spacing: 8) {
                     let isIncome = currentTransaction.kind == .income
-                    Text(isIncome
-                         ? (isEnglish ? "Income" : "Thu nhập")
-                         : (isEnglish ? "Expense" : "Chi tiêu"))
+                    Text(currentTransaction.kind.title(lang: store.language))
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(isIncome ? Color.mdailyIncomeGreen : Color.mdailyActionBlue)
                         .padding(.horizontal, 10)
@@ -272,7 +266,7 @@ public struct TransactionDetailView: View {
                         )
 
                     if currentTransaction.isAiProcessed {
-                        Label("MDaily AI", systemImage: "sparkles")
+                        Label("AI", systemImage: "sparkles")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Color.mdailyActionBlue)
                             .padding(.horizontal, 10)
@@ -281,12 +275,10 @@ public struct TransactionDetailView: View {
                     }
                 }
 
-                let amountColor: Color = currentTransaction.kind == .income
-                    ? Color.mdailyIncomeGreen
-                    : (colorScheme == .dark ? .white : Color(red: 0.114, green: 0.114, blue: 0.122))
+                let amountColor: Color = currentTransaction.kind == .income ? Color.mdailyIncomeGreen : Color.mdailyInk
 
                 Text("\(TransactionFormatHelper.signedPrefix(for: currentTransaction.kind))\(store.formatCurrency(currentTransaction.amount))")
-                    .font(.system(size: 34, weight: .semibold))
+                    .font(.system(size: 32, weight: .semibold))
                     .tracking(-0.4)
                     .monospacedDigit()
                     .foregroundStyle(amountColor)
@@ -301,7 +293,6 @@ public struct TransactionDetailView: View {
 
     private var detailsFormCard: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Category Row
             HStack {
                 Label {
                     Text(isEnglish ? "Category" : "Danh mục")
@@ -329,7 +320,6 @@ public struct TransactionDetailView: View {
 
             Divider().overlay(Color.mdailyHairline)
 
-            // Date Row
             HStack {
                 Label {
                     Text(isEnglish ? "Time" : "Thời gian")
@@ -358,7 +348,6 @@ public struct TransactionDetailView: View {
 
             Divider().overlay(Color.mdailyHairline)
 
-            // Note Row
             VStack(alignment: .leading, spacing: 6) {
                 Label {
                     Text(isEnglish ? "Note" : "Ghi chú")
@@ -370,16 +359,16 @@ public struct TransactionDetailView: View {
 
                 if isEditing {
                     TextField(
-                        isEnglish ? "Add a note…" : "Nhập ghi chú…",
+                        isEnglish ? "Note…" : "Ghi chú…",
                         text: $editNote
                     )
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color.mdailyParchment, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .mdailyGlassSurface(in: RoundedRectangle(cornerRadius: 10, style: .continuous), interactive: true)
                 } else {
-                    Text(currentTransaction.note?.isEmpty == false ? (currentTransaction.note ?? "") : (isEnglish ? "No note" : "Không có ghi chú"))
+                    Text(currentTransaction.note?.isEmpty == false ? (currentTransaction.note ?? "") : "—")
                         .font(.system(size: 14, weight: .regular))
                         .foregroundStyle(currentTransaction.note?.isEmpty == false ? .primary : .tertiary)
                 }
@@ -387,12 +376,11 @@ public struct TransactionDetailView: View {
 
             Divider().overlay(Color.mdailyHairline)
 
-            // Recurring Reminder Row
             if isEditing {
                 VStack(alignment: .leading, spacing: 10) {
                     Toggle(isOn: $isRecurring) {
                         Label {
-                            Text(isEnglish ? "Recurring Reminder" : "Nhắc lịch định kỳ")
+                            Text(isEnglish ? "Recurring" : "Định kỳ")
                                 .font(.system(size: 14, weight: .semibold))
                         } icon: {
                             Image(systemName: "bell.badge")
@@ -453,24 +441,23 @@ public struct TransactionDetailView: View {
 
     // MARK: - Footer Actions
 
+    @ViewBuilder
     private var footerActionsSection: some View {
-        VStack(spacing: 10) {
-            if !isEditing {
-                Button(role: .destructive) {
-                    showDeleteConfirmation = true
-                } label: {
-                    Label(
-                        isEnglish ? "Delete Transaction" : "Xoá giao dịch",
-                        systemImage: "trash"
-                    )
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.red)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.red.opacity(0.08), in: Capsule())
-                }
-                .buttonStyle(MDailyPressButtonStyle())
+        if !isEditing {
+            Button(role: .destructive) {
+                showDeleteConfirmation = true
+            } label: {
+                Label(
+                    isEnglish ? "Delete" : "Xoá giao dịch",
+                    systemImage: "trash"
+                )
+                .font(.system(size: 15, weight: .semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
             }
+            .buttonBorderShape(.capsule)
+            .mdailyGlassButton(prominent: false)
+            .tint(Color.mdailyDestructiveRed)
         }
     }
 
@@ -509,7 +496,6 @@ public struct TransactionDetailView: View {
         store.updateTransaction(updated)
         currentTransaction = updated
 
-        // Sync linked recurring reminder
         let existingLinked = store.recurringTransactions.first { $0.linkedTransactionId == updated.id }
         if isRecurring {
             let recurring = RecurringTransaction(

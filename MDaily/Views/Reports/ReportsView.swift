@@ -55,7 +55,7 @@ public struct ReportsView: View {
 
     public var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 16) {
                 headerSection
                 segmentedSwitch
 
@@ -69,6 +69,7 @@ public struct ReportsView: View {
             .padding(.top, 14)
             .padding(.bottom, layoutProfile == .standardPhone ? 104 : 32)
         }
+        .mdailySoftScrollEdges()
         .background(Color.mdailyCanvas.ignoresSafeArea())
         .alert(isEnglish ? "Delete Category?" : "Xoá danh mục?", isPresented: $showDeleteCategoryAlert) {
             Button(isEnglish ? "Delete" : "Xoá", role: .destructive) {
@@ -91,16 +92,10 @@ public struct ReportsView: View {
 
     private var headerSection: some View {
         HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(isEnglish ? "Reports" : "Báo cáo")
-                    .font(isCompactWidth ? MDailyTypography.tagline : MDailyTypography.displayMd)
-                    .tracking(MDailyTypography.Tracking.displayMd)
-                    .foregroundStyle(Color.mdailyInk)
-
-                Text(timeFilterMode.displayTitle(lang: store.language))
-                    .font(MDailyTypography.caption)
-                    .foregroundStyle(Color.mdailyMutedInk)
-            }
+            Text(isEnglish ? "Reports" : "Báo cáo")
+                .font(isCompactWidth ? MDailyTypography.tagline : MDailyTypography.displayMd)
+                .tracking(MDailyTypography.Tracking.displayMd)
+                .foregroundStyle(Color.mdailyInk)
 
             Spacer()
 
@@ -135,7 +130,7 @@ public struct ReportsView: View {
             .foregroundStyle(Color.mdailyActionBlue)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .mdailyCard(cornerRadius: MDailyRadius.pill, background: .mdailyParchment)
+            .mdailyGlassPill(interactive: true)
         }
         .buttonStyle(.plain)
     }
@@ -154,7 +149,7 @@ public struct ReportsView: View {
                 }
 
                 segmentButton(
-                    title: isEnglish ? "Categories" : "Quản lý danh mục",
+                    title: isEnglish ? "Categories" : "Danh mục",
                     icon: "square.grid.2x2",
                     isSelected: selectedSegment == 1
                 ) {
@@ -164,15 +159,34 @@ public struct ReportsView: View {
                 }
             }
             .padding(4)
-            .mdailyCard(cornerRadius: MDailyRadius.pill, background: .mdailyParchment)
+            .mdailyGlassSurface(in: Capsule(style: .continuous), interactive: false)
 
             if selectedSegment == 0 {
-                Picker("", selection: $granularity) {
+                HStack(spacing: 6) {
                     ForEach(ReportGranularity.allCases) { mode in
-                        Text(mode.title(lang: store.language)).tag(mode)
+                        let isSelected = granularity == mode
+                        Button {
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                                granularity = mode
+                            }
+                        } label: {
+                            Text(mode.title(lang: store.language))
+                                .font(MDailyTypography.captionStrong)
+                                .foregroundStyle(isSelected ? Color.white : Color.mdailyInk)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 7)
+                                .background {
+                                    if isSelected {
+                                        Capsule(style: .continuous)
+                                            .fill(Color.mdailyActionBlue)
+                                    }
+                                }
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                .pickerStyle(.segmented)
+                .padding(3)
+                .mdailyGlassSurface(in: Capsule(style: .continuous), interactive: false)
             }
         }
     }
@@ -225,20 +239,20 @@ public struct ReportsView: View {
             if isCompactWidth {
                 VStack(spacing: 10) {
                     kpiCard(
-                        title: isEnglish ? "Net Cashflow" : "Dòng tiền ròng (Thu − Chi)",
+                        title: isEnglish ? "Net" : "Thu − Chi",
                         amountText: formatSignedNet(net),
                         accent: net >= 0 ? .mdailyIncomeGreen : .mdailyDestructiveRed,
                         icon: net >= 0 ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill"
                     )
                     HStack(spacing: 10) {
                         kpiCard(
-                            title: isEnglish ? "Income" : "Tổng Thu",
+                            title: isEnglish ? "Income" : "Thu",
                             amountText: "+\(store.formatCurrency(income))",
                             accent: .mdailyIncomeGreen,
                             icon: "plus.circle.fill"
                         )
                         kpiCard(
-                            title: isEnglish ? "Expense" : "Tổng Chi",
+                            title: isEnglish ? "Expense" : "Chi",
                             amountText: "−\(store.formatCurrency(expense))",
                             accent: .mdailyInk,
                             icon: "minus.circle.fill"
@@ -248,19 +262,19 @@ public struct ReportsView: View {
             } else {
                 HStack(spacing: 12) {
                     kpiCard(
-                        title: isEnglish ? "Income" : "Tổng Thu",
+                        title: isEnglish ? "Income" : "Thu",
                         amountText: "+\(store.formatCurrency(income))",
                         accent: .mdailyIncomeGreen,
                         icon: "plus.circle.fill"
                     )
                     kpiCard(
-                        title: isEnglish ? "Expense" : "Tổng Chi",
+                        title: isEnglish ? "Expense" : "Chi",
                         amountText: "−\(store.formatCurrency(expense))",
                         accent: .mdailyInk,
                         icon: "minus.circle.fill"
                     )
                     kpiCard(
-                        title: isEnglish ? "Net Cashflow" : "Thu − Chi",
+                        title: isEnglish ? "Net" : "Thu − Chi",
                         amountText: formatSignedNet(net),
                         accent: net >= 0 ? .mdailyIncomeGreen : .mdailyDestructiveRed,
                         icon: net >= 0 ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill"
@@ -289,7 +303,7 @@ public struct ReportsView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .mdailyCard(cornerRadius: MDailyRadius.lg, background: .mdailyCardSurface)
+        .mdailyCard(cornerRadius: MDailyRadius.lg)
     }
 
     // MARK: - Dual Bar Chart (Day / Week / Month)
@@ -369,8 +383,8 @@ public struct ReportsView: View {
 
     private var cashflowBarChartCard: some View {
         let buckets = periodBuckets
-        let incomeSeries = isEnglish ? "Income" : "Thu nhập"
-        let expenseSeries = isEnglish ? "Expense" : "Chi tiêu"
+        let incomeSeries = isEnglish ? "Income" : "Thu"
+        let expenseSeries = isEnglish ? "Expense" : "Chi"
 
         let barData: [BarDatum] = buckets.flatMap { bucket in
             [
@@ -392,24 +406,14 @@ public struct ReportsView: View {
         }
 
         return VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(isEnglish ? "Income vs Expense" : "So sánh Thu & Chi")
-                        .font(MDailyTypography.bodyStrong)
-                        .foregroundStyle(Color.mdailyInk)
-                    Text(isEnglish
-                         ? "Grouped by \(granularity.title(lang: store.language).lowercased()) with net trend"
-                         : "Theo \(granularity.title(lang: store.language).lowercased()) kèm xu hướng dòng tiền ròng")
-                        .font(MDailyTypography.finePrint)
-                        .foregroundStyle(Color.mdailyMutedInk)
-                }
-                Spacer()
-            }
+            Text(isEnglish ? "Income vs Expense" : "Thu & Chi")
+                .font(MDailyTypography.bodyStrong)
+                .foregroundStyle(Color.mdailyInk)
 
             if buckets.isEmpty {
                 emptyChartPlaceholder(
                     icon: "chart.bar",
-                    message: isEnglish ? "No transactions for this period" : "Chưa có giao dịch trong khoảng thời gian này"
+                    message: isEnglish ? "No data" : "Chưa có dữ liệu"
                 )
             } else {
                 Chart {
@@ -466,26 +470,17 @@ public struct ReportsView: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks { value in
+                    AxisMarks { _ in
                         AxisValueLabel()
                             .font(MDailyTypography.microLegal)
                             .foregroundStyle(Color.mdailyMutedInk)
                     }
                 }
                 .frame(height: 220)
-
-                HStack(spacing: 6) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.mdailyActionBlue)
-                        .frame(width: 14, height: 2)
-                    Text(isEnglish ? "Net cashflow trend (Income − Expense)" : "Đường xu hướng dòng tiền ròng (Thu − Chi)")
-                        .font(MDailyTypography.finePrint)
-                        .foregroundStyle(Color.mdailyActionBlue)
-                }
             }
         }
         .padding(16)
-        .mdailyCard(cornerRadius: MDailyRadius.lg, background: .mdailyCardSurface)
+        .mdailyCard(cornerRadius: MDailyRadius.lg)
     }
 
     // MARK: - Donut / Sector Breakdown
@@ -505,7 +500,6 @@ public struct ReportsView: View {
                 return (item: cat, total: sum, color: chartPalette[idx % chartPalette.count])
             }
 
-        // Catch any transactions whose categoryId doesn't match a category of breakdownKind
         let matchedIds = Set(categorySums.map { $0.item.id })
         let orphanSum = filteredByKind
             .filter { !matchedIds.contains($0.categoryId) }
@@ -525,24 +519,24 @@ public struct ReportsView: View {
 
         return VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .center, spacing: 12) {
-                Text(isEnglish ? "Category Breakdown" : "Phân bổ theo danh mục")
+                Text(isEnglish ? "Breakdown" : "Phân bổ")
                     .font(MDailyTypography.bodyStrong)
                     .foregroundStyle(Color.mdailyInk)
 
                 Spacer()
 
                 Picker("", selection: $breakdownKind) {
-                    Text(isEnglish ? "Expense" : "Chi tiêu").tag(TransactionKind.expense)
-                    Text(isEnglish ? "Income" : "Thu nhập").tag(TransactionKind.income)
+                    Text(isEnglish ? "Expense" : "Chi").tag(TransactionKind.expense)
+                    Text(isEnglish ? "Income" : "Thu").tag(TransactionKind.income)
                 }
                 .pickerStyle(.segmented)
-                .frame(maxWidth: 190)
+                .frame(maxWidth: 160)
             }
 
             if sortedTotals.isEmpty || kindTotal <= 0 {
                 emptyChartPlaceholder(
                     icon: "chart.pie",
-                    message: isEnglish ? "No data for this category filter" : "Không có dữ liệu cho mục này"
+                    message: isEnglish ? "No data" : "Chưa có dữ liệu"
                 )
             } else {
                 Group {
@@ -562,7 +556,7 @@ public struct ReportsView: View {
             }
         }
         .padding(16)
-        .mdailyCard(cornerRadius: MDailyRadius.lg, background: .mdailyCardSurface)
+        .mdailyCard(cornerRadius: MDailyRadius.lg)
     }
 
     private func donutChart(
@@ -591,7 +585,7 @@ public struct ReportsView: View {
                 Text(store.currencySymbol)
                     .font(MDailyTypography.finePrint)
                     .foregroundStyle(Color.mdailyMutedInk)
-                Text("\(count) \(isEnglish ? "tx" : "GD")")
+                Text("\(count)")
                     .font(MDailyTypography.microLegal)
                     .foregroundStyle(Color.mdailyMutedInk)
             }
@@ -668,53 +662,45 @@ public struct ReportsView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 17, weight: .semibold))
-                        Text(isEnglish
-                             ? "Add \(managerKind == .income ? "Income" : "Expense") Category"
-                             : "Thêm danh mục \(managerKind == .income ? "Thu nhập" : "Chi tiêu")")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text(isEnglish ? "Add Category" : "Thêm danh mục")
                             .font(MDailyTypography.captionStrong)
                         Spacer()
                     }
                     .foregroundStyle(Color.mdailyActionBlue)
                     .padding(14)
-                    .mdailyCard(cornerRadius: MDailyRadius.lg, background: .mdailyCardSurface)
                 }
+                .mdailyCard(cornerRadius: MDailyRadius.lg)
                 .buttonStyle(MDailyPressButtonStyle())
             } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(isEnglish ? "New Category" : "Danh mục mới")
-                        .font(MDailyTypography.captionStrong)
-                        .foregroundStyle(Color.mdailyInk)
+                HStack(spacing: 8) {
+                    TextField(
+                        isEnglish ? "Category name" : "Tên danh mục",
+                        text: $newCategoryLabel
+                    )
+                    .textFieldStyle(.plain)
+                    .font(MDailyTypography.caption)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 9)
+                    .mdailyGlassSurface(in: RoundedRectangle(cornerRadius: MDailyRadius.md, style: .continuous), interactive: true)
 
-                    HStack(spacing: 8) {
-                        TextField(
-                            isEnglish ? "Category name..." : "Tên danh mục...",
-                            text: $newCategoryLabel
-                        )
-                        .textFieldStyle(.plain)
-                        .font(MDailyTypography.caption)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 9)
-                        .mdailyCard(cornerRadius: MDailyRadius.md, background: .mdailyParchment)
+                    Button(isEnglish ? "Save" : "Lưu") {
+                        let trimmed = newCategoryLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !trimmed.isEmpty else { return }
+                        store.addCategory(label: trimmed, kind: managerKind)
+                        newCategoryLabel = ""
+                        isAddingCategory = false
+                    }
+                    .mdailyGlassButton(prominent: true)
+                    .disabled(newCategoryLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-                        Button(isEnglish ? "Save" : "Lưu") {
-                            let trimmed = newCategoryLabel.trimmingCharacters(in: .whitespacesAndNewlines)
-                            guard !trimmed.isEmpty else { return }
-                            store.addCategory(label: trimmed, kind: managerKind)
-                            newCategoryLabel = ""
-                            isAddingCategory = false
-                        }
-                        .buttonStyle(MDailyPrimaryPillButtonStyle(isDisabled: newCategoryLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
-                        .disabled(newCategoryLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                        MDailyCloseButton(accessibilityLabel: isEnglish ? "Cancel" : "Huỷ") {
-                            isAddingCategory = false
-                            newCategoryLabel = ""
-                        }
+                    MDailyCloseButton(accessibilityLabel: isEnglish ? "Cancel" : "Huỷ") {
+                        isAddingCategory = false
+                        newCategoryLabel = ""
                     }
                 }
                 .padding(14)
-                .mdailyCard(cornerRadius: MDailyRadius.lg, background: .mdailyCardSurface)
+                .mdailyCard(cornerRadius: MDailyRadius.lg)
             }
 
             VStack(spacing: 10) {
@@ -739,7 +725,7 @@ public struct ReportsView: View {
                 .font(MDailyTypography.caption)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 9)
-                .mdailyCard(cornerRadius: MDailyRadius.md, background: .mdailyParchment)
+                .mdailyGlassSurface(in: RoundedRectangle(cornerRadius: MDailyRadius.md, style: .continuous), interactive: true)
 
             Button(isEnglish ? "Save" : "Lưu") {
                 let trimmed = editCategoryLabel.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -747,7 +733,7 @@ public struct ReportsView: View {
                 store.updateCategory(id: cat.id, newLabel: trimmed)
                 editingCategoryId = nil
             }
-            .buttonStyle(MDailyPrimaryPillButtonStyle(isDisabled: editCategoryLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty))
+            .mdailyGlassButton(prominent: true)
             .disabled(editCategoryLabel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
             MDailyCloseButton(accessibilityLabel: isEnglish ? "Cancel" : "Huỷ") {
@@ -755,7 +741,7 @@ public struct ReportsView: View {
             }
         }
         .padding(14)
-        .mdailyCard(cornerRadius: MDailyRadius.lg, background: .mdailyCardSurface)
+        .mdailyCard(cornerRadius: MDailyRadius.lg)
     }
 
     private func categoryDisplayRow(for cat: CategoryItem, count: Int, total: Double) -> some View {
@@ -763,26 +749,14 @@ public struct ReportsView: View {
             Image(systemName: cat.resolvedIconName)
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(cat.kind == .income ? Color.mdailyIncomeGreen : Color.mdailyActionBlue)
-                .frame(width: 36, height: 36)
-                .background(
-                    Circle().fill((cat.kind == .income ? Color.mdailyIncomeGreen : Color.mdailyActionBlue).opacity(0.12))
-                )
+                .frame(width: 34, height: 34)
+                .mdailyGlassSurface(in: Circle(), interactive: false)
 
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(cat.localizedLabel(lang: store.language))
-                        .font(MDailyTypography.captionStrong)
-                        .foregroundStyle(Color.mdailyInk)
-                    if cat.isDefault {
-                        Text(isEnglish ? "Default" : "Mặc định")
-                            .font(MDailyTypography.microLegal)
-                            .foregroundStyle(Color.mdailyMutedInk)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill(Color.mdailyParchment))
-                    }
-                }
-                Text("\(count) \(isEnglish ? "transactions" : "giao dịch") • \(store.formatCurrency(total))")
+                Text(cat.localizedLabel(lang: store.language))
+                    .font(MDailyTypography.captionStrong)
+                    .foregroundStyle(Color.mdailyInk)
+                Text("\(count) • \(store.formatCurrency(total))")
                     .font(MDailyTypography.finePrint)
                     .foregroundStyle(Color.mdailyMutedInk)
             }
@@ -795,30 +769,27 @@ public struct ReportsView: View {
                     editCategoryLabel = cat.label
                 } label: {
                     Image(systemName: "pencil")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.mdailyActionBlue)
-                        .frame(width: 32, height: 32)
-                        .background(Circle().fill(Color.mdailyActionBlue.opacity(0.10)))
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 28, height: 28)
                 }
-                .buttonStyle(.plain)
+                .mdailyGlassButton(prominent: false)
 
                 if !cat.isDefault {
-                    Button {
+                    Button(role: .destructive) {
                         categoryToDelete = cat
                         showDeleteCategoryAlert = true
                     } label: {
                         Image(systemName: "trash")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Color.mdailyDestructiveRed)
-                            .frame(width: 32, height: 32)
-                            .background(Circle().fill(Color.mdailyDestructiveRed.opacity(0.10)))
+                            .frame(width: 28, height: 28)
                     }
-                    .buttonStyle(.plain)
+                    .mdailyGlassButton(prominent: false)
                 }
             }
         }
         .padding(14)
-        .mdailyCard(cornerRadius: MDailyRadius.lg, background: .mdailyCardSurface)
+        .mdailyCard(cornerRadius: MDailyRadius.lg)
     }
 
     // MARK: - Helpers
@@ -826,15 +797,14 @@ public struct ReportsView: View {
     private func emptyChartPlaceholder(icon: String, message: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 32, weight: .light))
+                .font(.system(size: 30, weight: .light))
                 .foregroundStyle(Color.mdailyMutedInk.opacity(0.6))
             Text(message)
                 .font(MDailyTypography.caption)
                 .foregroundStyle(Color.mdailyMutedInk)
-                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
+        .padding(.vertical, 24)
     }
 
     private func formatSignedNet(_ net: Double) -> String {

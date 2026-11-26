@@ -16,7 +16,6 @@ public struct AdaptiveRootView: View {
     @State private var showAiChat: Bool = false
     @State private var showQuickCapture: Bool = false
     @State private var capturedPhotoData: Data? = nil
-    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     public init() {}
 
@@ -121,14 +120,26 @@ public struct AdaptiveRootView: View {
                 standardPhoneHeader
                 tabContent(for: profile)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .mdailySoftScrollEdges()
             }
             .background(Color.mdailyCanvas.ignoresSafeArea())
             .safeAreaInset(edge: .bottom) {
-                PhoneBottomGlassDock(
-                    activeTab: $activeTab,
-                    language: store.language,
-                    onQuickCapture: { showQuickCapture = true }
-                )
+                ZStack(alignment: .bottom) {
+                    LinearGradient(
+                        colors: [Color.clear, Color.mdailyCanvas.opacity(0.88)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 88)
+                    .ignoresSafeArea(edges: .bottom)
+                    .allowsHitTesting(false)
+
+                    PhoneBottomGlassDock(
+                        activeTab: $activeTab,
+                        language: store.language,
+                        onQuickCapture: { showQuickCapture = true }
+                    )
+                }
             }
 
         case .pad, .mac:
@@ -148,18 +159,25 @@ public struct AdaptiveRootView: View {
 
             if store.aiChatEnabled {
                 Button(action: toggleAiChat) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text("MDaily AI")
-                            .font(MDailyTypography.captionStrong)
-                    }
-                    .foregroundStyle(Color.mdailyActionBlue)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .mdailyGlassPill(interactive: true)
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(showAiChat ? Color.white : Color.blue)
+                        .frame(width: 36, height: 36)
+                        .background {
+                            if showAiChat {
+                                Circle().fill(Color.blue)
+                            }
+                        }
+                        .contentShape(Circle())
                 }
                 .buttonStyle(MDailyPressButtonStyle())
+                .mdailyGlassSurface(
+                    in: Circle(),
+                    interactive: true,
+                    tint: showAiChat ? Color.blue.opacity(0.3) : Color.blue.opacity(0.14)
+                )
+                .mdailyNavGlow(isActive: true)
+                .accessibilityLabel("MDaily AI")
             }
         }
         .padding(.horizontal, 16)
@@ -170,15 +188,17 @@ public struct AdaptiveRootView: View {
     // MARK: - Pad & Mac Split View
 
     private func splitNavigationShell(for profile: AdaptiveLayoutProfile) -> some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            sidebarContent
-                #if os(macOS)
-                .navigationSplitViewColumnWidth(min: 210, ideal: 235, max: 280)
-                #endif
+        NavigationSplitView(columnVisibility: .constant(.all)) {
+            List(AppTab.allCases, selection: sidebarSelectionBinding) { tab in
+                Label(tabTitle(for: tab), systemImage: tab.iconName)
+                    .tag(tab)
+            }
+            .navigationSplitViewColumnWidth(205)
+            .toolbar(removing: .sidebarToggle)
         } detail: {
             tabContent(for: profile)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.mdailyCanvas)
+                .mdailySoftScrollEdges()
                 .toolbar {
                     ToolbarItemGroup(placement: .primaryAction) {
                         Button {
@@ -194,7 +214,7 @@ public struct AdaptiveRootView: View {
                             Button(action: toggleAiChat) {
                                 Label("MDaily AI", systemImage: "sparkles")
                             }
-                            .tint(showAiChat ? Color.mdailyActionBlue : nil)
+                            .tint(showAiChat ? Color.blue : nil)
                         }
                     }
                 }
@@ -203,183 +223,18 @@ public struct AdaptiveRootView: View {
                         .inspectorColumnWidth(min: 320, ideal: 360, max: 440)
                 }
         }
+        .navigationSplitViewStyle(.balanced)
     }
 
-    private var sidebarContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Brand header
-            HStack(spacing: 10) {
-                Image("Logo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("MDaily")
-                        .font(MDailyTypography.bodyStrong)
-                        .foregroundStyle(Color.mdailyInk)
-                    Text(store.language == .en ? "Personal Finance" : "Quản lý Thu Chi")
-                        .font(MDailyTypography.finePrint)
-                        .foregroundStyle(Color.mdailyMutedInk)
+    private var sidebarSelectionBinding: Binding<AppTab?> {
+        Binding(
+            get: { activeTab },
+            set: { newValue in
+                if let newValue {
+                    activeTab = newValue
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 16)
-
-            // Main Tabs
-            VStack(spacing: 4) {
-                ForEach(AppTab.allCases) { tab in
-                    sidebarTabButton(tab)
-                }
-            }
-            .padding(.horizontal, 10)
-
-            Rectangle()
-                .fill(Color.mdailyHairline)
-                .frame(height: 1)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-
-            // Quick Actions
-            VStack(spacing: 6) {
-                Button {
-                    showQuickCapture = true
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "camera.fill")
-                            .frame(width: 20)
-                        Text(store.language == .en ? "Quick Capture" : "Chụp hóa đơn")
-                        Spacer()
-                    }
-                    .font(MDailyTypography.captionStrong)
-                    .foregroundStyle(Color.mdailyActionBlue)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(Color.mdailyActionBlue.opacity(0.08))
-                    )
-                    .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                }
-                .buttonStyle(MDailyPressButtonStyle())
-
-                if store.aiChatEnabled {
-                    Button(action: toggleAiChat) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "sparkles")
-                                .frame(width: 20)
-                            Text("MDaily AI")
-                            Spacer()
-                        }
-                        .font(MDailyTypography.captionStrong)
-                        .foregroundStyle(showAiChat ? Color.white : Color.mdailyActionBlue)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(showAiChat ? Color.mdailyActionBlue : Color.mdailyActionBlue.opacity(0.08))
-                        )
-                        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                    }
-                    .buttonStyle(MDailyPressButtonStyle())
-                }
-            }
-            .padding(.horizontal, 10)
-
-            Spacer()
-
-            // LAN Sync Status Badge
-            Button {
-                activeTab = .settings
-            } label: {
-                lanSyncStatusBadge
-            }
-            .buttonStyle(MDailyPressButtonStyle())
-            .padding(.horizontal, 12)
-            .padding(.bottom, 14)
-        }
-        .background(Color.mdailyParchment)
-    }
-
-    private func sidebarTabButton(_ tab: AppTab) -> some View {
-        let isSelected = activeTab == tab
-        return Button {
-            activeTab = tab
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: tab.iconName)
-                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
-                    .frame(width: 20)
-                Text(tabTitle(for: tab))
-                    .font(isSelected ? MDailyTypography.bodyStrong : MDailyTypography.body)
-                    .tracking(MDailyTypography.Tracking.body)
-                Spacer()
-            }
-            .foregroundStyle(isSelected ? Color.mdailyActionBlue : Color.mdailyInk)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
-            .background {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.mdailyActionBlue.opacity(0.12))
-                }
-            }
-            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        }
-        .buttonStyle(MDailyPressButtonStyle())
-    }
-
-    private var lanSyncStatusBadge: some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(syncIndicatorColor)
-                .frame(width: 8, height: 8)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(store.language == .en ? "LAN Sync" : "Đồng bộ LAN")
-                    .font(MDailyTypography.captionStrong)
-                    .foregroundStyle(Color.mdailyInk)
-
-                Text(lanSyncSubtitle)
-                    .font(MDailyTypography.finePrint)
-                    .foregroundStyle(Color.mdailyMutedInk)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(Color.mdailyMutedInk)
-        }
-        .padding(10)
-        .mdailyCard(cornerRadius: 12, background: .mdailyCardSurface)
-    }
-
-    private var syncIndicatorColor: Color {
-        if syncService.isSyncing {
-            return .mdailyActionBlue
-        } else if !syncService.peers.isEmpty {
-            return .mdailyIncomeGreen
-        } else {
-            return .mdailyMutedInk.opacity(0.6)
-        }
-    }
-
-    private var lanSyncSubtitle: String {
-        if syncService.isSyncing {
-            return store.language == .en ? "Syncing..." : "Đang đồng bộ..."
-        }
-        let count = syncService.peers.count
-        if count == 0 {
-            return store.language == .en ? "Listening on LAN" : "Đang chờ thiết bị"
-        } else if count == 1 {
-            return store.language == .en ? "1 device nearby" : "1 thiết bị gần đây"
-        } else {
-            return store.language == .en ? "\(count) devices nearby" : "\(count) thiết bị gần đây"
-        }
+        )
     }
 
     // MARK: - Active Tab Content
@@ -435,7 +290,6 @@ public struct AdaptiveRootView: View {
             SettingsView(
                 store: store,
                 syncService: syncService,
-                postureService: posture,
                 onOpenChat: openAiChat
             )
         }

@@ -15,9 +15,8 @@ public struct DashboardView: View {
     @State private var transactionToDelete: Transaction? = nil
     @State private var showDeleteConfirmation: Bool = false
     @State private var showCustomTimeSheet: Bool = false
+    @State private var showSearchField: Bool = false
     @FocusState private var isSearchFocused: Bool
-
-    @Environment(\.colorScheme) private var colorScheme
 
     public init(
         store: FinanceStore,
@@ -70,19 +69,29 @@ public struct DashboardView: View {
     public var body: some View {
         GeometryReader { geo in
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 14) {
                     headerSection
+
+                    if showSearchField || !searchText.isEmpty {
+                        inlineSearchBar
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
                     balanceSummaryStrip
-                    filterAndSearchToolbar
+                    filterToolbarRow
                     contentSection(availableWidth: geo.size.width - horizontalPadding * 2)
                 }
                 .padding(.horizontal, horizontalPadding)
-                .padding(.top, 12)
+                .padding(.top, 10)
                 .padding(.bottom, bottomScrollPadding)
             }
+            .mdailySoftScrollEdges()
             .background(Color.mdailyCanvas.ignoresSafeArea())
         }
         .onReceive(NotificationCenter.default.publisher(for: .mdailyFocusSearch)) { _ in
+            withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                showSearchField = true
+            }
             isSearchFocused = true
         }
         .sheet(isPresented: $showCustomTimeSheet) {
@@ -121,218 +130,130 @@ public struct DashboardView: View {
         }
     }
 
-    // MARK: - Header
+    // MARK: - Minimalist Header + Search Trigger
 
     private var headerSection: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(isEnglish ? "Cashflow" : "Thu & Chi")
-                    .font(.system(size: isNarrowLayout ? 28 : 34, weight: .semibold))
-                    .tracking(-0.37)
-                    .foregroundStyle(.primary)
-
-                Text(timeFilterMode.displayTitle(lang: store.language))
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(.secondary)
-            }
+        HStack(alignment: .center, spacing: 12) {
+            Text(isEnglish ? "Cashflow" : "Thu & Chi")
+                .font(.system(size: isNarrowLayout ? 28 : 34, weight: .semibold))
+                .tracking(-0.37)
+                .foregroundStyle(.primary)
 
             Spacer()
 
-            Text("\(transactions.count) \(isEnglish ? "items" : "mục")")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-                .background(Color.mdailyParchment, in: Capsule())
-        }
-    }
-
-    // MARK: - Balance Summary Strip
-
-    private var balanceSummaryStrip: some View {
-        Group {
-            if isNarrowLayout {
-                VStack(alignment: .leading, spacing: 12) {
-                    netBalanceBlock
-                    Divider().overlay(Color.mdailyHairline)
-                    HStack(spacing: 12) {
-                        incomeStatBlock
-                        Spacer(minLength: 8)
-                        expenseStatBlock
+            Button {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                    if showSearchField && searchText.isEmpty {
+                        showSearchField = false
+                        isSearchFocused = false
+                    } else {
+                        showSearchField = true
+                        isSearchFocused = true
                     }
                 }
-            } else {
-                HStack(spacing: 20) {
-                    netBalanceBlock
-                    Spacer(minLength: 16)
-                    Divider().frame(height: 36).overlay(Color.mdailyHairline)
-                    incomeStatBlock
-                    Divider().frame(height: 36).overlay(Color.mdailyHairline)
-                    expenseStatBlock
-                }
+            } label: {
+                Image(systemName: showSearchField ? "xmark" : "magnifyingglass")
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(width: 34, height: 34)
             }
+            .buttonBorderShape(.circle)
+            .mdailyGlassButton(prominent: false)
+            .accessibilityLabel(isEnglish ? "Search" : "Tìm kiếm")
         }
-        .padding(16)
-        .mdailyCard(cornerRadius: 18)
     }
 
-    private var netBalanceBlock: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(isEnglish ? "Net Balance" : "Số dư ròng")
-                .font(.system(size: 12, weight: .semibold))
+    private var inlineSearchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
 
-            let prefix = netBalance > 0 ? "+" : (netBalance < 0 ? "−" : "")
-            Text("\(prefix)\(store.formatCurrency(abs(netBalance)))")
-                .font(.system(size: isNarrowLayout ? 26 : 28, weight: .semibold))
-                .tracking(-0.4)
-                .monospacedDigit()
-                .foregroundStyle(netBalance >= 0 ? Color.mdailyIncomeGreen : (colorScheme == .dark ? Color.white : Color(red: 0.114, green: 0.114, blue: 0.122)))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+            TextField(
+                isEnglish ? "Search…" : "Tìm kiếm…",
+                text: $searchText
+            )
+            .textFieldStyle(.plain)
+            .font(.system(size: 14, weight: .regular))
+            .focused($isSearchFocused)
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+            }
         }
+        .padding(.horizontal, 14)
+        .frame(height: 38)
+        .mdailyGlassPill(interactive: true)
     }
 
-    private var incomeStatBlock: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Label {
-                Text(isEnglish ? "Income" : "Thu nhập")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(.secondary)
-            } icon: {
-                Image(systemName: "arrow.down.left")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.mdailyIncomeGreen)
-            }
+    // MARK: - Single-Line Compact Balance Strip
+
+    private var balanceSummaryStrip: some View {
+        let netPrefix = netBalance > 0 ? "+" : (netBalance < 0 ? "−" : "")
+
+        return HStack(spacing: 8) {
+            Text("\(netPrefix)\(store.formatCurrency(abs(netBalance)))")
+                .font(.system(size: 15, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(netBalance >= 0 ? Color.mdailyIncomeGreen : Color.mdailyInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            Text("·")
+                .foregroundStyle(.tertiary)
 
             Text("+\(store.formatCurrency(totalIncome))")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(Color.mdailyIncomeGreen)
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
-        }
-    }
+                .minimumScaleFactor(0.7)
 
-    private var expenseStatBlock: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Label {
-                Text(isEnglish ? "Expense" : "Chi tiêu")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(.secondary)
-            } icon: {
-                Image(systemName: "arrow.up.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
-            }
+            Text("·")
+                .foregroundStyle(.tertiary)
 
             Text("−\(store.formatCurrency(totalExpense))")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .monospacedDigit()
-                .foregroundStyle(colorScheme == .dark ? Color.white : Color(red: 0.114, green: 0.114, blue: 0.122))
+                .foregroundStyle(Color.mdailyInk)
                 .lineLimit(1)
-                .minimumScaleFactor(0.75)
+                .minimumScaleFactor(0.7)
+
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .mdailyGlassPill(interactive: false)
     }
 
-    // MARK: - Unified Filter & Search Toolbar
+    // MARK: - Single Horizontal Filter Row
 
-    private var filterAndSearchToolbar: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Search + View Mode Toggle
-            HStack(spacing: 10) {
+    private var filterToolbarRow: some View {
+        MDailyGlassContainer(spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary)
-
-                    TextField(
-                        isEnglish ? "Search notes, categories, amounts…" : "Tìm ghi chú, danh mục, số tiền…",
-                        text: $searchText
-                    )
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14, weight: .regular))
-                    .focused($isSearchFocused)
-
-                    if !searchText.isEmpty {
-                        Button {
-                            searchText = ""
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.tertiary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, 14)
-                .frame(height: 40)
-                .background(Color.mdailyCardSurface, in: Capsule())
-                .overlay(
-                    Capsule().strokeBorder(Color.mdailyHairline, lineWidth: 1)
-                )
-
-                viewModeToggle
-            }
-
-            // Kind segmented pill + Time Menu + Category Menu
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
-                    kindSegmentedControl
-                    Spacer(minLength: 6)
+                    kindFilterMenu
                     timeFilterMenu
                     categoryFilterMenu
+                    viewModeToggle
                 }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    kindSegmentedControl
-                    HStack(spacing: 8) {
-                        timeFilterMenu
-                        categoryFilterMenu
-                        Spacer(minLength: 0)
-                    }
-                }
+                .padding(.vertical, 2)
             }
         }
     }
 
-    private var viewModeToggle: some View {
-        HStack(spacing: 2) {
-            ForEach(DashboardViewMode.allCases) { mode in
-                let isSelected = store.dashboardViewMode == mode
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        store.dashboardViewMode = mode
-                    }
-                } label: {
-                    Image(systemName: mode == .waterfall ? "square.grid.2x2" : "list.bullet")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(isSelected ? Color.white : Color.primary)
-                        .frame(width: 34, height: 32)
-                        .background(
-                            isSelected ? Color.mdailyActionBlue : Color.clear,
-                            in: Capsule()
-                        )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(mode == .waterfall ? (isEnglish ? "Card Grid" : "Thẻ") : (isEnglish ? "Compact List" : "Danh sách"))
-            }
-        }
-        .padding(4)
-        .background(Color.mdailyCardSurface, in: Capsule())
-        .overlay(
-            Capsule().strokeBorder(Color.mdailyHairline, lineWidth: 1)
-        )
-    }
-
-    private var kindSegmentedControl: some View {
-        HStack(spacing: 3) {
+    private var kindFilterMenu: some View {
+        Menu {
             ForEach(TransactionKindFilter.allCases) { filter in
-                let isSelected = kindFilter == filter
                 Button {
                     withAnimation(.easeInOut(duration: 0.18)) {
                         kindFilter = filter
-                        // Clear incompatible category filter if switching kind
                         if categoryFilter != "all",
                            let cat = store.categories.first(where: { $0.id == categoryFilter }),
                            (filter == .expense && cat.kind != .expense) || (filter == .income && cat.kind != .income) {
@@ -340,24 +261,31 @@ public struct DashboardView: View {
                         }
                     }
                 } label: {
-                    Text(filter.title(lang: store.language))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(isSelected ? Color.white : Color.primary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            isSelected ? Color.mdailyActionBlue : Color.clear,
-                            in: Capsule()
-                        )
+                    HStack {
+                        Text(filter.title(lang: store.language))
+                        if kindFilter == filter {
+                            Image(systemName: "checkmark")
+                        }
+                    }
                 }
-                .buttonStyle(.plain)
             }
+        } label: {
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(kindFilter == .income ? Color.mdailyIncomeGreen : Color.mdailyActionBlue)
+                    .frame(width: 7, height: 7)
+                Text(kindFilter.title(lang: store.language))
+                    .font(.system(size: 13, weight: .medium))
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .mdailyGlassPill(interactive: true)
         }
-        .padding(3)
-        .background(Color.mdailyCardSurface, in: Capsule())
-        .overlay(
-            Capsule().strokeBorder(Color.mdailyHairline, lineWidth: 1)
-        )
+        .buttonStyle(.plain)
     }
 
     private var timeFilterMenu: some View {
@@ -380,7 +308,7 @@ public struct DashboardView: View {
             Button {
                 showCustomTimeSheet = true
             } label: {
-                Label(isEnglish ? "Custom Date / Range…" : "Tuỳ chọn ngày / khoảng…", systemImage: "calendar.badge.clock")
+                Label(isEnglish ? "Custom…" : "Tuỳ chọn…", systemImage: "calendar.badge.clock")
             }
         } label: {
             HStack(spacing: 5) {
@@ -389,7 +317,6 @@ public struct DashboardView: View {
                     .foregroundStyle(Color.mdailyActionBlue)
                 Text(timeFilterMode.displayTitle(lang: store.language))
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 10, weight: .semibold))
@@ -397,17 +324,14 @@ public struct DashboardView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
-            .background(Color.mdailyCardSurface, in: Capsule())
-            .overlay(
-                Capsule().strokeBorder(Color.mdailyHairline, lineWidth: 1)
-            )
+            .mdailyGlassPill(interactive: true)
         }
         .buttonStyle(.plain)
     }
 
     private var activeCategoryTitle: String {
         if categoryFilter == "all" {
-            return isEnglish ? "All Categories" : "Tất cả danh mục"
+            return isEnglish ? "Category" : "Danh mục"
         }
         return store.categories.first(where: { $0.id == categoryFilter })?.localizedLabel(lang: store.language) ?? categoryFilter
     }
@@ -421,7 +345,7 @@ public struct DashboardView: View {
                 categoryFilter = "all"
             } label: {
                 HStack {
-                    Text(isEnglish ? "All Categories" : "Tất cả danh mục")
+                    Text(isEnglish ? "All" : "Tất cả")
                     if categoryFilter == "all" {
                         Image(systemName: "checkmark")
                     }
@@ -429,7 +353,7 @@ public struct DashboardView: View {
             }
 
             if kindFilter != .income && !expenseCats.isEmpty {
-                Section(isEnglish ? "Expenses" : "Chi tiêu") {
+                Section(isEnglish ? "Expense" : "Chi tiêu") {
                     ForEach(expenseCats) { cat in
                         Button {
                             categoryFilter = cat.id
@@ -468,7 +392,6 @@ public struct DashboardView: View {
                     .foregroundStyle(Color.mdailyActionBlue)
                 Text(activeCategoryTitle)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 Image(systemName: "chevron.down")
                     .font(.system(size: 10, weight: .semibold))
@@ -476,12 +399,27 @@ public struct DashboardView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
-            .background(Color.mdailyCardSurface, in: Capsule())
-            .overlay(
-                Capsule().strokeBorder(Color.mdailyHairline, lineWidth: 1)
-            )
+            .mdailyGlassPill(interactive: true)
         }
         .buttonStyle(.plain)
+    }
+
+    private var viewModeToggle: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                store.dashboardViewMode = store.dashboardViewMode == .waterfall ? .list : .waterfall
+            }
+        } label: {
+            Image(systemName: store.dashboardViewMode == .waterfall ? "square.grid.2x2" : "list.bullet")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.mdailyActionBlue)
+                .frame(width: 32, height: 32)
+        }
+        .buttonBorderShape(.circle)
+        .mdailyGlassButton(prominent: false)
+        .accessibilityLabel(store.dashboardViewMode == .waterfall
+                            ? (isEnglish ? "Switch to List" : "Chuyển sang Danh sách")
+                            : (isEnglish ? "Switch to Cards" : "Chuyển sang Thẻ"))
     }
 
     // MARK: - Content (Waterfall vs List)
@@ -498,30 +436,17 @@ public struct DashboardView: View {
     }
 
     private var emptyStateView: some View {
-        VStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(Color.mdailyParchment)
-                    .frame(width: 72, height: 72)
-                Image(systemName: "tray")
-                    .font(.system(size: 28, weight: .regular))
-                    .foregroundStyle(Color.mdailyActionBlue)
-            }
+        VStack(spacing: 12) {
+            Image(systemName: "tray")
+                .font(.system(size: 28, weight: .regular))
+                .foregroundStyle(Color.mdailyActionBlue)
 
-            Text(isEnglish ? "No matching transactions" : "Chưa có giao dịch phù hợp")
-                .font(.system(size: 17, weight: .semibold))
+            Text(isEnglish ? "No transactions" : "Chưa có giao dịch")
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.primary)
-
-            Text(isEnglish
-                 ? "Add a new expense or income, or adjust your active filters."
-                 : "Thêm khoản thu chi mới hoặc thay đổi bộ lọc hiện tại.")
-                .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 320)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 56)
+        .padding(.vertical, 52)
         .mdailyCard(cornerRadius: 18)
     }
 
@@ -693,7 +618,7 @@ public struct DashboardView: View {
                             if index < group.items.count - 1 {
                                 Divider()
                                     .overlay(Color.mdailyHairline)
-                                    .padding(.leading, 64)
+                                    .padding(.leading, 62)
                             }
                         }
                     }
@@ -772,20 +697,14 @@ private struct CustomTimeFilterSheet: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // Header
             HStack {
-                Text(isEnglish ? "Custom Time Filter" : "Bộ lọc thời gian")
+                Text(isEnglish ? "Time Filter" : "Thời gian")
                     .font(.system(size: 18, weight: .semibold))
                 Spacer()
-                Button {
+                MDailyCloseButton {
                     dismiss()
                     onClose()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 22))
-                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal, 20)
             .padding(.top, 18)
@@ -832,13 +751,13 @@ private struct CustomTimeFilterSheet: View {
                                     Button {
                                         selectedMonth = month
                                     } label: {
-                                        Text(isEnglish ? "Month \(month)" : "Tháng \(month)")
+                                        Text(isEnglish ? "M\(month)" : "Th \(month)")
                                             .font(.system(size: 13, weight: .semibold))
                                             .foregroundStyle(isSelected ? Color.white : Color.primary)
                                             .frame(maxWidth: .infinity)
-                                            .frame(height: 40)
+                                            .frame(height: 38)
                                             .background(
-                                                isSelected ? Color.mdailyActionBlue : Color.mdailyParchment,
+                                                isSelected ? Color.mdailyActionBlue : Color.clear,
                                                 in: RoundedRectangle(cornerRadius: 11, style: .continuous)
                                             )
                                     }
@@ -860,9 +779,9 @@ private struct CustomTimeFilterSheet: View {
                                         .font(.system(size: 15, weight: .semibold))
                                         .foregroundStyle(isSelected ? Color.white : Color.primary)
                                         .frame(maxWidth: .infinity)
-                                        .frame(height: 44)
+                                        .frame(height: 42)
                                         .background(
-                                            isSelected ? Color.mdailyActionBlue : Color.mdailyParchment,
+                                            isSelected ? Color.mdailyActionBlue : Color.clear,
                                             in: RoundedRectangle(cornerRadius: 11, style: .continuous)
                                         )
                                 }
@@ -875,13 +794,13 @@ private struct CustomTimeFilterSheet: View {
                     case .dateRange:
                         VStack(spacing: 14) {
                             DatePicker(
-                                isEnglish ? "From" : "Từ ngày",
+                                isEnglish ? "From" : "Từ",
                                 selection: $fromDate,
                                 displayedComponents: [.date]
                             )
                             Divider().overlay(Color.mdailyHairline)
                             DatePicker(
-                                isEnglish ? "To" : "Đến ngày",
+                                isEnglish ? "To" : "Đến",
                                 selection: $toDate,
                                 displayedComponents: [.date]
                             )
@@ -893,30 +812,32 @@ private struct CustomTimeFilterSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 6)
             }
+            .mdailySoftScrollEdges()
 
-            VStack(spacing: 10) {
-                Button {
-                    applyFilter()
-                } label: {
-                    Text(isEnglish ? "Apply Filter" : "Áp dụng bộ lọc")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.mdailyActionBlue, in: Capsule())
-                }
-                .buttonStyle(MDailyPressButtonStyle())
-
+            HStack(spacing: 10) {
                 Button {
                     currentMode = .preset(.all)
                     dismiss()
                     onClose()
                 } label: {
-                    Text(isEnglish ? "Reset to All Time" : "Đặt lại tất cả thời gian")
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundStyle(.secondary)
+                    Text(isEnglish ? "Reset" : "Đặt lại")
+                        .font(.system(size: 15, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
                 }
-                .buttonStyle(.plain)
+                .buttonBorderShape(.capsule)
+                .mdailyGlassButton(prominent: false)
+
+                Button {
+                    applyFilter()
+                } label: {
+                    Text(isEnglish ? "Apply" : "Áp dụng")
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
+                }
+                .buttonBorderShape(.capsule)
+                .mdailyGlassButton(prominent: true)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 18)

@@ -336,7 +336,7 @@ public final class FinanceStore: ObservableObject {
         UserDefaults.standard.set(enabled, forKey: aiChatKey)
     }
 
-    // MARK: - Sync & JSON Backup
+    // MARK: - Bonjour LAN Sync
     public var currentDeviceName: String {
         #if os(macOS)
         return Host.current().localizedName ?? ProcessInfo.processInfo.hostName
@@ -414,39 +414,6 @@ public final class FinanceStore: ObservableObject {
             deleted: deleted,
             total: transactions.count
         )
-    }
-
-    public func exportJSONData() throws -> Data {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        encoder.dateEncodingStrategy = .iso8601
-        return try encoder.encode(exportSyncPayload())
-    }
-
-    @discardableResult
-    public func importJSONData(_ data: Data) throws -> SyncMergeStats {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        if let payload = try? decoder.decode(SyncPayload.self, from: data) {
-            return mergeSyncPayload(payload)
-        }
-
-        let fallbackDecoder = JSONDecoder()
-        if let payload = try? fallbackDecoder.decode(SyncPayload.self, from: data) {
-            return mergeSyncPayload(payload)
-        }
-
-        if let rawTransactions = try? decoder.decode([Transaction].self, from: data) {
-            let synthetic = SyncPayload(
-                deviceName: "Imported Backup",
-                transactions: rawTransactions,
-                categories: []
-            )
-            return mergeSyncPayload(synthetic)
-        }
-
-        let payload = try decoder.decode(SyncPayload.self, from: data)
-        return mergeSyncPayload(payload)
     }
 
     // MARK: - Internal Helpers

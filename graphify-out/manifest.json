@@ -6,178 +6,178 @@
     "semantic_hash": "a4d2bb122c9b2f3b5941abb7a7c133e6"
   },
   "MDaily/App/MDailyApp.swift": {
-    "mtime": 1795630662.9805722,
-    "seen": 1795631385.22728,
+    "mtime": 1795631793.39732,
+    "seen": 1795633100.335868,
     "ast_hash": "cd0194ce9a0748b9ddc45f473881c589",
     "semantic_hash": "cd0194ce9a0748b9ddc45f473881c589"
   },
   "MDaily/Assets.xcassets/AccentColor.colorset/Contents.json": {
-    "mtime": 1795630573.8029807,
-    "seen": 1795631385.2272818,
+    "mtime": 1795631793.3975322,
+    "seen": 1795633100.335957,
     "ast_hash": "4ff761c86a3778e0686341a2b1076ac6",
     "semantic_hash": "4ff761c86a3778e0686341a2b1076ac6"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/Contents.json": {
-    "mtime": 1795630574.9543684,
-    "seen": 1795631385.227283,
+    "mtime": 1795631793.4003057,
+    "seen": 1795633100.335961,
     "ast_hash": "10f7b5d466984d9302ab8a15c296eea2",
     "semantic_hash": "10f7b5d466984d9302ab8a15c296eea2"
   },
   "MDaily/Assets.xcassets/Contents.json": {
-    "mtime": 1795630572.9508023,
-    "seen": 1795631385.227283,
+    "mtime": 1795631793.4004166,
+    "seen": 1795633100.335964,
     "ast_hash": "9deb2ada1cc834bbebf8bbad9c8978a1",
     "semantic_hash": "9deb2ada1cc834bbebf8bbad9c8978a1"
   },
   "MDaily/Assets.xcassets/Logo.imageset/Contents.json": {
-    "mtime": 1795630574.351108,
-    "seen": 1795631385.227284,
+    "mtime": 1795631793.4006536,
+    "seen": 1795633100.336289,
     "ast_hash": "18f7781efe1895d03fb462a2b2743446",
     "semantic_hash": "18f7781efe1895d03fb462a2b2743446"
   },
   "MDaily/DesignSystem/GlassSurfaceModifiers.swift": {
-    "mtime": 1795630795.6179862,
-    "seen": 1795631385.227285,
-    "ast_hash": "48f4e15a0d3c22225915a6fc1fe3e60c",
-    "semantic_hash": "48f4e15a0d3c22225915a6fc1fe3e60c"
+    "mtime": 1795632745.959462,
+    "seen": 1795633100.336309,
+    "ast_hash": "aec172398e4adc63b1d24db7af245f4a",
+    "semantic_hash": ""
   },
   "MDaily/DesignSystem/MDailyTheme.swift": {
-    "mtime": 1795630611.1689918,
-    "seen": 1795631385.227285,
-    "ast_hash": "1692ed3060e6f3dc235bc3bd64280c05",
-    "semantic_hash": "1692ed3060e6f3dc235bc3bd64280c05"
+    "mtime": 1795632746.7763817,
+    "seen": 1795633100.336313,
+    "ast_hash": "e831d9484b234101c9f3d81e8aea444d",
+    "semantic_hash": ""
   },
   "MDaily/Models/CategoryItem.swift": {
-    "mtime": 1795630621.7866032,
-    "seen": 1795631385.227286,
+    "mtime": 1795631793.4035592,
+    "seen": 1795633100.3363159,
     "ast_hash": "84a01c272d7e900006b7d2c706dd9a27",
     "semantic_hash": "84a01c272d7e900006b7d2c706dd9a27"
   },
   "MDaily/Models/RecurringTransaction.swift": {
-    "mtime": 1795630622.3679507,
-    "seen": 1795631385.227287,
+    "mtime": 1795631793.403674,
+    "seen": 1795633100.336318,
     "ast_hash": "5f0d1311473d515f874ffed6e645c5ba",
     "semantic_hash": "5f0d1311473d515f874ffed6e645c5ba"
   },
   "MDaily/Models/TimeFilter.swift": {
-    "mtime": 1795630623.2291632,
-    "seen": 1795631385.227287,
+    "mtime": 1795631793.4038846,
+    "seen": 1795633100.33632,
     "ast_hash": "ea33792af1ba4cd39fdd82754eac6ee0",
     "semantic_hash": "ea33792af1ba4cd39fdd82754eac6ee0"
   },
   "MDaily/Models/Transaction.swift": {
-    "mtime": 1795630621.1442828,
-    "seen": 1795631385.227288,
+    "mtime": 1795631793.4040353,
+    "seen": 1795633100.336323,
     "ast_hash": "b5ec03f7c718229b0f4161ccf4a5589d",
     "semantic_hash": "b5ec03f7c718229b0f4161ccf4a5589d"
   },
   "MDaily/Services/AFMService.swift": {
-    "mtime": 1795630719.7450006,
-    "seen": 1795631385.2272892,
+    "mtime": 1795631793.404283,
+    "seen": 1795633100.3363252,
     "ast_hash": "e6fba4eca633ff03c21ca4fa9fb2bbfa",
     "semantic_hash": "e6fba4eca633ff03c21ca4fa9fb2bbfa"
   },
   "MDaily/Services/BonjourSyncService.swift": {
-    "mtime": 1795630781.5253205,
-    "seen": 1795631385.2272892,
+    "mtime": 1795631793.4044573,
+    "seen": 1795633100.336328,
     "ast_hash": "9c96435a0fa251726c86d7dee45cfff4",
     "semantic_hash": "9c96435a0fa251726c86d7dee45cfff4"
   },
   "MDaily/Services/DevicePostureService.swift": {
-    "mtime": 1795630696.6994398,
-    "seen": 1795631385.2272902,
-    "ast_hash": "6d38bf64760ceb6120f33b2283ba2f6d",
-    "semantic_hash": "6d38bf64760ceb6120f33b2283ba2f6d"
+    "mtime": 1795632712.7466242,
+    "seen": 1795633100.33633,
+    "ast_hash": "9f7362cec89b501fab0ff194241ed9e4",
+    "semantic_hash": ""
   },
   "MDaily/Services/FinanceStore.swift": {
-    "mtime": 1795630689.828072,
-    "seen": 1795631385.2272902,
-    "ast_hash": "a3ba7ee722690f012db3ee9a50c457c3",
-    "semantic_hash": "a3ba7ee722690f012db3ee9a50c457c3"
+    "mtime": 1795632714.7604048,
+    "seen": 1795633100.336332,
+    "ast_hash": "9e4e9b408463e47195adbeebee8c0bf7",
+    "semantic_hash": ""
   },
   "MDaily/Services/LocalizationService.swift": {
-    "mtime": 1795630623.9868543,
-    "seen": 1795631385.2272909,
-    "ast_hash": "56a026ff175754cc6d4bee9891697148",
-    "semantic_hash": "56a026ff175754cc6d4bee9891697148"
+    "mtime": 1795632717.0418434,
+    "seen": 1795633100.336334,
+    "ast_hash": "2e84bee436428f6b7e495f6f17a83db0",
+    "semantic_hash": ""
   },
   "MDaily/Services/NotificationService.swift": {
-    "mtime": 1795630625.3311565,
-    "seen": 1795631385.2272909,
+    "mtime": 1795631793.4051957,
+    "seen": 1795633100.3363369,
     "ast_hash": "5d7f453b3986f65b1256f803c4824f1d",
     "semantic_hash": "5d7f453b3986f65b1256f803c4824f1d"
   },
   "MDaily/Views/Assistant/ChatbotView.swift": {
-    "mtime": 1795630732.2814457,
-    "seen": 1795631385.2272918,
-    "ast_hash": "720a00095992ee61897f06af5f8e41a6",
-    "semantic_hash": "720a00095992ee61897f06af5f8e41a6"
+    "mtime": 1795632750.0674186,
+    "seen": 1795633100.336339,
+    "ast_hash": "39ca475d63e66518293b7dc66e8563e7",
+    "semantic_hash": ""
   },
   "MDaily/Views/Dashboard/DashboardView.swift": {
-    "mtime": 1795630756.053035,
-    "seen": 1795631385.227293,
-    "ast_hash": "4f78f83aea13df20f2ebd8bbd8b07f2f",
-    "semantic_hash": "4f78f83aea13df20f2ebd8bbd8b07f2f"
+    "mtime": 1795632871.2896829,
+    "seen": 1795633100.336341,
+    "ast_hash": "6257d4d925c55f7bb3b9b5d52ab82dc5",
+    "semantic_hash": ""
   },
   "MDaily/Views/Dashboard/TransactionCardViews.swift": {
-    "mtime": 1795630717.917631,
-    "seen": 1795631385.227293,
-    "ast_hash": "d4d1ee8e2cdad4b8104d8b251514a06d",
-    "semantic_hash": "d4d1ee8e2cdad4b8104d8b251514a06d"
+    "mtime": 1795632870.349147,
+    "seen": 1795633100.336343,
+    "ast_hash": "750a6f55fca96e775a4026e65bced712",
+    "semantic_hash": ""
   },
   "MDaily/Views/Navigation/AdaptiveRootView.swift": {
-    "mtime": 1795630688.2884977,
-    "seen": 1795631385.227294,
-    "ast_hash": "35faad6b3e8b1d6e1805074432c6869a",
-    "semantic_hash": "35faad6b3e8b1d6e1805074432c6869a"
+    "mtime": 1795632749.0221872,
+    "seen": 1795633100.3363452,
+    "ast_hash": "daca612781e37bd15d222631b9cac2d5",
+    "semantic_hash": ""
   },
   "MDaily/Views/Navigation/DuoRightRailShell.swift": {
-    "mtime": 1795630686.8766766,
-    "seen": 1795631385.227294,
-    "ast_hash": "63b37b6a8928c07241cdaef5bb251008",
-    "semantic_hash": "63b37b6a8928c07241cdaef5bb251008"
+    "mtime": 1795632747.5576234,
+    "seen": 1795633100.3363469,
+    "ast_hash": "b7ccff915cba0cc1809b857590cb3641",
+    "semantic_hash": ""
   },
   "MDaily/Views/Navigation/PhoneBottomGlassDock.swift": {
-    "mtime": 1795630661.3184233,
-    "seen": 1795631385.227295,
-    "ast_hash": "f24ce8d0abcd04c7c17c80b015fdffa2",
-    "semantic_hash": "f24ce8d0abcd04c7c17c80b015fdffa2"
+    "mtime": 1795632748.340849,
+    "seen": 1795633100.336349,
+    "ast_hash": "611caf047e2afea9acdfd84a5e13c334",
+    "semantic_hash": ""
   },
   "MDaily/Views/Reports/ReportsView.swift": {
-    "mtime": 1795630731.4495778,
-    "seen": 1795631385.227296,
-    "ast_hash": "f9f7132e64b0e2f3298e6c774fd268ec",
-    "semantic_hash": "f9f7132e64b0e2f3298e6c774fd268ec"
+    "mtime": 1795632749.3356712,
+    "seen": 1795633100.336351,
+    "ast_hash": "98e94cd5dc8af2a4d37bc99fec736a3b",
+    "semantic_hash": ""
   },
   "MDaily/Views/Settings/BonjourSyncView.swift": {
-    "mtime": 1795630706.7030895,
-    "seen": 1795631385.227296,
-    "ast_hash": "9967fe8435d8a5df68e98e01ae941222",
-    "semantic_hash": "9967fe8435d8a5df68e98e01ae941222"
+    "mtime": 1795632712.753743,
+    "seen": 1795633100.336352,
+    "ast_hash": "50f5b1440e4bf20f19a0010412b10e60",
+    "semantic_hash": ""
   },
   "MDaily/Views/Settings/SettingsView.swift": {
-    "mtime": 1795630741.9149482,
-    "seen": 1795631385.227297,
-    "ast_hash": "bdb80b299e48c9cd41a52f5c48c50235",
-    "semantic_hash": "bdb80b299e48c9cd41a52f5c48c50235"
+    "mtime": 1795632713.752097,
+    "seen": 1795633100.336354,
+    "ast_hash": "16baddbcf747f7ffd906703b330e169b",
+    "semantic_hash": ""
   },
   "MDaily/Views/Transactions/AddTransactionView.swift": {
-    "mtime": 1795630826.7283232,
-    "seen": 1795631385.227297,
-    "ast_hash": "7910191cc1ddbc1cce532d4558037cca",
-    "semantic_hash": "7910191cc1ddbc1cce532d4558037cca"
+    "mtime": 1795632872.388924,
+    "seen": 1795633100.3363562,
+    "ast_hash": "d07f7c79948174257766956f57dd2414",
+    "semantic_hash": ""
   },
   "MDaily/Views/Transactions/QuickCaptureView.swift": {
-    "mtime": 1795630829.8236089,
-    "seen": 1795631385.227298,
-    "ast_hash": "1ad0d00d1f25346f0dd158844119f72f",
-    "semantic_hash": "1ad0d00d1f25346f0dd158844119f72f"
+    "mtime": 1795632987.2369492,
+    "seen": 1795633100.336357,
+    "ast_hash": "32fa00339f15a530771cefd56aedf907",
+    "semantic_hash": ""
   },
   "MDaily/Views/Transactions/TransactionDetailView.swift": {
-    "mtime": 1795630757.3923962,
-    "seen": 1795631385.227298,
-    "ast_hash": "3ff3689c115e6f9955d7b22f3a816716",
-    "semantic_hash": "3ff3689c115e6f9955d7b22f3a816716"
+    "mtime": 1795632873.2382078,
+    "seen": 1795633100.33636,
+    "ast_hash": "cb3e147536e94db47b8411e0beb75a70",
+    "semantic_hash": ""
   },
   "md.icon/icon.json": {
     "mtime": 1795628690.623769,
@@ -192,8 +192,8 @@
     "semantic_hash": "9b1bde505a01daafb7e07263fe388bbe"
   },
   "README.md": {
-    "mtime": 1795630611.0935562,
-    "seen": 1795631385.2273002,
+    "mtime": 1795631793.4095519,
+    "seen": 1795633100.3363688,
     "ast_hash": "a32ea5d8de1656b09d2a12879e00f511",
     "semantic_hash": "a32ea5d8de1656b09d2a12879e00f511"
   },
@@ -204,74 +204,74 @@
     "semantic_hash": "d10e19726905d491804545b82e72df13"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png": {
-    "mtime": 1795630623.6613495,
-    "seen": 1795631385.2273011,
+    "mtime": 1795631793.397898,
+    "seen": 1795633100.336374,
     "ast_hash": "84ed87d5941737b6a8609139631814bf",
     "semantic_hash": "84ed87d5941737b6a8609139631814bf"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-128@1x.png": {
-    "mtime": 1795630623.6658027,
-    "seen": 1795631385.2273018,
+    "mtime": 1795631793.39834,
+    "seen": 1795633100.336376,
     "ast_hash": "a3461ce107d08e6020fb72269d854a34",
     "semantic_hash": "a3461ce107d08e6020fb72269d854a34"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-128@2x.png": {
-    "mtime": 1795630623.6684296,
-    "seen": 1795631385.2273018,
+    "mtime": 1795631793.3985114,
+    "seen": 1795633100.336378,
     "ast_hash": "b6a6dee7a060e3961990172308178827",
     "semantic_hash": "b6a6dee7a060e3961990172308178827"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-16@1x.png": {
-    "mtime": 1795630623.6629627,
-    "seen": 1795631385.227303,
+    "mtime": 1795631793.3986201,
+    "seen": 1795633100.33638,
     "ast_hash": "4cd420113dd15d35278a870c7078e0f6",
     "semantic_hash": "4cd420113dd15d35278a870c7078e0f6"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-16@2x.png": {
-    "mtime": 1795630623.6637084,
-    "seen": 1795631385.227303,
+    "mtime": 1795631793.3987398,
+    "seen": 1795633100.336382,
     "ast_hash": "3cb3ee52645e021058179f8abff3801a",
     "semantic_hash": "3cb3ee52645e021058179f8abff3801a"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-256@1x.png": {
-    "mtime": 1795630623.6701956,
-    "seen": 1795631385.227304,
+    "mtime": 1795631793.3988786,
+    "seen": 1795633100.336384,
     "ast_hash": "b6a6dee7a060e3961990172308178827",
     "semantic_hash": "b6a6dee7a060e3961990172308178827"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-256@2x.png": {
-    "mtime": 1795630623.6782432,
-    "seen": 1795631385.227304,
+    "mtime": 1795631793.3990636,
+    "seen": 1795633100.336386,
     "ast_hash": "7d4cd7bc578f77c84df9b5fec2aca454",
     "semantic_hash": "7d4cd7bc578f77c84df9b5fec2aca454"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-32@1x.png": {
-    "mtime": 1795630623.663858,
-    "seen": 1795631385.227305,
+    "mtime": 1795631793.399175,
+    "seen": 1795633100.336388,
     "ast_hash": "3cb3ee52645e021058179f8abff3801a",
     "semantic_hash": "3cb3ee52645e021058179f8abff3801a"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-32@2x.png": {
-    "mtime": 1795630623.6646585,
-    "seen": 1795631385.227306,
+    "mtime": 1795631793.3992872,
+    "seen": 1795633100.336389,
     "ast_hash": "da0f025132e2ceead6e3f8f4feaf3e22",
     "semantic_hash": "da0f025132e2ceead6e3f8f4feaf3e22"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-512@1x.png": {
-    "mtime": 1795630623.6851206,
-    "seen": 1795631385.227307,
+    "mtime": 1795631793.399468,
+    "seen": 1795633100.336391,
     "ast_hash": "7d4cd7bc578f77c84df9b5fec2aca454",
     "semantic_hash": "7d4cd7bc578f77c84df9b5fec2aca454"
   },
   "MDaily/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png": {
-    "mtime": 1795630623.7108495,
-    "seen": 1795631385.227307,
+    "mtime": 1795631793.3997545,
+    "seen": 1795633100.336394,
     "ast_hash": "84ed87d5941737b6a8609139631814bf",
     "semantic_hash": "84ed87d5941737b6a8609139631814bf"
   },
   "MDaily/Assets.xcassets/Logo.imageset/MDaily.png": {
-    "mtime": 1795630611.803806,
-    "seen": 1795631385.227308,
+    "mtime": 1795631793.4008112,
+    "seen": 1795633100.336395,
     "ast_hash": "d10e19726905d491804545b82e72df13",
     "semantic_hash": "d10e19726905d491804545b82e72df13"
   },
